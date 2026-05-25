@@ -1,0 +1,594 @@
+/**
+ * ============================================================================
+ * ComfyUI-Feixue-UniversalMonitor - Design Tokens (CSS Custom Properties)
+ * ============================================================================
+ *
+ * Cyberpunk Dark Theme Design System for the UniversalMonitor UI.
+ *
+ * Design philosophy:
+ * - Deep space black backgrounds with neon glow accents
+ * - Glassmorphism panels with backdrop blur
+ * - Pixel-perfect spacing and alignment grid
+ * - WCAG 2.1 AA compliant color contrast ratios
+ *
+ * Theme variants (switch via [data-theme] attribute):
+ *   1. cyberpunk-dark  (default) -- #00d4ff primary blue
+ *   2. neon-purple     -- #a855f7 primary purple
+ *   3. matrix-green    -- #00ff41 primary green
+ *
+ * All custom properties use the --fxm- prefix to avoid collisions with host
+ * application (ComfyUI) styles or third-party libraries.
+ *
+ * @author Feixue
+ * @version 1.0.0
+ * @license MIT
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. COLOR PALETTE (色彩系统)
+   ============================================================================ */
+
+:root {
+  /* ---- Primary Backgrounds ---- */
+  --fxm-bg-primary:      #0a0e17;   /* Deepest background - deep space black */
+  --fxm-bg-secondary:    #111827;   /* Secondary surface / cards */
+  --fxm-bg-tertiary:     #1a2332;   /* Tertiary elevated surfaces */
+  --fxm-bg-elevated:     #1e293b;   /* Elevated elements (dropdowns, popovers) */
+
+  /* ---- Accent Colors (Neon Glow) ---- */
+  --fxm-accent-blue:     #00d4ff;   /* Primary accent - electric cyan */
+  --fxm-accent-purple:   #a855f7;   /* Secondary accent - neon purple */
+  --fxm-accent-cyan:     #06b6d4;   /* Tertiary accent - sky cyan */
+  --fxm-accent-pink:     #ec4899;   /* Highlight accent - hot pink */
+
+  /* ---- Semantic Colors ---- */
+  --fxm-success:         #22c55e;   /* Normal/safe state - emerald green */
+  --fxm-warning:         #eab308;   /* Caution/medium load - amber yellow */
+  --fxm-danger:          #ef4444;   /* Critical/high load - danger red */
+  --fxm-info:            #3b82f6;   /* Informational - royal blue */
+
+  /* ---- Semantic Color Palettes (50-900 scale for gradients) ---- */
+  /* Success palette */
+  --fxm-success-50:  #e6fff0;
+  --fxm-success-100: #b3ffd9;
+  --fxm-success-200: #80ffc3;
+  --fxm-success-300: #4dffad;
+  --fxm-success-400: #1aff97;
+  --fxm-success-500: #22c55e;
+  --fxm-success-600: #16a34a;
+  --fxm-success-700: #15803d;
+  --fxm-success-800: #166534;
+  --fxm-success-900: #14532d;
+
+  /* Warning palette */
+  --fxm-warning-50:  #fffbeb;
+  --fxm-warning-100: #fef3c7;
+  --fxm-warning-200: #fde68a;
+  --fxm-warning-300: #fcd34d;
+  --fxm-warning-400: #fbbf24;
+  --fxm-warning-500: #eab308;
+  --fxm-warning-600: #ca8a04;
+  --fxm-warning-700: #a16207;
+  --fxm-warning-800: #854d0e;
+  --fxm-warning-900: #713f12;
+
+  /* Danger palette */
+  --fxm-danger-50:  #fef2f2;
+  --fxm-danger-100: #fee2e2;
+  --fxm-danger-200: #fecaca;
+  --fxm-danger-300: #fca5a5;
+  --fxm-danger-400: #f87171;
+  --fxm-danger-500: #ef4444;
+  --fxm-danger-600: #dc2626;
+  --fxm-danger-700: #b91c1c;
+  --fxm-danger-800: #991b1b;
+  --fxm-danger-900: #7f1d1d;
+
+  /* ---- Text Colors ---- */
+  --fxm-text-primary:   #f1f5f9;   /* Primary text on dark bg - contrast >= 12:1 */
+  --fxm-text-secondary: #94a3b8;   /* Secondary/muted text - contrast >= 4.6:1 */
+  --fxm-text-muted:     #64748b;   /* Disabled placeholder text */
+  --fxm-text-disabled:  #475569;   /* Fully disabled text */
+
+  /* ---- Background Opacity Variants ---- */
+  --fxm-bg-glass:       rgba(10, 14, 23, 0.75);         /* Glass panel background */
+  --fxm-bg-card:        rgba(255, 255, 255, 0.03);      /* Card background */
+  --fxm-bg-card-hover:  rgba(255, 255, 255, 0.06);      /* Card hover state */
+  --fxm-bg-input:       rgba(255, 255, 255, 0.05);      /* Input field bg */
+  --fxm-bg-overlay:     rgba(0, 0, 0, 0.6);              /* Modal overlay */
+
+  /* ---- Gradient Definitions ---- */
+  --fxm-gradient-primary:           linear-gradient(135deg, var(--fxm-accent-blue) 0%, var(--fxm-accent-purple) 100%);
+  --fxm-gradient-primary-reverse:   linear-gradient(135deg, var(--fxm-accent-purple) 0%, var(--fxm-accent-blue) 100%);
+  --fxm-gradient-primary-horizontal: linear-gradient(90deg, var(--fxm-accent-blue) 0%, var(--fxm-accent-purple) 100%);
+  --fxm-gradient-success:           linear-gradient(135deg, var(--fxm-success) 0%, var(--fxm-accent-cyan) 100%);
+  --fxm-gradient-warning:           linear-gradient(135deg, var(--fxm-warning) 0%, #f97316 100%);
+  --fxm-gradient-danger:            linear-gradient(135deg, var(--fxm-danger) 0%, #dc2626 100%);
+  --fxm-gradient-chart-fill:        linear-gradient(180deg, rgba(0, 212, 255, 0.25) 0%, transparent 100%);
+  --fxm-gradient-chart-fill-alt:    linear-gradient(180deg, rgba(168, 85, 247, 0.25) 0%, transparent 100%);
+
+  /* ---- Border System ---- */
+  --fxm-border-default:  rgba(255, 255, 255, 0.06);
+  --fxm-border-subtle:   rgba(255, 255, 255, 0.10);
+  --fxm-border-emphasis: rgba(255, 255, 255, 0.18);
+  --fxm-border-hover:    rgba(0, 212, 255, 0.35);
+  --fxm-border-focus:    rgba(0, 212, 255, 0.6);
+  --fxm-border-glass:    1px solid rgba(255, 255, 255, 0.08);
+
+  /* ============================================================================
+     2. TYPOGRAPHY SYSTEM (排版系统)
+     ============================================================================ */
+
+  /* ---- Font Families ---- */
+  --fxm-font-mono:   'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', 'Consolas', monospace;
+  --fxm-font-sans:   'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --fxm-font-display: 'Orbitron', 'Rajdhani', sans-serif;
+
+  /* ---- Font Size Scale (based on 1.25 ratio) ---- */
+  --fxm-font-size-xs:   0.625rem;    /* 10px  - micro labels */
+  --fxm-font-size-sm:   0.75rem;     /* 12px  - small text, units */
+  --fxm-font-size-base: 0.875rem;    /* 14px  - body text (base) */
+  --fxm-font-size-md:   1rem;        /* 16px  - medium text */
+  --fxm-font-size-lg:   1.125rem;    /* 18px  - large text */
+  --fxm-font-size-xl:   1.25rem;     /* 20px  - extra large */
+  --fxm-font-size-2xl:  1.5rem;      /* 24px  - headings */
+  --fxm-font-size-3xl:  1.875rem;    /* 30px  - display */
+  --fxm-font-size-4xl:  2.25rem;     /* 36px  - hero */
+
+  /* Special-purpose sizes */
+  --fxm-font-size-metric-value: 1.75rem;  /* 28px - metric card values */
+  --fxm-font-size-metric-label:  0.6875rem; /* 11px - metric card labels */
+  --fxm-font-size-unit:          0.75rem;   /* 12px - unit suffixes */
+
+  /* ---- Font Weight ---- */
+  --fxm-font-weight-normal:   400;
+  --fxm-font-weight-medium:   500;
+  --fxm-font-weight-semibold: 600;
+  --fxm-font-weight-bold:     700;
+
+  /* ---- Line Height ---- */
+  --fxm-line-height-tight:    1.15;
+  --fxm-line-height-snug:     1.25;
+  --fxm-line-height-normal:   1.5;
+  --fxm-line-height-relaxed:  1.625;
+
+  /* ---- Letter Spacing ---- */
+  --fxm-letter-spacing-tight:   -0.015em;
+  --fxm-letter-spacing-normal:  0;
+  --fxm-letter-spacing-wide:    0.025em;
+  --fxm-letter-spacing-label:   1px;
+  --fxm-letter-spacing-heading: 0.5px;
+
+  /* ============================================================================
+     3. SPACING SCALE (间距系统)
+     Based on 4px base grid
+     ============================================================================ */
+
+  --fxm-space-0:  0;
+  --fxm-space-1:  0.25rem;   /* 4px  */
+  --fxm-space-2:  0.5rem;    /* 8px  */
+  --fxm-space-3:  0.75rem;   /* 12px */
+  --fxm-space-4:  1rem;      /* 16px */
+  --fxm-space-5:  1.25rem;   /* 20px */
+  --fxm-space-6:  1.5rem;    /* 24px */
+  --fxm-space-8:  2rem;      /* 32px */
+  --fxm-space-10: 2.5rem;    /* 40px */
+  --fxm-space-12: 3rem;      /* 48px */
+  --fxm-space-16: 4rem;      /* 64px */
+
+  /* Component-specific spacing */
+  --fxm-spacing-card:     1rem;       /* Card internal padding */
+  --fxm-spacing-panel:    1.25rem;    /* Panel internal padding */
+  --fxm-spacing-grid-gap: 0.75rem;    /* Grid gap between items */
+
+  /* ============================================================================
+     4. BORDER RADIUS (圆角系统)
+     ============================================================================ */
+
+  --fxm-radius-none:  0;
+  --fxm-radius-sm:    4px;
+  --fxm-radius-md:    8px;
+  --fxm-radius-lg:    12px;
+  --fxm-radius-xl:    16px;
+  --fxm-radius-2xl:   24px;
+  --fxm-radius-full:  9999px;
+
+  /* Component-specific radii */
+  --fxm-radius-card:    12px;
+  --fxm-radius-button:  6px;
+  --fxm-radius-input:   8px;
+  --fxm-radius-panel:   16px;
+  --fxm-radius-tooltip: 8px;
+
+  /* ============================================================================
+     5. SHADOWS & GLOW EFFECTS (阴影/发光效果)
+     ============================================================================ */
+
+  /* ---- Elevation Shadows ---- */
+  --fxm-shadow-sm:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.15);
+  --fxm-shadow-md:
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  --fxm-shadow-lg:
+    0 10px 15px rgba(0, 0, 0, 0.4),
+    0 4px 6px rgba(0, 0, 0, 0.25);
+  --fxm-shadow-xl:
+    0 20px 25px rgba(0, 0, 0, 0.5),
+    0 10px 10px rgba(0, 0, 0, 0.3);
+  --fxm-shadow-none: none;
+
+  /* ---- Neon Glow Effects (Cyberpunk signature) ---- */
+  --fxm-glow-primary:
+    0 0 20px rgba(0, 212, 255, 0.15),
+    0 0 40px rgba(0, 212, 255, 0.08),
+    inset 0 0 20px rgba(0, 212, 255, 0.04);
+  --fxm-glow-primary-intense:
+    0 0 30px rgba(0, 212, 255, 0.3),
+    0 0 60px rgba(0, 212, 255, 0.15),
+    inset 0 0 30px rgba(0, 212, 255, 0.08);
+  --fxm-glow-purple:
+    0 0 20px rgba(168, 85, 247, 0.15),
+    0 0 40px rgba(168, 85, 247, 0.08);
+  --fxm-glow-success:
+    0 0 20px rgba(34, 197, 94, 0.15),
+    0 0 40px rgba(34, 197, 94, 0.08);
+  --fxm-glow-warning:
+    0 0 20px rgba(234, 179, 8, 0.15),
+    0 0 40px rgba(234, 179, 8, 0.08);
+  --fxm-glow-danger:
+    0 0 20px rgba(239, 68, 68, 0.2),
+    0 0 40px rgba(239, 68, 68, 0.1),
+    inset 0 0 20px rgba(239, 68, 68, 0.05);
+
+  /* ---- Component Shadows ---- */
+  --fxm-shadow-panel:
+    0 0 20px rgba(0, 212, 255, 0.12),
+    0 0 40px rgba(0, 212, 255, 0.06),
+    inset 0 0 20px rgba(0, 212, 255, 0.03),
+    0 25px 50px rgba(0, 0, 0, 0.45);
+  --fxm-shadow-panel-hover:
+    0 0 30px rgba(0, 212, 255, 0.22),
+    0 0 60px rgba(0, 212, 255, 0.12),
+    inset 0 0 30px rgba(0, 212, 255, 0.06),
+    0 30px 60px rgba(0, 0, 0, 0.55);
+  --fxm-shadow-card:
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  --fxm-shadow-card-hover:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 212, 255, 0.25),
+    0 0 20px rgba(0, 212, 255, 0.06);
+
+  /* ============================================================================
+     6. GLASS EFFECT (毛玻璃效果)
+     ============================================================================ */
+
+  --fxm-glass-bg:      rgba(17, 24, 39, 0.85);
+  --fxm-glass-border:  rgba(255, 255, 255, 0.08);
+  --fxm-glass-blur:    blur(20px);
+  --fxm-glass-blur-heavy: blur(30px) saturate(180%);
+
+  /* ============================================================================
+     7. TRANSITIONS & ANIMATIONS (过渡与动画)
+     ============================================================================ */
+
+  /* ---- Duration ---- */
+  --fxm-duration-instant:  50ms;
+  --fxm-duration-fast:     150ms;
+  --fxm-duration-normal:   250ms;
+  --fxm-duration-slow:     400ms;
+  --fxm-duration-slower:   500ms;
+  --fxm-duration-slowest:  800ms;
+
+  /* ---- Easing Functions ---- */
+  --fxm-ease-linear:     linear;
+  --fxm-ease-in:         cubic-bezier(0.4, 0, 1, 1);
+  --fxm-ease-out:        cubic-bezier(0, 0, 0.2, 1);
+  --fxm-ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+  --fxm-ease-out-back:   cubic-bezier(0.16, 1, 0.3, 1);
+  --fxm-ease-out-quart:  cubic-bezier(0.25, 1, 0.5, 1);
+  --fxm-ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --fxm-ease-bounce:     cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* ---- Transition Presets ---- */
+  --fxm-transition-fast:     all var(--fxm-duration-fast) var(--fxm-ease-out);
+  --fxm-transition-base:     all var(--fxm-duration-normal) var(--fxm-ease-in-out);
+  --fxm-transition-slow:     all var(--fxm-duration-slow) var(--fxm-ease-out-back);
+  --fxm-transition-spring:   all var(--fxm-duration-slower) var(--fxm-ease-spring);
+  --fxm-transition-colors:   color, background-color, border-color var(--fxm-duration-normal) var(--fxm-ease-in-out);
+  --fxm-transition-transform: transform var(--fxm-duration-normal) var(--fxm-ease-out-back);
+  --fxm-transition-opacity:  opacity var(--fxm-duration-normal) var(--fxm-ease-out);
+  --fxm-transition-shadow:   box-shadow var(--fxm-duration-normal) var(--fxm-ease-out);
+
+  /* ============================================================================
+     8. Z-INDEX LAYERING (层级系统)
+     ============================================================================ */
+
+  --fxm-z-base:     0;
+  --fxm-z-sticky:   100;
+  --fxm-z-dropdown: 1000;
+  --fxm-z-tooltip:  1100;
+  --fxm-z-panel:    1200;
+  --fxm-z-modal:    1300;
+  --fxm-z-overlay:  1400;
+  --fxm-z-max:      9999;
+
+  /* Component-specific z-index */
+  --fxm-z-top-menu-bar:    1000;
+  --fxm-z-hover-panel:     1050;
+  --fxm-z-tooltip-sparkline: 1100;
+
+  /* ============================================================================
+     9. COMPONENT-SPECIFIC TOKENS (组件专用令牌)
+     ============================================================================ */
+
+  /* ---- Top Menu Bar ---- */
+  --fxm-topmenu-height:       32px;
+  --fxm-topmenu-capsule-h:    24px;
+  --fxm-topmenu-capsule-gap:  6px;
+  --fxm-topmenu-indicator:    6px;
+  --fxm-topmenu-icon-size:    14px;
+
+  /* ---- Hover Panel ---- */
+  --fxm-panel-width:       420px;
+  --fxm-panel-max-height:  600px;
+  --fxm-panel-header-h:    42px;
+  --fxm-panel-padding:     20px;
+
+  /* ---- Metric Card ---- */
+  --fxm-card-min-w:        110px;
+  --fxm-card-min-h:        90px;
+  --fxm-card-value-fs:     28px;
+  --fxm-card-label-fs:     11px;
+  --fxm-card-progress-h:   4px;
+
+  /* ---- Charts ---- */
+  --fxm-chart-line-width:    2px;
+  --fxm-chart-point-radius:  3px;
+  --fxm-chart-grid-color:    rgba(255, 255, 255, 0.05);
+  --fxm-chart-tooltip-bg:    rgba(10, 14, 23, 0.95);
+  --fxm-chart-tooltip-bdr:   1px solid rgba(0, 212, 255, 0.3);
+
+  /* ---- Ring Progress ---- */
+  --fxm-ring-diameter:    100px;
+  --fxm-ring-stroke-w:    8px;
+  --fxm-ring-bg-stroke:   rgba(255, 255, 255, 0.1);
+
+  /* ---- Buttons ---- */
+  --fxm-btn-height-sm:  28px;
+  --fxm-btn-height-md:  32px;
+  --fxm-btn-height-lg:  40px;
+  --fxm-btn-icon-size:  16px;
+  --fxm-btn-circle:     24px;
+
+  /* ---- Focus Ring (Accessibility) ---- */
+  --fxm-focus-ring-width:   2px;
+  --fxm-focus-ring-offset:  2px;
+  --fxm-focus-ring-color:   rgba(0, 212, 255, 0.6);
+
+  /* ============================================================================
+     10. METRIC-SPECIFIC COLORS (指标专用颜色)
+     Each hardware metric gets its own color identity for visual consistency.
+     ============================================================================ */
+
+  --fxm-metric-pred-color: var(--fxm-accent-blue);   /* Prediction time */
+  --fxm-metric-cpu-color: var(--fxm-accent-purple);  /* CPU usage */
+  --fxm-metric-ram-color: var(--fxm-accent-cyan);    /* RAM usage */
+  --fxm-metric-gpu-color: var(--fxm-success);        /* GPU usage */
+  --fxm-metric-vram-color: var(--fxm-accent-pink);   /* VRAM usage */
+  --fxm-metric-rsv-color: var(--fxm-warning);        /* Reserved memory */
+  --fxm-metric-pwr-color: var(--fxm-danger);         /* Power consumption */
+
+  /* ============================================================================
+     11. ACCESSIBILITY TOKENS (可访问性)
+     ============================================================================ */
+
+  --fxm-sr-only-position: absolute;
+  --fxm-sr-only-width:    1px;
+  --fxm-sr-only-height:   1px;
+  --fxm-sr-only-overflow: hidden;
+  --fxm-sr-only-clip:     rect(0, 0, 0, 0);
+  --fxm-sr-only-whitespace: nowrap;
+  --fxm-sr-only-border:   0;
+
+  --fxm-high-contrast-text:   #ffffff;
+  --fxm-high-contrast-border: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================================================
+   UTILITY CLASSES (工具类)
+   Pre-built glass and neon effect classes for rapid prototyping.
+   ============================================================================ */
+
+/* ---- Glass Panel Effect ---- */
+.fxm-glass-panel {
+  background: var(--fxm-glass-bg);
+  backdrop-filter: var(--fxm-glass-blur);
+  -webkit-backdrop-filter: var(--fxm-glass-blur);
+  border: 1px solid var(--fxm-glass-border);
+  border-radius: var(--fxm-radius-lg);
+}
+
+/* ---- Neon Text Effects ---- */
+.fxm-neon-text-blue {
+  color: var(--fxm-accent-blue);
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+.fxm-neon-text-purple {
+  color: var(--fxm-accent-purple);
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5), 0 0 20px rgba(168, 85, 247, 0.2);
+}
+
+.fxm-neon-text-green {
+  color: var(--fxm-success);
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5), 0 0 20px rgba(34, 197, 94, 0.2);
+}
+
+/* ---- Neon Border Effect ---- */
+.fxm-neon-border {
+  border: 1px solid var(--fxm-accent-blue);
+  box-shadow: var(--fxm-glow-primary);
+}
+
+.fxm-neon-border-purple {
+  border: 1px solid var(--fxm-accent-purple);
+  box-shadow: var(--fxm-glow-purple);
+}
+
+/* ---- Screen Reader Only ---- */
+.fxm-sr-only {
+  position: var(--fxm-sr-only-position);
+  width: var(--fxm-sr-only-width);
+  height: var(--fxm-sr-only-height);
+  padding: 0;
+  margin: -1px;
+  overflow: var(--fxm-sr-only-overflow);
+  clip: var(--fxm-sr-only-clip);
+  white-space: var(--fxm-sr-only-whitespace);
+  border: var(--fxm-sr-only-border);
+}
+
+/* ============================================================================
+   THEME VARIANT: Neon Purple (霓虹紫主题)
+   Switch: <div data-theme="neon-purple">
+   ============================================================================ */
+
+[data-theme="neon-purple"] {
+  --fxm-accent-blue:   #a855f7;
+  --fxm-accent-purple: #ec4899;
+
+  --fxm-bg-primary:    #0d0818;
+  --fxm-bg-secondary:  #140e22;
+  --fxm-bg-tertiary:   #1a122b;
+  --fxm-bg-elevated:   #211832;
+
+  --fxm-gradient-primary:            linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  --fxm-gradient-primary-reverse:    linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+  --fxm-gradient-primary-horizontal: linear-gradient(90deg, #a855f7 0%, #ec4899 100%);
+  --fxm-gradient-chart-fill:         linear-gradient(180deg, rgba(168, 85, 247, 0.25) 0%, transparent 100%);
+
+  --fxm-glow-primary:
+    0 0 20px rgba(168, 85, 247, 0.15),
+    0 0 40px rgba(168, 85, 247, 0.08),
+    inset 0 0 20px rgba(168, 85, 247, 0.04);
+  --fxm-glow-primary-intense:
+    0 0 30px rgba(168, 85, 247, 0.3),
+    0 0 60px rgba(168, 85, 247, 0.15),
+    inset 0 0 30px rgba(168, 85, 247, 0.08);
+
+  --fxm-border-hover: rgba(168, 85, 247, 0.35);
+  --fxm-border-focus: rgba(168, 85, 247, 0.6);
+  --fxm-border-glass: 1px solid rgba(168, 85, 247, 0.12);
+
+  --fxm-shadow-panel:
+    0 0 20px rgba(168, 85, 247, 0.12),
+    0 0 40px rgba(168, 85, 247, 0.06),
+    inset 0 0 20px rgba(168, 85, 247, 0.03),
+    0 25px 50px rgba(0, 0, 0, 0.45);
+  --fxm-shadow-panel-hover:
+    0 0 30px rgba(168, 85, 247, 0.22),
+    0 0 60px rgba(168, 85, 247, 0.12),
+    inset 0 0 30px rgba(168, 85, 247, 0.06),
+    0 30px 60px rgba(0, 0, 0, 0.55);
+  --fxm-shadow-card-hover:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(168, 85, 247, 0.25),
+    0 0 20px rgba(168, 85, 247, 0.06);
+
+  --fxm-focus-ring-color: rgba(168, 85, 247, 0.6);
+}
+
+/* ============================================================================
+   THEME VARIANT: Matrix Green (矩阵绿主题)
+   Switch: <div data-theme="matrix-green">
+   ============================================================================ */
+
+[data-theme="matrix-green"] {
+  --fxm-accent-blue:   #00ff41;
+  --fxm-accent-purple: #00cc34;
+
+  --fxm-bg-primary:    #080f08;
+  --fxm-bg-secondary:  #0e170e;
+  --fxm-bg-tertiary:   #141f14;
+  --fxm-bg-elevated:   #1a281a;
+
+  --fxm-success:       #00ff41;
+
+  --fxm-gradient-primary:            linear-gradient(135deg, #00ff41 0%, #00cc44 100%);
+  --fxm-gradient-primary-reverse:    linear-gradient(135deg, #00cc44 0%, #00ff41 100%);
+  --fxm-gradient-primary-horizontal: linear-gradient(90deg, #00ff41 0%, #00cc44 100%);
+  --fxm-gradient-chart-fill:         linear-gradient(180deg, rgba(0, 255, 65, 0.25) 0%, transparent 100%);
+
+  --fxm-glow-primary:
+    0 0 20px rgba(0, 255, 65, 0.15),
+    0 0 40px rgba(0, 255, 65, 0.08),
+    inset 0 0 20px rgba(0, 255, 65, 0.04);
+  --fxm-glow-primary-intense:
+    0 0 30px rgba(0, 255, 65, 0.3),
+    0 0 60px rgba(0, 255, 65, 0.15),
+    inset 0 0 30px rgba(0, 255, 65, 0.08);
+
+  --fxm-border-hover: rgba(0, 255, 65, 0.35);
+  --fxm-border-focus: rgba(0, 255, 65, 0.6);
+  --fxm-border-glass: 1px solid rgba(0, 255, 65, 0.12);
+
+  --fxm-shadow-panel:
+    0 0 20px rgba(0, 255, 65, 0.12),
+    0 0 40px rgba(0, 255, 65, 0.06),
+    inset 0 0 20px rgba(0, 255, 65, 0.03),
+    0 25px 50px rgba(0, 0, 0, 0.45);
+  --fxm-shadow-panel-hover:
+    0 0 30px rgba(0, 255, 65, 0.22),
+    0 0 60px rgba(0, 255, 65, 0.12),
+    inset 0 0 30px rgba(0, 255, 65, 0.06),
+    0 30px 60px rgba(0, 0, 0, 0.55);
+  --fxm-shadow-card-hover:
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 255, 65, 0.25),
+    0 0 20px rgba(0, 255, 65, 0.06);
+
+  --fxm-focus-ring-color: rgba(0, 255, 65, 0.6);
+}
+
+/* ============================================================================
+   ACCESSIBILITY OVERRIDES (可访问性覆盖)
+   ============================================================================ */
+
+/* Reduced Motion Preference - 用户偏好减少动画时禁用所有动画 */
+@media (prefers-reduced-motion: reduce) {
+  :root,
+  [data-theme="neon-purple"],
+  [data-theme="matrix-green"] {
+    --fxm-duration-instant:  0ms;
+    --fxm-duration-fast:     0ms;
+    --fxm-duration-normal:   0ms;
+    --fxm-duration-slow:     0ms;
+    --fxm-duration-slower:   0ms;
+    --fxm-duration-slowest:  0ms;
+
+    --fxm-ease-linear:   linear;
+    --fxm-ease-in:       linear;
+    --fxm-ease-out:      linear;
+    --fxm-ease-in-out:   linear;
+    --fxm-ease-out-back: linear;
+    --fxm-ease-spring:   linear;
+    --fxm-ease-bounce:   linear;
+  }
+}
+
+/* High Contrast Mode - 高对比度模式增强 */
+@media (prefers-contrast: more) {
+  :root {
+    --fxm-text-secondary: #b0bec5;
+    --fxm-text-muted:     #90a4ae;
+    --fxm-border-subtle:   rgba(255, 255, 255, 0.18);
+    --fxm-border-emphasis: rgba(255, 255, 255, 0.35);
+    --fxm-border-hover:    rgba(0, 212, 255, 0.55);
+    --fxm-bg-card:         rgba(255, 255, 255, 0.06);
+    --fxm-bg-card-hover:   rgba(255, 255, 255, 0.10);
+  }
+}

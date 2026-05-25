@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ComfyUI-Feixue-UniversalMonitor"
+version = "2.5.0"
+description = "ComfyUI系统实时监控插件 - 飞雪监测器 | 世界顶级胶囊UI · 极简/科技/玻璃态三套方案 · AMD/NVIDIA双GPU支持"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Feixue (飞雪)", email = "63485996@qq.com"}
+]
+requires-python = ">=3.10"
+dependencies = [
+    "psutil>=5.9.0",
+    "torch>=2.5.0",
+    "orjson>=3.9.0",
+]
+optional-dependencies = {dev = ["pytest>=7.0", "pytest-cov>=4.0"]}
+
+[project.urls]
+Repository = "https://github.com/feixui/ComfyUI-Feixue-UniversalMonitor"
+Issues = "https://github.com/feixui/ComfyUI-Feixue-UniversalMonitor/issues"
+
+[tool.setuptools.packages.find]
+include = ["core*", "collectors*", "providers*", "utils*", "config*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "N"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "windows: marks tests as Windows-only",
+    "linux: marks tests as Linux-only",
+    "requires_gpu: marks tests that need a physical GPU"
+]

@@ -1,0 +1,1243 @@
+/**
+ * ============================================================================
+ * ComfyUI-Feixue-UniversalMonitor - HoverPanel Component Styles
+ * ============================================================================
+ *
+ * Cyberpunk 2077 风格悬浮监控面板样式表。
+ *
+ * 设计原则：
+ * - 毛玻璃拟态 (Glassmorphism): backdrop-filter: blur(20px)
+ * - 霓虹发光边框: box-shadow 多层发光效果
+ * - 科技感字体: JetBrains Mono / Fira Code 等宽字体
+ * - 赛博朋克配色: 深蓝黑底 (#0a0e17) + 青蓝强调色 (#00d4ff)
+ * - 微交互动效: 展开/折叠/拖拽/关闭都有流畅 CSS transition
+ *
+ * 所有类名使用 .fxm- 前缀，所有变量使用 --fxm-* Design Tokens。
+ *
+ * 布局结构：
+ * .fxm-hover-panel (主容器)
+ *   +-- .fxm-panel-header (标题栏)
+ *   |     +-- .fxm-panel-title (左侧: 图标+名称)
+ *   |     +-- .fxm-panel-controls (右侧: 折叠/关闭按钮)
+ *   +-- .fxm-panel-body (主体区域)
+ *   |     +-- .fxm-grid-container (四宫格网格)
+ *   |     |     +-- .fxm-grid-card (x4: cpu, ram, gpu, vram)
+ *   |     +-- .fxm-pred-card (PRED 预测卡片)
+ *   +-- .fxm-panel-footer (底部信息栏)
+ *
+ * @author Feixue
+ * @version 1.0.0
+ * @license MIT
+ * ============================================================================
+ */
+
+/* ============================================================================
+   1. PANEL CONTAINER (主面板容器)
+   ============================================================================ */
+
+/**
+ * 主悬浮面板容器。
+ *
+ * 定位策略：position: fixed + transform: translate(x, y)
+ * - fixed: 相对于视口定位，不随页面滚动
+ * - transform translate: 高性能定位（仅触发 composite，不触发 reflow）
+ */
+.fxm-hover-panel {
+  position: fixed;
+  top: 60px;  /* 顶部菜单栏下方（TopMenuBar 高度约 32-60px） */
+  right: 20px;
+
+  width: var(--fxm-panel-width, 380px);
+  max-height: var(--fxm-panel-max-height, 600px);
+
+  /* ---- Cyberpunk 毛玻璃效果 ---- */
+  background: var(--fxm-glass-bg);
+  backdrop-filter: var(--fxm-glass-blur);
+  -webkit-backdrop-filter: var(--fxm-glass-blur);
+
+  border: 1px solid var(--fxm-glass-border);
+  border-radius: var(--fxm-radius-lg);
+
+  /* ---- 霓虹外发光 ---- */
+  box-shadow:
+    var(--fxm-shadow-lg),
+    0 0 30px rgba(0, 212, 255, 0.12),
+    0 0 60px rgba(0, 212, 255, 0.05);
+
+  /* ---- 排版 ---- */
+  font-family: var(--fxm-font-mono);
+  font-size: var(--fxm-font-size-sm);
+  color: var(--fxm-text-primary);
+  line-height: var(--fxm-line-height-snug);
+
+  /* ---- 布局 ---- */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  /* ---- 过渡动画 ---- */
+  transition:
+    width 0.3s ease,
+    opacity 0.25s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s ease;
+
+  /* ---- 层级 ---- */
+  z-index: var(--fxm-z-hover-panel, 1050);
+
+  /* ---- 交互 ---- */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Hover 状态：增强发光效果 */
+.fxm-hover-panel:hover {
+  box-shadow:
+    var(--fxm-shadow-xl),
+    0 0 40px rgba(0, 212, 255, 0.18),
+    0 0 80px rgba(0, 212, 255, 0.06);
+}
+
+/* 拖拽中的状态：提升层级 + 放大效果 + 强发光 */
+.fxm-hover-panel.fxm-dragging {
+  cursor: grabbing !important;
+  box-shadow:
+    var(--fxm-shadow-xl),
+    0 0 50px rgba(0, 212, 255, 0.25),
+    0 0 100px rgba(0, 212, 255, 0.08);
+  z-index: calc(var(--fxm-z-hover-panel, 1050) + 100);
+}
+
+/* 折叠状态：仅显示标题栏 */
+.fxm-hover-panel.fxm-collapsed {
+  /* 宽度在折叠时可略微收缩 */
+  width: auto;
+  min-width: 280px;
+}
+
+/* 隐藏状态：完全不可见且不响应交互 */
+.fxm-hover-panel.fxm-hidden {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transform: translateX(100px) scale(0.95) !important;
+  transition:
+    opacity 300ms ease-in-out,
+    transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 300ms;
+}
+
+/* 显示时的入场动画 */
+.fxm-hover-panel:not(.fxm-hidden) {
+  visibility: visible;
+  animation: fxm-slideInRight 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+
+/* ============================================================================
+   2. PANEL HEADER (标题栏)
+   ============================================================================ */
+
+.fxm-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  height: var(--fxm-panel-header-h, 42px);
+  padding: 0 var(--fxm-space-4);
+  flex-shrink: 0; /* 不被压缩 */
+
+  /* 渐变背景（微妙的蓝紫渐变） */
+  background: linear-gradient(
+    135deg,
+    rgba(0, 212, 255, 0.08) 0%,
+    rgba(168, 85, 247, 0.05) 100%
+  );
+
+  border-bottom: 1px solid var(--fxm-glass-border);
+
+  /* 可拖拽指示 */
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+
+  /* 标题栏不接受键盘焦点（焦点由面板容器管理） */
+  outline: none;
+}
+
+/* 拖拽中改变光标 */
+.fxm-panel-header:active {
+  cursor: grabbing;
+}
+
+/* ---- 左侧：图标 + 名称 ---- */
+
+.fxm-panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--fxm-space-2);
+
+  font-weight: var(--fxm-font-weight-semibold);
+  font-size: var(--fxm-font-size-base);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fxm-panel-icon {
+  color: var(--fxm-accent-blue);
+  font-size: 1.1em;
+  line-height: 1;
+
+  /* 图标微光动画 */
+  filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.5));
+  animation: fxm-pulse-glow 3s ease-in-out infinite;
+}
+
+.fxm-panel-name {
+  color: var(--fxm-text-primary);
+  white-space: nowrap;
+}
+
+/* ---- 右侧：控制按钮组 ---- */
+
+.fxm-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--fxm-space-1);
+
+  flex-shrink: 0; /* 按钮不被压缩 */
+}
+
+
+/* ============================================================================
+   3. CONTROL BUTTONS (控制按钮)
+   ============================================================================ */
+
+.fxm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: var(--fxm-btn-height-sm, 28px);
+  height: var(--fxm-btn-height-sm, 28px);
+
+  background: transparent;
+  border: 1px solid var(--fxm-glass-border);
+  border-radius: var(--fxm-radius-sm);
+
+  color: var(--fxm-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background-color var(--fxm-duration-fast) ease,
+    color var(--fxm-duration-fast) ease,
+    border-color var(--fxm-duration-fast) ease,
+    transform var(--fxm-duration-fast) ease;
+}
+
+.fxm-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fxm-text-primary);
+  border-color: var(--fxm-accent-blue);
+}
+
+.fxm-btn:active {
+  transform: scale(0.9);
+}
+
+/* 键盘焦点可见环 */
+.fxm-btn:focus-visible {
+  outline: var(--fxm-focus-ring-width, 2px) solid var(--fxm-focus-ring-color);
+  outline-offset: var(--fxm-focus-ring-offset, 2px);
+}
+
+/* 关闭按钮悬停变红 */
+.fxm-btn-close:hover {
+  color: var(--fxm-danger);
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* 折叠按钮旋转效果（展开时） */
+.fxm-hover-panel:not(.fxm-collapsed) .fxm-btn-collapse::after {
+  content: '';
+  /* 可以添加展开图标指示 */ }
+
+
+/* ============================================================================
+   4. PANEL BODY (主体内容区域)
+   ============================================================================ */
+
+.fxm-panel-body {
+  flex: 1; /* 占据剩余空间 */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding: var(--fxm-space-4);
+  min-height: 0; /* 允许 flex 子元素收缩 */
+
+  /* 平滑的展开/折叠过渡 */
+  /* 根据 SPEC.MD 第 403-408 行规范：状态切换动画 300ms ease-in-out */
+  transition:
+    max-height 300ms ease-in-out,
+    opacity 250ms ease-in-out;
+
+  /* 自定义滚动条（Cyberpunk 风格） */
+  scrollbar-width: thin;
+  scrollbar-color: var(--fxm-accent-blue) transparent;
+}
+
+/* WebKit 滚动条样式 */
+.fxm-panel-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fxm-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fxm-panel-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.25);
+  border-radius: var(--fxm-radius-full);
+  transition: background-color var(--fxm-duration-fast) ease;
+}
+
+.fxm-panel-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.45);
+}
+
+/* 折叠时主体区域隐藏 */
+.fxm-collapsed .fxm-panel-body {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+/* 隐藏时主体区域隐藏 */
+.fxm-hidden .fxm-panel-body {
+  display: none;
+}
+
+
+/* ============================================================================
+   5. METRICS GRID (四宫格布局)
+   ============================================================================ */
+
+.fxm-grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2 列等宽 */
+  gap: var(--fxm-spacing-grid-gap, var(--fxm-space-3));
+
+  margin-bottom: var(--fxm-space-4);
+}
+
+
+/* ============================================================================
+   6. GRID CARD (单个指标卡片)
+   ============================================================================ */
+
+.fxm-grid-card {
+  position: relative;
+
+  background: var(--fxm-bg-card);
+  border: 1px solid var(--fxm-border-default);
+  border-radius: var(--fxm-radius-md);
+
+  padding: var(--fxm-space-3);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--fxm-space-1);
+
+  /* 交互动效 */
+  transition:
+    background-color var(--fxm-duration-fast) ease,
+    border-color var(--fxm-duration-fast) ease,
+    box-shadow var(--fxm-duration-fast) ease,
+    transform var(--fxm-duration-fast) ease;
+
+  overflow: hidden;
+}
+
+/* 卡片悬停效果 */
+.fxm-grid-card:hover {
+  background: var(--fxm-bg-card-hover);
+  border-color: var(--fxm-border-hover);
+  box-shadow: var(--fxm-shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+/* ---- 卡片头部（图标 + 标签）---- */
+
+.fxm-grid-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--fxm-space-1);
+}
+
+.fxm-grid-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.fxm-grid-label {
+  font-size: var(--fxm-font-size-xs);
+  font-weight: var(--fxm-font-weight-semibold);
+  letter-spacing: var(--fxm-letter-spacing-label);
+  text-transform: uppercase;
+  color: var(--fxm-text-secondary);
+}
+
+/* ---- 数值显示 ---- */
+
+.fxm-grid-value {
+  font-family: var(--fxm-font-mono);
+  font-size: var(--fxm-font-size-2xl);
+  font-weight: var(--fxm-font-weight-bold);
+  font-variant-numeric: tabular-nums; /* 等宽数字对齐 */
+  line-height: 1.1;
+  color: var(--fxm-text-primary);
+}
+
+.fxm-grid-unit {
+  font-size: var(--fxm-font-size-xs);
+  color: var(--fxm-text-muted);
+  margin-left: 2px;
+}
+
+/* ---- 进度条 ---- */
+
+.fxm-grid-progress {
+  height: var(--fxm-card-progress-h, 4px);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.fxm-grid-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+
+  /* 默认渐变色（蓝->紫） */
+  background: linear-gradient(
+    90deg,
+    var(--fxm-accent-blue) 0%,
+    var(--fxm-accent-purple) 100%
+  );
+
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 各指标卡片进度条颜色差异化 */
+.fxm-grid-cpu .fxm-grid-progress-bar {
+  background: linear-gradient(90deg, var(--fxm-metric-cpu-color), #c084fc);
+}
+
+.fxm-grid-ram .fxm-grid-progress-bar {
+  background: linear-gradient(90deg, var(--fxm-metric-ram-color), var(--fxm-accent-blue));
+}
+
+.fxm-grid-gpu .fxm-grid-progress-bar {
+  background: linear-gradient(90deg, var(--fxm-metric-gpu-color), #34d399);
+}
+
+.fxm-grid-vram .fxm-grid-progress-bar {
+  background: linear-gradient(90deg, var(--fxm-metric-vram-color), #f472b6);
+}
+
+/* ---- 状态指示灯 ---- */
+
+.fxm-grid-status {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--fxm-radius-full);
+  align-self: flex-start;
+
+  transition:
+    background-color var(--fxm-duration-normal) ease,
+    box-shadow var(--fxm-duration-normal) ease;
+}
+
+/* 低负载：绿色 */
+.fxm-status-low {
+  background-color: var(--fxm-success);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+}
+
+/* 中负载：黄色 */
+.fxm-status-medium {
+  background-color: var(--fxm-warning);
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.4);
+}
+
+/* 高负载：红色 */
+.fxm-status-high {
+  background-color: var(--fxm-danger);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  animation: fxm-neon-flicker 2s ease-in-out infinite;
+}
+
+/* 未知/无数据：灰色 */
+.fxm-status-unknown {
+  background-color: var(--fxm-text-muted);
+  opacity: 0.4;
+}
+
+
+/* ============================================================================
+   7. CHART CONTAINER (趋势图容器)
+   ============================================================================ */
+
+.fxm-chart-container {
+  margin: 0 0 var(--fxm-space-4);
+  padding: var(--fxm-space-4);
+  background: var(--fxm-bg-card);
+  border: 1px solid var(--fxm-border-default);
+  border-radius: var(--fxm-radius-md);
+}
+
+.fxm-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--fxm-space-3);
+}
+
+.fxm-chart-icon {
+  font-size: 14px;
+  margin-right: var(--fxm-space-2);
+}
+
+.fxm-chart-title {
+  font-family: var(--fxm-font-mono);
+  font-size: var(--fxm-font-size-xs);
+  font-weight: var(--fxm-font-weight-semibold);
+  letter-spacing: var(--fxm-letter-spacing-label);
+  text-transform: uppercase;
+  color: var(--fxm-accent-blue);
+}
+
+.fxm-chart-legend {
+  display: flex;
+  gap: var(--fxm-space-3);
+}
+
+.fxm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--fxm-space-1);
+}
+
+.fxm-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.fxm-legend-cpu .fxm-legend-dot {
+  background-color: var(--fxm-accent-blue);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.5);
+}
+
+.fxm-legend-gpu .fxm-legend-dot {
+  background-color: var(--fxm-accent-purple);
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.5);
+}
+
+.fxm-legend-label {
+  font-size: 10px;
+  color: var(--fxm-text-muted);
+}
+
+.fxm-chart-canvas-wrap {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--fxm-radius-sm);
+  overflow: hidden;
+  margin-bottom: var(--fxm-space-3);
+}
+
+.fxm-chart-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.fxm-chart-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--fxm-space-2);
+  padding-top: var(--fxm-space-2);
+  border-top: 1px solid var(--fxm-border-default);
+}
+
+.fxm-chart-stat {
+  text-align: center;
+}
+
+.fxm-stat-label {
+  display: block;
+  font-size: 9px;
+  color: var(--fxm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.fxm-stat-value {
+  font-family: var(--fxm-font-mono);
+  font-size: var(--fxm-font-size-sm);
+  font-weight: var(--fxm-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--fxm-text-secondary);
+}
+
+/* ============================================================================
+   8. SYSTEM INFO CARD (系统信息卡片)
+   ============================================================================ */
+
+.fxm-system-info-card {
+  margin: 0 0 var(--fxm-space-4);
+  padding: var(--fxm-space-4);
+  background: var(--fxm-bg-card);
+  border: 1px solid var(--fxm-border-default);
+  border-radius: var(--fxm-radius-md);
+}
+
+.fxm-system-header {
+  display: flex;
+  align-items: center;
+  gap: var(--fxm-space-2);
+  margin-bottom: var(--fxm-space-3);
+  padding-bottom: var(--fxm-space-2);
+  border-bottom: 1px solid var(--fxm-border-default);
+}
+
+.fxm-system-icon {
+  font-size: 14px;
+}
+
+.fxm-system-title {
+  font-family: var(--fxm-font-mono);
+  font-size: var(--fxm-font-size-xs);
+  font-weight: var(--fxm-font-weight-semibold);
+  letter-spacing: var(--fxm-letter-spacing-label);
+  text-transform: uppercase;
+  color: var(--fxm-accent-cyan);
+}
+
+.fxm-system-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--fxm-space-3);
+}
+
+.fxm-system-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--fxm-space-2);
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: var(--fxm-radius-sm);
+}
+
+.fxm-system-label {
+  font-size: 9px;
+  color: var(--fxm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fxm-system-value {
+  font-family: var(--fxm-font-mono);
+  font-size: var(--fxm-font-size-sm);
+  font-weight: var(--fxm-font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--fxm-text-primary);
+}
+
+.fxm-system-value.fxm-status-low {
+  color: var(--fxm-success);
+}
+
+.fxm-system-value.fxm-status-medium {
+  color: var(--fxm-warning);
+}
+
+.fxm-system-value.fxm-status-high {
+  color: var(--fxm-danger);
+}
+
+.fxm-system-unit {
+  font-size: 9px;
+  color: var(--fxm-text-muted);
+}
+
+/* ============================================================================
+   9. PREDICTION CARD (PRED 预测结果卡片)
+   ============================================================================ */
+
+.fxm-pred-card {
+  margin: 0 0 var(--fxm-space-4);
+  padding: var(--fxm-space-4);
+
+  /* 渐变背景边框效果 */
+  background: linear-gradient(
+    135deg,
+    rgba(0, 212, 255, 0.05) 0%,
+    rgba(168, 85, 247, 0.03) 100%
+  );
+  border: 1px solid var(--fxm-accent-blue);
+  border-radius: var(--fxm-radius-md);
+
+  /* 微弱的内发光 */
+  box-shadow:
+    inset 0 1px 0 rgba(0, 212, 255, 0.08),
+    inset 0 0 20px rgba(0, 212, 255, 0.03);
+
+  overflow: hidden;
+}
+
+/* ---- PRED 卡片标题行 ---- */
+
+.fxm-pred-header {
+  display: flex;
+  align-items: center;
+  gap: var(--fxm-space-2);
+
+  margin-bottom: var(--fxm-space-3);
+  padding-bottom: var(--fxm-space-2);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.12);
+}
+
+.fxm-pred-icon {
+  font-size: 16px;
+}
+
+.fxm-pred-title {
+  font-family: var(--fxm-font-mono);
+  font-size: var(--fxm-font-size-xs);
+  font-weight: var(--fxm-font-weight-semibold);
+  letter-spacing: var(--fxm-letter-spacing-heading);
+  text-transform: uppercase;
+  color: var(--fxm-accent-blue);
+}
+
+/* ---- PRED 卡片主体 ---- */
+
+.fxm-pred-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fxm-space-3);
+}
+
+/* ---- 成功率大字显示 ---- */
+
+.fxm-pred-rate {
+  text-align: center;
+  padding: var(--fxm-space-3) 0;
+}
+
+.fxm-pred-value {
+  font-family: var(--fxm-font-mono);
+  font-size: 42px;
+  font-weight: var(--fxm-font-weight-bold);
+  line-height: 1;
+
+  /* 文字渐变色（蓝->紫） */
+  background: linear-gradient(
+    135deg,
+    var(--fxm-accent-blue) 0%,
+    var(--fxm-accent-purple) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fxm-pred-unit {
+  font-size: var(--fxm-font-size-xs);
+  color: var(--fxm-text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* ---- 进度仪表盘 ---- */
+
+.fxm-pred-meter {
+  position: relative;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--fxm-radius-full);
+  overflow: hidden;
+}
+
+.fxm-pred-meter-fill {
+  height: 100%;
+  border-radius: var(--fxm-radius-full);
+
+  /* 默认颜色（会被 JS 动态覆盖） */
+  background: linear-gradient(
+    90deg,
+    var(--fxm-success) 0%,
+    var(--fxm-accent-cyan) 100%
+  );
+
+  transition:
+    width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.3s ease;
+
+  /* 内部微光条纹效果 */
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.15) 50%,
+      transparent 100%
+    );
+  background-size: 200% 100%;
+  animation: fxm-dataStream 3s linear infinite;
+}
+
+/* 仪表盘阈值标记点 */
+.fxm-pred-meter-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.fxm-pred-meter-markers span {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  color: var(--fxm-text-muted);
+  opacity: 0.5;
+}
+
+/* ---- 风险等级 Badge ---- */
+
+.fxm-pred-risk {
+  text-align: center;
+}
+
+.fxm-risk-badge {
+  display: inline-block;
+  padding: var(--fxm-space-1) var(--fxm-space-3);
+  border-radius: var(--fxm-radius-full);
+
+  font-size: var(--fxm-font-size-xs);
+  font-weight: var(--fxm-font-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+
+  transition:
+    background-color var(--fxm-duration-normal) ease,
+    color var(--fxm-duration-normal) ease,
+    box-shadow var(--fxm-duration-normal) ease;
+}
+
+/* 各风险等级的颜色方案 */
+.fxm-risk-low {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--fxm-success);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.1);
+}
+
+.fxm-risk-medium {
+  background: rgba(234, 179, 8, 0.12);
+  color: var(--fxm-warning);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.1);
+}
+
+.fxm-risk-high {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.1);
+}
+
+.fxm-risk-critical {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--fxm-danger);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.15);
+  animation: fxm-neon-flicker 1.5s ease-in-out infinite;
+}
+
+.fxm-risk-unknown {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--fxm-text-muted);
+  border: 1px solid rgba(100, 116, 139, 0.15);
+}
+
+/* ---- 优化建议列表 ---- */
+
+.fxm-pred-recommendations {
+  margin-top: var(--fxm-space-2);
+  padding-top: var(--fxm-space-2);
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.fxm-rec-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--fxm-space-1);
+}
+
+.fxm-rec-list li {
+  position: relative;
+  padding-left: var(--fxm-space-4);
+
+  font-size: var(--fxm-font-size-xs);
+  color: var(--fxm-text-secondary);
+  line-height: var(--fxm-line-height-snug);
+
+  /* 自定义列表项标记 */
+}
+
+.fxm-rec-list li::before {
+  content: '\2713'; /* ✓ */
+  position: absolute;
+  left: var(--fxm-space-1);
+  color: var(--fxm-accent-blue);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+
+/* ============================================================================
+   8. PANEL FOOTER (底部信息栏)
+   ============================================================================ */
+
+.fxm-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--fxm-space-1);
+
+  padding: var(--fxm-space-2) var(--fxm-space-4);
+
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
+  border-top: 1px solid var(--fxm-glass-border);
+
+  flex-shrink: 0;
+
+  font-size: var(--fxm-font-size-xs);
+  color: var(--fxm-text-muted);
+  font-family: var(--fxm-font-mono);
+
+  transition: opacity 0.25s ease;
+}
+
+/* 折叠时隐藏底部栏 */
+.fxm-collapsed .fxm-panel-footer {
+  display: none;
+}
+
+.fxm-footer-update,
+.fxm-footer-source,
+.fxm-footer-version {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.fxm-footer-separator {
+  color: var(--fxm-border-subtle);
+  opacity: 0.5;
+}
+
+/* 数据源连接状态指示（可通过 JS 动态添加 class） */
+.fxm-footer-source[data-status="connected"]::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--fxm-radius-full);
+  background: var(--fxm-success);
+  margin-right: 4px;
+  vertical-align: middle;
+  animation: fxm-pulse-glow 2s ease-in-out infinite;
+}
+
+.fxm-footer-source[data-status="disconnected"]::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--fxm-radius-full);
+  background: var(--fxm-danger);
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.fxm-footer-source[data-status="degraded"]::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--fxm-radius-full);
+  background: var(--fxm-warning);
+  margin-right: 4px;
+  vertical-align: middle;
+  animation: fxm-breatheWarning 2s ease-in-out infinite;
+}
+
+
+/* ============================================================================
+   9. ENTRANCE ANIMATION KEYFRAMES (入场动画关键帧)
+   ============================================================================ */
+
+/**
+ * 从右侧滑入动画 (fxm-slideIn)。
+ * 根据 SPEC.MD 第 357-369 行规范实现。
+ * 使用 cubic-bezier(0.16, 1, 0.3, 1) spring 曲线产生微弹效果。
+ */
+@keyframes fxm-slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/**
+ * 从顶部滑入动画。
+ */
+@keyframes fxm-slideInTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/**
+ * 淡入缩放动画。
+ */
+@keyframes fxm-fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+   10. STATUS INDICATOR ANIMATIONS (状态指示灯动画)
+   ============================================================================ */
+
+/**
+ * 正常状态 - 绿色脉冲发光 (fxm-pulse)。
+ * 根据 SPEC.MD 第 373-377 行规范实现。
+ */
+@keyframes fxm-pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+  }
+}
+
+/**
+ * 警告状态 - 黄色呼吸动画。
+ * 根据 SPEC.MD 第 380-383 行规范实现。
+ */
+@keyframes fxm-breatheWarning {
+  0%, 100% {
+    border-color: rgba(255, 170, 0, 0.3);
+  }
+  50% {
+    border-color: rgba(255, 170, 0, 0.8);
+  }
+}
+
+/**
+ * 危险状态 - 红色强脉冲动画。
+ * 根据 SPEC.MD 第 386-389 行规范实现。
+ */
+@keyframes fxm-pulseDanger {
+  0%, 100% {
+    border-color: rgba(255, 51, 102, 0.3);
+    box-shadow: 0 0 10px rgba(255, 51, 102, 0.2);
+  }
+  50% {
+    border-color: rgba(255, 51, 102, 0.8);
+    box-shadow: 0 0 30px rgba(255, 51, 102, 0.4);
+  }
+}
+
+/**
+ * 高温警告 - 火焰粒子动画 (>85°C)。
+ * 根据 SPEC.MD 第 391-395 行规范实现。
+ */
+@keyframes fxm-flameParticle {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-20px) scale(0);
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   11. COLLAPSE/EXPAND ANIMATIONS (折叠展开动画)
+   ============================================================================ */
+
+/**
+ * 折叠展开动画使用 max-height + opacity transition。
+ * 根据 SPEC.MD 第 403-408 行规范，时长为 300ms，缓动函数为 ease-in-out。
+ */
+
+
+/* ============================================================================
+   10. RESPONSIVE ADAPTATIONS (响应式适配)
+   ============================================================================ */
+
+/*
+ * NOTE: Mobile responsive breakpoints have been removed for performance optimization.
+ * ComfyUI-Feixue-UniversalMonitor is designed for desktop use with fixed positioning.
+ *
+ * Removed breakpoints:
+ * - @media (max-width: 1199px) - Medium screens
+ * - @media (max-width: 767px)  - Small screens (tablets)
+ * - @media (max-width: 479px)  - Tiny screens (mobile)
+ *
+ * If mobile support is needed in the future, restore from version control history.
+ */
+
+
+/* ============================================================================
+   11. ACCESSIBILITY OVERRIDES (无障碍增强)
+   ============================================================================ */
+
+/** 高对比度模式：增强边框和文字对比度 */
+@media (prefers-contrast: more) {
+  .fxm-hover-panel {
+    border-color: var(--fxm-border-emphasis);
+    border-width: 1.5px;
+  }
+
+  .fxm-panel-header {
+    border-bottom-color: var(--fxm-border-emphasis);
+  }
+
+  .fxm-panel-footer {
+    border-top-color: var(--fxm-border-emphasis);
+  }
+
+  .fxm-pred-card {
+    border-width: 1.5px;
+  }
+
+  .fxm-grid-card {
+    border-color: var(--fxm-border-subtle);
+  }
+
+  .fxm-panel-name {
+    font-weight: var(--fxm-font-weight-bold);
+  }
+}
+
+/** 减少动画偏好：禁用所有装饰性动画 */
+@media (prefers-reduced-motion: reduce) {
+  .fxm-hover-panel {
+    transition: opacity 0.1s ease;
+  }
+
+  .fxm-panel-body {
+    transition: none;
+  }
+
+  .fxm-grid-progress-bar,
+  .fxm-pred-meter-fill {
+    transition: none;
+  }
+
+  .fxm-panel-icon,
+  .fxm-status-high,
+  .fxm-risk-critical,
+  .fxm-pred-meter-fill {
+    animation: none !important;
+  }
+
+  .fxm-hover-panel.fxm-dragging {
+    transform: none !important;
+  }
+}
+
+/** 焦点可见模式：为键盘导航用户提供清晰的焦点指示 */
+.fxm-hover-panel:focus-visible {
+  outline: var(--fxm-focus-ring-width, 2px) solid var(--fxm-focus-ring-color);
+  outline-offset: 4px;
+}
+
+
+/* ============================================================================
+   12. PRINT STYLES (打印适配)
+   ============================================================================ */
+
+@media print {
+  .fxm-hover-panel {
+    position: static;
+    width: 100%;
+    max-height: none;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #cccccc;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    overflow: visible;
+  }
+
+  .fxm-panel-controls {
+    display: none;
+  }
+
+  .fxm-panel-header {
+    background: #f0f0f0;
+    cursor: default;
+  }
+
+  .fxm-pred-meter-fill {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

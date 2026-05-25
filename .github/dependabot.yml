@@ -1,0 +1,157 @@
+# ============================================================================
+# ComfyUI-Feixue-UniversalMonitor - Dependabot Configuration
+# ============================================================================
+# 自动依赖更新配置
+#
+# 功能:
+#   - 自动检查 Python 依赖 (pip) 的安全更新和功能更新
+#   - 自动创建 PR 来更新过时的依赖
+#   - 支持分组更新（将相关依赖的更新合并到一个 PR）
+#
+# 更新频率:
+#   - 安全漏洞修复: 每日检查（立即）
+#   - 功能更新: 每周检查
+#
+# 文档: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+# ============================================================================
+
+version: 2
+updates:
+
+  # ---------------------------------------------------------------------------
+  # Python 依赖 (pip) - 主要依赖
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+
+    # 分组相关依赖的更新
+    groups:
+      # 核心依赖组：psutil, torch 等主要运行时依赖
+      core-dependencies:
+        patterns:
+          - "psutil*"
+          - "torch*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      # 开发工具组：测试、linting、格式化工具
+      dev-tools:
+        patterns:
+          - "pytest*"
+          - "black*"
+          - "isort*"
+          - "ruff*"
+          - "mypy*"
+          - "bandit*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      # AMD GPU 相关依赖
+      amd-dependencies:
+        patterns:
+          - "amdsmi*"
+          - "rocm_smi_lib*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      # NVIDIA GPU 相关依赖
+      nvidia-dependencies:
+        patterns:
+          - "pynvml*"
+        update-types:
+          - "minor"
+          - "patch"
+
+    # 忽略特定版本或范围
+    ignore:
+      # 忽略 torch 的主版本升级（可能需要大量适配）
+      - dependency-name: "torch"
+        update-types: ["version-update:semver-major"]
+
+      # 忽略 psutil 的预发布版本
+      - dependency-name: "psutil"
+        update-types: ["version-update:semver-major"]
+
+    # 提交消息格式
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+    # PR 标签和审查者
+    labels:
+      - "dependencies"
+      - "automated"
+    reviewers:
+      - "Feixue"
+    assignees:
+      - "Feixue"
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions 工作流依赖
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+
+    # 分组 Actions 更新
+    groups:
+      actions-core:
+        patterns:
+          - "actions/checkout*"
+          - "actions/setup-python*"
+          - "actions/upload-artifact*"
+          - "actions/download-artifact*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      actions-security:
+        patterns:
+          - "aquasecurity/trivy-action*"
+          - "codecov/codecov-action*"
+          - "pypa/gh-action-pypi-release*"
+        update-types:
+          - "minor"
+          - "patch"
+          - "major"  # 安全相关的 Action 应该及时更新
+
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"
+    reviewers:
+      - "Feixue"
+
+# ============================================================================
+# 补充说明
+# ============================================================================
+#
+# 使用方法：
+# 1. 将此文件保存到 .github/dependabot.yml
+# 2. 在仓库 Settings > Code security > Dependabot 中启用
+# 3. Dependabot 会按照配置自动创建更新 PR
+#
+# 最佳实践：
+# - 对于安全关键更新，设置更短的检查间隔
+# - 使用分组来减少 PR 数量，保持仓库整洁
+# - 定期 review 和合并 Dependabot 创建的 PR
+# - 对于重大版本更新，先在单独分支测试兼容性
+#
+# 注意事项：
+# - 确保仓库启用了 Dependabot（GitHub Free 可用）
+# - 需要管理员权限才能修改此配置
+# - 可以通过 .github/dependabot.yml 覆盖默认行为

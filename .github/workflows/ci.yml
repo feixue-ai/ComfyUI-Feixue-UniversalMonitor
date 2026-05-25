@@ -1,0 +1,466 @@
+# ============================================================================
+# ComfyUI-Feixue-UniversalMonitor - CI/CD Pipeline
+# ============================================================================
+# 企业级持续集成流水线，确保代码质量和发布可靠性
+#
+# 触发条件:
+#   - Push 到 main 分支: 完整测试套件 + 代码质量检查
+#   - Pull Request: 完整测试 + Review checks
+#   - 手动触发 (workflow_dispatch): 全量测试 + 兼容性矩阵
+#
+# 包含的 Jobs:
+#   1. Code Quality (Lint & Format Check)
+#   2. Unit Tests (多 Python 版本 + 多平台)
+#   3. Integration Tests
+#   4. Security Scanning
+# ============================================================================
+
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - 'LICENSE'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_performance_tests:
+        description: 'Run performance benchmarks'
+        required: false
+        default: false
+        type: boolean
+      python_version:
+        description: 'Python version to test'
+        required: false
+        default: '3.11'
+        type: choice
+        options:
+          - '3.10'
+          - '3.11'
+          - '3.12'
+          - 'all'
+
+# 并发控制: 同一分支只保留最新的运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 环境变量
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_WARN_SCRIPT_LOCATION: "1"
+
+# ============================================================================
+# Jobs 定义
+# ============================================================================
+jobs:
+  # ==========================================================================
+  # Job 1: 代码质量检查 (Lint & Format)
+  # ==========================================================================
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史用于某些分析工具
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install linting dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install black isort ruff mypy bandit safety
+
+      - name: Black (代码格式化检查)
+        id: black-check
+        run: |
+          echo "::group::Black Format Check"
+          black --check --diff --color .
+          BLACK_EXIT_CODE=$?
+          echo "::endgroup::"
+          exit $BLACK_EXIT_CODE
+
+      - name: isort (导入排序检查)
+        id: isort-check
+        run: |
+          echo "::group::isort Import Sort Check"
+          isort --check-only --diff --color .
+          ISORT_EXIT_CODE=$?
+          echo "::endgroup::"
+          exit $ISORT_EXIT_CODE
+
+      - name: Ruff (Linter + 快速静态分析)
+        id: ruff-check
+        run: |
+          echo "::group::Ruff Linting"
+          ruff check --output-format=github .
+          RUFF_EXIT_CODE=$?
+          echo "::endgroup::"
+          exit $RUFF_EXIT_CODE
+
+      - name: MyPy (类型检查)
+        id: mypy-check
+        run: |
+          echo "::group::MyPy Type Checking"
+          mypy core/ collectors/ providers/ utils/
+          MYPY_EXIT_CODE=$?
+          echo "::endgroup::"
+          exit $MYPY_EXIT_CODE
+
+      - name: Upload lint results as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: |
+            .mypy_cache/
+            .ruff_cache/
+          retention-days: 7
+
+  # ==========================================================================
+  # Job 2: 单元测试 (Unit Tests Matrix)
+  # ==========================================================================
+  unit-tests:
+    name: Unit Tests (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    needs: [code-quality]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.10', '3.11', '3.12']
+        exclude:
+          # Windows 下 3.10 可能有兼容性问题
+          - os: windows-latest
+            python-version: '3.10'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e ".[dev]"
+          pip install pytest pytest-cov pytest-benchmark pytest-asyncio pytest-xdist
+
+      - name: Run unit tests with coverage
+        id: tests
+        run: |
+          echo "::group::Running Unit Tests"
+          pytest tests/unit/ \
+            -v \
+            --cov=core \
+            --cov=collectors \
+            --cov=providers \
+            --cov=utils \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --junitxml=test-results.xml \
+            --tb=short \
+            -n auto  # 并行执行（如果安装了 pytest-xdist）
+          TEST_EXIT_CODE=$?
+          echo "::endgroup::"
+          exit $TEST_EXIT_CODE
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            test-results.xml
+          retention-days: 14
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          verbose: true
+
+  # ==========================================================================
+  # Job 3: 集成测试 (Integration Tests)
+  # ==========================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [code-quality, unit-tests]
+
+    services:
+      # Redis 服务（如果项目将来需要消息队列）
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install integration test dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e ".[dev,full]"
+          pip install pytest pytest-asyncio pytest-docker
+
+      - name: Run integration tests
+        id: integration
+        run: |
+          echo "::group::Running Integration Tests"
+          pytest tests/integration/ \
+            -v \
+            --tb=short \
+            --junitxml=integration-test-results.xml \
+            --timeout=30  # 每个测试超时 30 秒
+          INTEGRATION_EXIT_CODE=$?
+          echo "::endgroup::"
+          exit $INTEGRATION_EXIT_CODE
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: integration-test-results.xml
+          retention-days: 14
+
+  # ==========================================================================
+  # Job 4: 安全扫描 (Security Scanning)
+  # ==========================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+
+      # Bandit: Python 安全漏洞扫描
+      - name: Run Bandit (Python Security Scanner)
+        uses: securego/gosec@master
+        continue-on-error: true
+        with:
+          args: ./core ./collectors ./providers ./utils
+
+      - name: Run Bandit with custom config
+        run: |
+          echo "::group::Bandit Security Scan"
+          bandit -r core/ collectors/ providers/ utils/ \
+            -f json \
+            -o bandit-report.json \
+            || true
+          cat bandit-report.json | python -m json.tool || true
+          echo "::endgroup::"
+
+      # Safety: 依赖漏洞扫描
+      - name: Run Safety (Dependency Vulnerability Scan)
+        run: |
+          echo "::group::Safety Dependency Scan"
+          pip install -e .  # 安装项目依赖
+          safety check --full-report || true
+          echo "::endgroup::"
+
+      # Trivy: 文件系统安全扫描
+      - name: Run Trivy filesystem scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            trivy-results.txt
+          retention-days: 30
+
+      # Dependency Review Action
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        continue-on-error: true
+
+  # ==========================================================================
+  # Job 5: 性能回归测试 (Performance Regression Tests)
+  # ==========================================================================
+  performance-tests:
+    name: Performance Baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.run_performance_tests == 'true' ||
+      github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要历史用于基准比较
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install performance testing dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -e ".[dev]"
+          pip install pytest-benchmark
+
+      - name: Run performance benchmarks
+        run: |
+          echo "::group::Running Performance Benchmarks"
+          pytest tests/performance/ \
+            --benchmark-json=benchmark.json \
+            --benchmark-autosave \
+            -v
+          echo "::endgroup::"
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'pytestb'
+          output-file-path: benchmark.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-always: true
+          alert-threshold: '150%'
+          fail-on-alert: true
+          alert-comment-cc: '@Feixue'
+          name: 'Python Benchmark'
+          auto-push: true
+
+  # ==========================================================================
+  # Job 6: 构建验证 (Build Verification)
+  # ==========================================================================
+  build-verification:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [unit-tests, integration-tests]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip setuptools wheel build twine
+
+      - name: Build package
+        run: python -m build
+
+      - name: Check package with Twine
+        run: twine check dist/*
+
+      - name: Verify package installation
+        run: |
+          pip install dist/*.whl --force-reinstall --no-deps
+          python -c "from ComfyUI_Feixue_UniversalMonitor import __version__; print(f'Version: {__version__}')"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dist
+          path: dist/*
+          retention-days: 7
+
+  # ==========================================================================
+  # 最终状态汇总
+  # ==========================================================================
+  ci-status:
+    name: CI Status Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, security-scan, build-verification]
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Verification | ${{ needs.build-verification.result }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any job failed
+        if: |
+          needs.code-quality.result == 'failure' ||
+          needs.unit-tests.result == 'failure' ||
+          needs.integration-tests.result == 'failure' ||
+          needs.build-verification.result == 'failure'
+        run: |
+          echo "::error::One or more CI jobs failed. Please check the logs above."
+          exit 1

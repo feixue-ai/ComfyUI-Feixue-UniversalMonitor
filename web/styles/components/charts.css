@@ -1,0 +1,581 @@
+/**
+ * ============================================================================
+ * ComfyUI-Feixue-UniversalMonitor - Chart Components
+ * ============================================================================
+ * 
+ * 图表可视化组件
+ * - Canvas 折线图 (趋势图)
+ * - SVG 环形进度条 (GPU 利用率)
+ * - SVG 温度计 (温度显示)
+ * 
+ * @author Feixue
+ * @version 1.0.0
+ * ============================================================================
+ */
+
+/* ============================================================================
+   CHART CONTAINER (图表容器)
+   ============================================================================ */
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, var(--border-opacity-subtle));
+  overflow: hidden;
+}
+
+.chart-container__canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ============================================================================
+   CANVAS LINE CHART (Canvas 折线图)
+   ============================================================================ */
+
+.line-chart {
+  position: relative;
+  width: 100%;
+  height: 120px;  /* Default height */
+  
+  cursor: crosshair;
+}
+
+.line-chart canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Chart tooltip */
+.line-chart__tooltip {
+  position: absolute;
+  pointer-events: none;
+  
+  padding: var(--space-1) var(--space-2);
+  
+  background: var(--chart-tooltip-bg);
+  border: var(--chart-tooltip-border);
+  border-radius: var(--radius-tooltip);
+  
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, var(--text-opacity-emphasis));
+  white-space: nowrap;
+  
+  opacity: 0;
+  transform: translateY(4px);
+  transition: 
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out-back);
+  
+  z-index: var(--z-tooltip);
+}
+
+.line-chart__tooltip--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Tooltip value highlight */
+.line-chart__tooltip-value {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-400);
+}
+
+/* Tooltip timestamp */
+.line-chart__tooltip-time {
+  font-size: 9px;
+  color: rgba(255, 255, 255, var(--text-opacity-secondary));
+  margin-top: 2px;
+}
+
+/* Tooltip arrow */
+.line-chart__tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid rgba(0, 212, 255, 0.3);
+}
+
+/* Crosshair line on hover */
+.line-chart__crosshair {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(0, 212, 255, 0.3);
+  pointer-events: none;
+  
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.line-chart:hover .line-chart__crosshair {
+  opacity: 1;
+}
+
+/* Chart legend */
+.line-chart__legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid rgba(255, 255, 255, var(--border-opacity-subtle));
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.line-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, var(--text-opacity-secondary));
+}
+
+.line-chart__legend-color {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+/* Chart empty state */
+.line-chart__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, var(--text-opacity-tertiary));
+}
+
+/* ============================================================================
+   SPARKLINE MINI CHART (迷你折线图 - 用于胶囊悬停)
+   ============================================================================ */
+
+.sparkline {
+  width: 100%;
+  height: 40px;  /* Compact size for tooltips */
+  
+  position: relative;
+}
+
+.sparkline canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Sparkline is simpler - no tooltip or legend */
+
+/* ============================================================================
+   SVG RING PROGRESS (SVG 环形进度条)
+   ============================================================================ */
+
+.ring-progress {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  --ring-size: var(--ring-diameter);  /* Default 100px */
+  width: var(--ring-size);
+  height: var(--ring-size);
+}
+
+.ring-progress svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);  /* Start from top */
+}
+
+/* Background ring track */
+.ring-progress__track {
+  fill: none;
+  stroke: var(--ring-bg-stroke);
+  stroke-width: var(--ring-stroke-width);
+}
+
+/* Progress ring fill */
+.ring-progress__fill {
+  fill: none;
+  stroke-width: var(--ring-stroke-width);
+  stroke-linecap: round;
+  
+  /* Smooth transitions for progress changes */
+  transition: 
+    stroke-dashoffset var(--duration-slower) var(--ease-out-quart),
+    stroke var(--duration-normal) var(--ease-in-out),
+    filter var(--duration-normal) var(--ease-in-out);
+  
+  /* Gradient stroke via CSS */
+  stroke: url(#ring-gradient);
+}
+
+/* Ring glow effect based on value */
+.ring-progress__fill--normal {
+  filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.4));
+}
+
+.ring-progress__fill--warning {
+  filter: drop-shadow(0 0 8px rgba(255, 170, 0, 0.5));
+}
+
+.ring-progress__fill--danger {
+  filter: drop-shadow(0 0 10px rgba(255, 51, 102, 0.6));
+  animation: rotateGlow 3s linear infinite;  /* Rotating glow for danger */
+}
+
+/* Centered content inside ring */
+.ring-progress__content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  
+  text-align: center;
+  line-height: 1;
+}
+
+/* Main percentage/value text */
+.ring-progress__value {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: rgba(255, 255, 255, var(--text-opacity-emphasis));
+  
+  display: block;
+  
+  font-feature-settings: 'tnum' on, 'lnum' on;
+  
+  transition: color var(--duration-normal) var(--ease-in-out);
+}
+
+/* Label below value */
+.ring-progress__label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: rgba(255, 255, 255, var(--text-opacity-secondary));
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-label);
+  
+  display: block;
+  margin-top: 2px;
+}
+
+/* Sub-value (optional) */
+.ring-progress__subvalue {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, var(--text-opacity-tertiary));
+  margin-top: 1px;
+}
+
+/* Ring size variants */
+.ring-progress--sm {
+  --ring-size: 60px;
+}
+
+.ring-progress--sm .ring-progress__value {
+  font-size: var(--font-size-base);
+}
+
+.ring-progress--sm .ring-progress__label {
+  font-size: 8px;
+}
+
+.ring-progress--lg {
+  --ring-size: 140px;
+}
+
+.ring-progress--lg .ring-progress__value {
+  font-size: var(--font-size-3xl);
+}
+
+/* Animated ring (for loading states) */
+.ring-progress--animated .ring-progress__fill {
+  animation: dashSpin 2s linear infinite;
+}
+
+/* ============================================================================
+   SVG THERMOMETER (SVG 温度计)
+   ============================================================================ */
+
+.thermometer {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  
+  width: var(--thermo-width);
+  min-height: var(--thermo-height);
+}
+
+.thermometer svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Thermometer body/tube */
+.thermometer__tube {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 2;
+}
+
+/* Thermometer glass effect overlay */
+.thermometer__glass {
+  fill: url(#thermo-glass-gradient);
+  opacity: 0.3;
+}
+
+/* Thermometer liquid/mercury */
+.thermometer__liquid {
+  /* Color will be set dynamically based on temperature */
+  transition: 
+    fill var(--duration-normal) var(--ease-in-out),
+    y var(--duration-slower) var(--ease-out-quart),
+    height var(--duration-slower) var(--ease-out-quart);
+  
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* Liquid colors based on temperature range */
+.thermometer__liquid--cool {  /* < 50°C */
+  fill: #00d4ff;
+  color: #00d4ff;
+}
+
+.thermometer__liquid--normal {  /* 50-70°C */
+  fill: #00ff88;
+  color: #00ff88;
+}
+
+.thermometer__liquid--warm {  /* 70-85°C */
+  fill: #ffaa00;
+  color: #ffaa00;
+}
+
+.thermometer__liquid--hot {  /* > 85°C */
+  fill: #ff3366;
+  color: #ff3366;
+  animation: flicker 0.8s ease-in-out infinite;
+}
+
+/* Thermometer bulb at bottom */
+.thermometer__bulb {
+  fill: inherit;
+  transition: fill var(--duration-normal) var(--ease-in-out);
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* Thermometer scale markings */
+.thermometer__scale {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+}
+
+.thermometer__scale-text {
+  font-family: var(--font-family-mono);
+  font-size: 8px;
+  fill: rgba(255, 255, 255, var(--text-opacity-tertiary));
+  text-anchor: end;
+}
+
+/* Thermometer temperature label */
+.thermometer__temp-label {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  
+  transition: color var(--duration-normal) var(--ease-in-out);
+}
+
+/* Temperature label colors */
+.thermometer--cool .thermometer__temp-label { color: var(--color-info-400); }
+.thermometer--normal .thermometer__temp-label { color: var(--color-success-400); }
+.thermometer--warm .thermometer__temp-label { color: var(--color-warning-400); }
+.thermometer--hot .thermometer__temp-label { 
+  color: var(--color-danger-400);
+  text-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
+}
+
+/* Fire particles container (shown when >85°C) */
+.thermometer__fire-particles {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  width: 30px;
+  height: 20px;
+  pointer-events: none;
+  
+  opacity: 0;
+  visibility: hidden;
+  transition: 
+    opacity var(--duration-normal) var(--ease-out),
+    visibility var(--duration-normal) var(--ease-out);
+}
+
+.thermometer--hot .thermometer__fire-particles {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Individual fire particle */
+.thermometer__particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-danger-500);
+  
+  animation: flameParticle 1s ease-out infinite;
+}
+
+/* Staggered particle animations */
+.thermometer__particle:nth-child(1) {
+  left: 20%;
+  animation-delay: 0ms;
+  background: #ff6600;
+}
+
+.thermometer__particle:nth-child(2) {
+  left: 50%;
+  animation-delay: 200ms;
+  background: #ff3300;
+}
+
+.thermometer__particle:nth-child(3) {
+  left: 80%;
+  animation-delay: 400ms;
+  background: #ff0000;
+}
+
+.thermometer__particle:nth-child(4) {
+  left: 35%;
+  animation-delay: 600ms;
+  background: #ff9900;
+}
+
+.thermometer__particle:nth-child(5) {
+  left: 65%;
+  animation-delay: 800ms;
+  background: #ffcc00;
+}
+
+/* ============================================================================
+   WAVEFORM VISUALIZATION (波形可视化 - 功耗)
+   ============================================================================ */
+
+.waveform-chart {
+  position: relative;
+  width: 100%;
+  height: 60px;
+  overflow: hidden;
+}
+
+.waveform-chart svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.waveform-chart__path {
+  fill: none;
+  stroke: url(#waveform-gradient);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  
+  /* Wave animation handled by CSS keyframes */
+  animation: waveForm 2s ease-in-out infinite;
+}
+
+/* Waveform fill gradient area */
+.waveform-chart__fill {
+  fill: url(#waveform-fill-gradient);
+  opacity: 0.3;
+}
+
+/* Current value indicator */
+.waveform-chart__current-value {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-warning-400);
+  
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.waveform-chart__current-icon {
+  width: 12px;
+  height: 12px;
+  color: currentColor;
+}
+
+/* ============================================================================
+   RESPONSIVE ADAPTATIONS (响应式适配)
+   ============================================================================ */
+
+/*
+ * NOTE: Mobile responsive breakpoints have been removed for performance optimization.
+ * ComfyUI-Feixue-UniversalMonitor is designed for desktop use with fixed positioning.
+ *
+ * Removed breakpoints:
+ * - @media (max-width: 1439px) and (min-width: 1024px) - Small desktop
+ * - @media (max-width: 767px)  - Mobile/tablet
+ *
+ * If mobile support is needed in the future, restore from version control history.
+ */
+
+/* ============================================================================
+   REDUCED MOTION (减少动画偏好)
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-progress__fill--danger {
+    animation: none;
+  }
+  
+  .thermometer__liquid--hot {
+    animation: none;
+  }
+  
+  .thermometer__particle {
+    animation: none;
+    opacity: 0.6;
+  }
+  
+  .waveform-chart__path {
+    animation: none;
+  }
+}

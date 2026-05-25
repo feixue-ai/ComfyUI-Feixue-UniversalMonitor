@@ -1,0 +1,766 @@
+/**
+ * ============================================================================
+ * ComfyUI-Feixue-UniversalMonitor - Base Styles & CSS Reset
+ * ============================================================================
+ *
+ * Foundation stylesheet providing:
+ * 1. CSS Reset / Normalize for cross-browser consistency
+ * 2. Root element defaults (html, body)
+ * 3. Typography base styles (headings, mono text, labels, values)
+ * 4. Comprehensive utility class library (layout, spacing, color, etc.)
+ * 5. Cyberpunk-themed custom scrollbar styling
+ * 6. Accessibility utilities (screen reader only, focus visible, skip link)
+ * 7. Basic animation keyframes (extended in animations.css per Task 4.4)
+ *
+ * All utility classes use the .fxm- prefix to avoid collisions with the host
+ * application (ComfyUI) or any third-party CSS.
+ *
+ * @author Feixue
+ * @version 1.0.0
+ * @license MIT
+ * ============================================================================
+ */
+
+/* Import Design Tokens first -- all values reference --fxm-* variables */
+@import url('./variables.css');
+@import url('./animations.css');
+
+/* ============================================================================
+   1. CSS RESET / NORMALIZE (CSS 重置/标准化)
+   ============================================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove default list styling */
+ul,
+ol {
+  list-style: none;
+}
+
+/* Inheritable font settings for form elements */
+button,
+input,
+select,
+textarea,
+optgroup {
+  font: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+
+/* Remove default button/input appearance */
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input,
+textarea,
+select {
+  background: none;
+  border: none;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Links inherit color */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Images and SVGs are block-level by default */
+img,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Table reset */
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* Remove default fieldset styling */
+fieldset {
+  border: none;
+}
+
+/* Remove default summary arrow in some browsers */
+summary {
+  cursor: pointer;
+}
+
+/* ============================================================================
+   2. ROOT ELEMENT STYLES (根元素样式)
+   ============================================================================ */
+
+:root {
+  /* Smooth scrolling for anchor links */
+  scroll-behavior: smooth;
+
+  /* Font rendering optimization */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+
+  /* Text selection highlight (cyberpunk blue tint) */
+  ::selection {
+    background-color: rgba(0, 212, 255, 0.28);
+    color: #ffffff;
+  }
+}
+
+html {
+  /* Base font size: 16px = 1rem. All rem calculations derive from this. */
+  font-size: 16px;
+  line-height: var(--fxm-line-height-normal);
+}
+
+body {
+  font-family: var(--fxm-font-sans);
+  font-size: var(--fxm-font-size-base);
+  font-weight: var(--fxm-font-weight-normal);
+  line-height: var(--fxm-line-height-normal);
+  color: var(--fxm-text-primary);
+
+  /*
+   * Transparent background: UniversalMonitor is an overlay inside ComfyUI.
+   * The host application controls the page background.
+   */
+  background-color: transparent;
+
+  /* Prevent horizontal overflow from child elements */
+  overflow-x: hidden;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================================
+   3. TYPOGRAPHY BASE (排版基础)
+   ============================================================================ */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--fxm-font-sans);
+  font-weight: var(--fxm-font-weight-semibold);
+  line-height: var(--fxm-line-height-tight);
+  letter-spacing: var(--fxm-letter-spacing-heading);
+  color: var(--fxm-text-primary);
+}
+
+h1 { font-size: var(--fxm-font-size-4xl); }
+h2 { font-size: var(--fxm-font-size-3xl); }
+h3 { font-size: var(--fxm-font-size-2xl); }
+h4 { font-size: var(--fxm-font-size-xl); }
+h5 { font-size: var(--fxm-font-size-lg); }
+h6 { font-size: var(--fxm-font-size-md); }
+
+p {
+  margin-bottom: var(--fxm-space-4);
+  line-height: var(--fxm-line-height-relaxed);
+}
+
+/* ---- Monospace Text (for numbers, code, metrics) ---- */
+.fxm-mono,
+[data-fxm-mono] {
+  font-family: var(--fxm-font-mono);
+  font-feature-settings: 'tnum' on, 'lnum' on; /* Tabular numerals for alignment */
+}
+
+/* ---- Label Text (metric card labels, etc.) ---- */
+.fxm-label {
+  font-size: var(--fxm-font-size-metric-label);
+  font-weight: var(--fxm-font-weight-semibold);
+  letter-spacing: var(--fxm-letter-spacing-label);
+  text-transform: uppercase;
+  color: var(--fxm-text-secondary);
+}
+
+/* ---- Unit Suffix Text (%, MB, C, etc.) ---- */
+.fxm-unit {
+  font-size: var(--fxm-font-size-unit);
+  font-weight: var(--fxm-font-weight-normal);
+  color: var(--fxm-text-secondary);
+  margin-left: 2px;
+}
+
+/* ---- Metric Value Text (large numbers in cards) ---- */
+.fxm-value {
+  font-family: var(--fxm-font-mono);
+  font-size: var(--fxm-font-size-metric-value);
+  font-weight: var(--fxm-font-weight-bold);
+  color: var(--fxm-text-primary);
+  line-height: 1;
+  font-feature-settings: 'tnum' on, 'lnum' on;
+}
+
+/* ============================================================================
+   4. LAYOUT UTILITY CLASSES (布局工具类)
+   All prefixed with .fxm- to avoid namespace collisions.
+   ============================================================================ */
+
+/* ----- Display ----- */
+.fxm-hidden      { display: none !important; }
+.fxm-block       { display: block; }
+.fxm-inline-block{ display: inline-block; }
+.fxm-inline      { display: inline; }
+.fxm-flex        { display: flex; }
+.fxm-inline-flex { display: inline-flex; }
+.fxm-grid        { display: grid; }
+
+/* ----- Flexbox Direction ----- */
+.fxm-flex-row     { flex-direction: row; }
+.fxm-flex-col     { flex-direction: column; }
+.fxm-flex-row-reverse { flex-direction: row-reverse; }
+.fxm-flex-col-reverse { flex-direction: column-reverse; }
+
+/* ----- Flexbox Wrap ----- */
+.fxm-flex-wrap    { flex-wrap: wrap; }
+.fxm-flex-nowrap  { flex-wrap: nowrap; }
+
+/* ----- Flexbox Align Items (Cross Axis) ----- */
+.fxm-items-start   { align-items: flex-start; }
+.fxm-items-center  { align-items: center; }
+.fxm-items-end     { align-items: flex-end; }
+.fxm-items-stretch { align-items: stretch; }
+.fxm-items-baseline{ align-items: baseline; }
+
+/* ----- Flexbox Justify Content (Main Axis) ----- */
+.fxm-justify-start  { justify-content: flex-start; }
+.fxm-justify-center { justify-content: center; }
+.fxm-justify-end    { justify-content: flex-end; }
+.fxm-justify-between{ justify-content: space-between; }
+.fxm-justify-around { justify-content: space-around; }
+.fxm-justify-evenly { justify-content: space-evenly; }
+
+/* ----- Flexbox Flex Properties ----- */
+.fxm-flex-1    { flex: 1 1 0%; }
+.fxm-flex-auto { flex: 1 1 auto; }
+.fxm-flex-none{ flex: none; }
+.fxm-grow     { flex-grow: 1; }
+.fxm-shrink-0 { flex-shrink: 0; }
+.fxm-shrink   { flex-shrink: 1; }
+.fxm-self-start  { align-self: flex-start; }
+.fxm-self-center{ align-self: center; }
+.fxm-self-end   { align-self: flex-end; }
+.fxm-self-stretch{ align-self: stretch; }
+
+/* ----- Gap ----- */
+.fxm-gap-0 { gap: 0; }
+.fxm-gap-1 { gap: var(--fxm-space-1); }
+.fxm-gap-2 { gap: var(--fxm-space-2); }
+.fxm-gap-3 { gap: var(--fxm-space-3); }
+.fxm-gap-4 { gap: var(--fxm-space-4); }
+.fxm-gap-5 { gap: var(--fxm-space-5); }
+.fxm-gap-6 { gap: var(--fxm-space-6); }
+.fxm-gap-8 { gap: var(--fxm-space-8); }
+
+/* ============================================================================
+   5. SPACING UTILITY CLASSES (间距工具类)
+   ============================================================================ */
+
+/* ----- Margin ----- */
+.fxm-m-0  { margin: 0; }
+.fxm-m-1  { margin: var(--fxm-space-1); }
+.fxm-m-2  { margin: var(--fxm-space-2); }
+.fxm-m-3  { margin: var(--fxm-space-3); }
+.fxm-m-4  { margin: var(--fxm-space-4); }
+.fxm-m-5  { margin: var(--fxm-space-5); }
+.fxm-m-6  { margin: var(--fxm-space-6); }
+.fxm-m-auto{ margin: auto; }
+
+.fxm-mt-0  { margin-top: 0; }
+.fxm-mt-1  { margin-top: var(--fxm-space-1); }
+.fxm-mt-2  { margin-top: var(--fxm-space-2); }
+.fxm-mt-3  { margin-top: var(--fxm-space-3); }
+.fxm-mt-4  { margin-top: var(--fxm-space-4); }
+.fxm-mt-auto{ margin-top: auto; }
+
+.fxm-mb-0  { margin-bottom: 0; }
+.fxm-mb-1  { margin-bottom: var(--fxm-space-1); }
+.fxm-mb-2  { margin-bottom: var(--fxm-space-2); }
+.fxm-mb-3  { margin-bottom: var(--fxm-space-3); }
+.fxm-mb-4  { margin-bottom: var(--fxm-space-4); }
+.fxm-mb-auto{ margin-bottom: auto; }
+
+.fxm-ml-0  { margin-left: 0; }
+.fxm-ml-1  { margin-left: var(--fxm-space-1); }
+.fxm-ml-2  { margin-left: var(--fxm-space-2); }
+.fxm-ml-auto{ margin-left: auto; }
+
+.fxm-mr-0  { margin-right: 0; }
+.fxm-mr-1  { margin-right: var(--fxm-space-1); }
+.fxm-mr-2  { margin-right: var(--fxm-space-2); }
+.fxm-mr-auto{ margin-right: auto; }
+
+.fxm-mx-auto { margin-left: auto; margin-right: auto; }
+.fxm-my-auto { margin-top: auto; margin-bottom: auto; }
+
+/* ----- Padding ----- */
+.fxm-p-0 { padding: 0; }
+.fxm-p-1 { padding: var(--fxm-space-1); }
+.fxm-p-2 { padding: var(--fxm-space-2); }
+.fxm-p-3 { padding: var(--fxm-space-3); }
+.fxm-p-4 { padding: var(--fxm-space-4); }
+.fxm-p-5 { padding: var(--fxm-space-5); }
+.fxm-p-6 { padding: var(--fxm-space-6); }
+
+.fxm-pt-0 { padding-top: 0; }
+.fxm-pt-1 { padding-top: var(--fxm-space-1); }
+.fxm-pt-2 { padding-top: var(--fxm-space-2); }
+.fxm-pt-3 { padding-top: var(--fxm-space-3); }
+.fxm-pt-4 { padding-top: var(--fxm-space-4); }
+
+.fxm-pb-0 { padding-bottom: 0; }
+.fxm-pb-1 { padding-bottom: var(--fxm-space-1); }
+.fxm-pb-2 { padding-bottom: var(--fxm-space-2); }
+.fxm-pb-3 { padding-bottom: var(--fxm-space-3); }
+.fxm-pb-4 { padding-bottom: var(--fxm-space-4); }
+
+.fxm-pl-0 { padding-left: 0; }
+.fxm-pl-1 { padding-left: var(--fxm-space-1); }
+.fxm-pl-2 { padding-left: var(--fxm-space-2); }
+.fxm-pl-3 { padding-left: var(--fxm-space-3); }
+.fxm-pl-4 { padding-left: var(--fxm-space-4); }
+
+.fxm-pr-0 { padding-right: 0; }
+.fxm-pr-1 { padding-right: var(--fxm-space-1); }
+.fxm-pr-2 { padding-right: var(--fxm-space-2); }
+.fxm-pr-3 { padding-right: var(--fxm-space-3); }
+.fxm-pr-4 { padding-right: var(--fxm-space-4); }
+
+.fxm-px-1 { padding-left: var(--fxm-space-1); padding-right: var(--fxm-space-1); }
+.fxm-px-2 { padding-left: var(--fxm-space-2); padding-right: var(--fxm-space-2); }
+.fxm-px-3 { padding-left: var(--fxm-space-3); padding-right: var(--fxm-space-3); }
+.fxm-px-4 { padding-left: var(--fxm-space-4); padding-right: var(--fxm-space-4); }
+
+.fxm-py-1 { padding-top: var(--fxm-space-1); padding-bottom: var(--fxm-space-1); }
+.fxm-py-2 { padding-top: var(--fxm-space-2); padding-bottom: var(--fxm-space-2); }
+.fxm-py-3 { padding-top: var(--fxm-space-3); padding-bottom: var(--fxm-space-3); }
+.fxm-py-4 { padding-top: var(--fxm-space-4); padding-bottom: var(--fxm-space-4); }
+
+/* ============================================================================
+   6. TYPOGRAPHY UTILITIES (排版工具类)
+   ============================================================================ */
+
+/* ----- Font Size ----- */
+.fxm-text-xs   { font-size: var(--fxm-font-size-xs); }
+.fxm-text-sm   { font-size: var(--fxm-font-size-sm); }
+.fxm-text-base { font-size: var(--fxm-font-size-base); }
+.fxm-text-md   { font-size: var(--fxm-font-size-md); }
+.fxm-text-lg   { font-size: var(--fxm-font-size-lg); }
+.fxm-text-xl   { font-size: var(--fxm-font-size-xl); }
+.fxm-text-2xl  { font-size: var(--fxm-font-size-2xl); }
+.fxm-text-value{ font-size: var(--fxm-font-size-metric-value); }
+
+/* ----- Font Weight ----- */
+.fxm-font-light    { font-weight: var(--fxm-font-weight-normal); }   /* maps to 300 equivalent usage */
+.fxm-font-normal   { font-weight: var(--fxm-font-weight-normal); }
+.fxm-font-medium   { font-weight: var(--fxm-font-weight-medium); }
+.fxm-font-semibold { font-weight: var(--fxm-font-weight-semibold); }
+.fxm-font-bold     { font-weight: var(--fxm-font-weight-bold); }
+
+/* ----- Text Alignment ----- */
+.fxm-text-left   { text-align: left; }
+.fxm-text-center { text-align: center; }
+.fxm-text-right  { text-align: right; }
+
+/* ----- Text Transform ----- */
+.fxm-uppercase   { text-transform: uppercase; }
+.fxm-lowercase   { text-transform: lowercase; }
+.fxm-capitalize  { text-transform: capitalize; }
+
+/* ----- Letter Spacing ----- */
+.fxm-tracking-tight  { letter-spacing: var(--fxm-letter-spacing-tight); }
+.fxm-tracking-normal{ letter-spacing: var(--fxm-letter-spacing-normal); }
+.fxm-tracking-wide   { letter-spacing: var(--fxm-letter-spacing-wide); }
+
+/* ----- Text Overflow ----- */
+.fxm-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fxm-line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fxm-line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   7. COLOR UTILITIES (颜色工具类)
+   ============================================================================ */
+
+/* ----- Text Color (Semantic) ----- */
+.fxm-text-primary { color: var(--fxm-accent-blue); }
+.fxm-text-success { color: var(--fxm-success); }
+.fxm-text-warning { color: var(--fxm-warning); }
+.fxm-text-danger  { color: var(--fxm-danger); }
+.fxm-text-info    { color: var(--fxm-info); }
+.fxm-text-muted   { color: var(--fxm-text-secondary); }
+.fxm-text-disabled{ color: var(--fxm-text-disabled); }
+
+/* ----- Background Color (Semantic) ----- */
+.fxm-bg-primary  { background-color: var(--fxm-accent-blue); }
+.fxm-bg-success  { background-color: var(--fxm-success); }
+.fxm-bg-warning  { background-color: var(--fxm-warning); }
+.fxm-bg-danger   { background-color: var(--fxm-danger); }
+.fxm-bg-glass    { background-color: var(--fxm-glass-bg); }
+.fxm-bg-card     { background-color: var(--fxm-bg-card); }
+.fxm-bg-elevated{ background-color: var(--fxm-bg-elevated); }
+
+/* ----- Metric-specific text colors ----- */
+.fxm-text-pred { color: var(--fxm-metric-pred-color); }
+.fxm-text-cpu  { color: var(--fxm-metric-cpu-color); }
+.fxm-text-ram  { color: var(--fxm-metric-ram-color); }
+.fxm-text-gpu  { color: var(--fxm-metric-gpu-color); }
+.fxm-text-vram { color: var(--fxm-metric-vram-color); }
+.fxm-text-rsv  { color: var(--fxm-metric-rsv-color); }
+.fxm-text-pwr  { color: var(--fxm-metric-pwr-color); }
+
+/* ============================================================================
+   8. BORDER RADIUS UTILITIES (圆角工具类)
+   ============================================================================ */
+
+.fxm-rounded-none { border-radius: var(--fxm-radius-none); }
+.fxm-rounded-sm   { border-radius: var(--fxm-radius-sm); }
+.fxm-rounded-md   { border-radius: var(--fxm-radius-md); }
+.fxm-rounded-lg   { border-radius: var(--fxm-radius-lg); }
+.fxm-rounded-xl   { border-radius: var(--fxm-radius-xl); }
+.fxm-rounded-2xl  { border-radius: var(--fxm-radius-2xl); }
+.fxm-rounded-full { border-radius: var(--fxm-radius-full); }
+
+/* ============================================================================
+   9. SHADOW & GLOW UTILITIES (阴影/发光工具类)
+   ============================================================================ */
+
+.fxm-shadow-none   { box-shadow: var(--fxm-shadow-none); }
+.fxm-shadow-sm     { box-shadow: var(--fxm-shadow-sm); }
+.fxm-shadow-md     { box-shadow: var(--fxm-shadow-md); }
+.fxm-shadow-lg     { box-shadow: var(--fxm-shadow-lg); }
+.fxm-shadow-xl     { box-shadow: var(--fxm-shadow-xl); }
+
+.fxm-glow-primary { box-shadow: var(--fxm-glow-primary); }
+.fxm-glow-purple  { box-shadow: var(--fxm-glow-purple); }
+.fxm-glow-success { box-shadow: var(--fxm-glow-success); }
+.fxm-glow-warning { box-shadow: var(--fxm-glow-warning); }
+.fxm-glow-danger  { box-shadow: var(--fxm-glow-danger); }
+
+/* ============================================================================
+   10. TRANSITION UTILITIES (过渡工具类)
+   ============================================================================ */
+
+.fxm-transition-none    { transition: none !important; }
+.fxm-transition-fast     { transition: var(--fxm-transition-fast); }
+.fxm-transition-base     { transition: var(--fxm-transition-base); }
+.fxm-transition-slow     { transition: var(--fxm-transition-slow); }
+.fxm-transition-spring   { transition: var(--fxm-transition-spring); }
+.fxm-transition-colors   { transition: var(--fxm-transition-colors); }
+.fxm-transition-transform{ transition: var(--fxm-transition-transform); }
+.fxm-transition-opacity  { transition: var(--fxm-transition-opacity); }
+.fxm-transition-shadow   { transition: var(--fxm-transition-shadow); }
+
+/* ============================================================================
+   11. POSITION UTILITIES (定位工具类)
+   ============================================================================ */
+
+.fxm-relative { position: relative; }
+.fxm-absolute { position: absolute; }
+.fxm-fixed    { position: fixed; }
+.fxm-sticky   { position: sticky; }
+
+.fxm-inset-0  { top: 0; right: 0; bottom: 0; left: 0; }
+.fxm-top-0    { top: 0; }
+.fxm-right-0  { right: 0; }
+.fxm-bottom-0 { bottom: 0; }
+.fxm-left-0   { left: 0; }
+
+/* ============================================================================
+   12. OVERFLOW & VISIBILITY (溢出与可见性)
+   ============================================================================ */
+
+.fxm-overflow-hidden { overflow: hidden; }
+.fxm-overflow-auto   { overflow: auto; }
+.fxm-overflow-scroll { overflow: scroll; }
+.fxm-overflow-x-auto { overflow-x: auto; }
+.fxm-overflow-y-auto { overflow-y: auto; }
+
+.fxm-visible    { visibility: visible; }
+.fxm-invisible  { visibility: hidden; }
+.fxm-opacity-0  { opacity: 0; }
+.fxm-opacity-25 { opacity: 0.25; }
+.fxm-opacity-50 { opacity: 0.5; }
+.fxm-opacity-75 { opacity: 0.75; }
+.fxm-opacity-100{ opacity: 1; }
+
+/* ============================================================================
+   13. CURSOR & INTERACTION (光标与交互)
+   ============================================================================ */
+
+.fxm-cursor-pointer     { cursor: pointer; }
+.fxm-cursor-default     { cursor: default; }
+.fxm-cursor-not-allowed { cursor: not-allowed; }
+.fxm-cursor-grab        { cursor: grab; }
+.fxm-cursor-grabbing    { cursor: grabbing; }
+
+.fxm-select-none  { user-select: none; -webkit-user-select: none; }
+.fxm-select-text  { user-select: text;  -webkit-user-select: text; }
+.fxm-select-all   { user-select: all;  -webkit-user-select: all; }
+
+.fxm-pointer-events-none { pointer-events: none; }
+.fxm-pointer-events-auto  { pointer-events: auto; }
+
+/* ============================================================================
+   14. ACCESSIBILITY UTILITIES (可访问性工具类)
+   ============================================================================ */
+
+/* Screen Reader Only - visually hidden but accessible to assistive tech.
+   WCAG 2.1 AA compliant technique for hiding content. */
+.fxm-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Focus Visible - keyboard navigation indicator */
+.fxm-focus-ring:focus-visible {
+  outline: var(--fxm-focus-ring-width) solid var(--fxm-focus-ring-color);
+  outline-offset: var(--fxm-focus-ring-offset);
+}
+
+/* Skip to main content link (accessibility requirement) */
+.fxm-skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: var(--fxm-accent-blue);
+  color: #000000;
+  font-weight: var(--fxm-font-weight-bold);
+  padding: var(--fxm-space-2) var(--fxm-space-4);
+  z-index: var(--fxm-z-max);
+  border-radius: 0 0 var(--fxm-radius-md) 0;
+  transition: top var(--fxm-duration-fast) var(--fxm-ease-out);
+}
+
+.fxm-skip-link:focus {
+  top: 0;
+}
+
+/* Reduced motion indicator - disables animations when user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .fxm-animate-reduce *,
+  .fxm-animate-reduce {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   15. SCROLLBAR CUSTOMIZATION (自定义滚动条)
+   Cyberpunk-themed thin scrollbar with subtle glow on hover.
+   Supports both WebKit (Chrome/Safari/Edge) and Firefox.
+   ============================================================================ */
+
+/* ---- WebKit Scrollbar (Chrome, Safari, Edge, Opera) ---- */
+
+/* Track - the scrollbar gutter */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--fxm-radius-full);
+}
+
+/* Thumb - the draggable handle */
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--fxm-radius-full);
+  transition: background-color var(--fxm-duration-fast) var(--fxm-ease-out),
+              width var(--fxm-duration-fast) var(--fxm-ease-out);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.35);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.15);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(0, 212, 255, 0.5);
+}
+
+/* Corner where horizontal + vertical scrollbars meet */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ---- Firefox Scrollbar ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) rgba(255, 255, 255, 0.02);
+}
+
+/* Hover state for Firefox is handled via JS or :hover on parent containers
+   since Firefox does not yet support scrollbar-color transitions natively. */
+
+/* ============================================================================
+   16. SELECTION STYLES (文本选中样式)
+   Consistent cyberpunk-blue selection highlight across browsers.
+   ============================================================================ */
+
+::selection {
+  background-color: rgba(0, 212, 255, 0.25);
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background-color: rgba(0, 212, 255, 0.25);
+  color: #ffffff;
+}
+
+/* ============================================================================
+   17. BASIC ANIMATION KEYFRAMES (基础动画关键帧)
+   These are foundational keyframes used across components.
+   More complex/compound animations are defined in animations.css (Task 4.4).
+   ============================================================================ */
+
+/* ---- Fade In / Out ---- */
+@keyframes fxm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fxm-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ---- Slide Up (for panels appearing from below) ---- */
+@keyframes fxm-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Slide Down (for dropdowns) ---- */
+@keyframes fxm-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Scale In (for modals and popups) ---- */
+@keyframes fxm-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---- Pulse Glow (subtle neon pulse effect) ---- */
+@keyframes fxm-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.25), 0 0 40px rgba(0, 212, 255, 0.08);
+  }
+}
+
+/* ---- Spin (loading indicator) ---- */
+@keyframes fxm-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---- Shimmer (skeleton loading placeholder) ---- */
+@keyframes fxm-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ---- Neon Flicker (cyberpunk ambient flicker) ---- */
+@keyframes fxm-neon-flicker {
+  0%, 18%, 22%, 25%, 53%, 57%, 100% {
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    opacity: 0.6;
+  }
+}
+
+/* Animation utility classes for quick use */
+.fxm-animate-fade-in {
+  animation: fxm-fade-in var(--fxm-duration-normal) var(--fxm-ease-out) forwards;
+}
+
+.fxm-animate-slide-up {
+  animation: fxm-slide-up var(--fxm-duration-normal) var(--fxm-ease-out-back) forwards;
+}
+
+.fxm-animate-scale-in {
+  animation: fxm-scale-in var(--fxm-duration-normal) var(--fxm-ease-out) forwards;
+}
+
+.fxm-animate-spin {
+  animation: fxm-spin 1s linear infinite;
+}
+
+.fxm-animate-pulse-glow {
+  animation: fxm-pulse-glow 3s ease-in-out infinite;
+}

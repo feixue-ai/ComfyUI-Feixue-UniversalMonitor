@@ -1,0 +1,414 @@
+/**
+ * ============================================================================
+ * ComfyUI-Feixue-UniversalMonitor - TopMenuBar Component
+ * ============================================================================
+ * 
+ * 顶部菜单栏胶囊指标栏组件
+ * 7个紧凑型胶囊: PRED | CPU | RAM | GPU | VRAM | RSV | PWR
+ * 
+ * 结构:
+ * - [状态指示灯] [图标] [数值] [单位]
+ * - 悬停时展开显示迷你图表 (Sparkline)
+ * - 根据阈值显示不同颜色和动画
+ * 
+ * @author Feixue
+ * @version 1.0.0
+ * ============================================================================
+ */
+
+/* ============================================================================
+   TOP MENU BAR CONTAINER (顶部菜单栏容器)
+   ============================================================================ */
+
+.fxm-top-menu-bar {
+  position: fixed;
+  top: var(--fxm-space-2);
+  right: var(--fxm-space-4);
+  z-index: var(--fxm-z-top-menu-bar);
+  
+  display: flex;
+  align-items: center;
+  gap: var(--fxm-topmenu-capsule-gap);
+  
+  padding: var(--fxm-space-1) var(--fxm-space-2);
+  
+  background: var(--fxm-glass-bg);
+  backdrop-filter: var(--fxm-glass-blur);
+  -webkit-backdrop-filter: var(--fxm-glass-blur);
+  
+  border: var(--fxm-border-glass);
+  border-radius: var(--fxm-radius-2xl);
+  
+  box-shadow: var(--fxm-shadow-sm), var(--fxm-glow-primary);
+  
+  /* Entrance animation */
+  animation: fxm-slideInTop var(--fxm-duration-slow) var(--fxm-ease-out-back) both;
+  
+  font-family: var(--fxm-font-sans);
+  font-size: var(--fxm-font-size-xs);
+  
+  user-select: none;
+}
+
+/* ============================================================================
+   CAPSULE COMPONENT (胶囊组件)
+   ============================================================================ */
+
+.capsule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  
+  height: var(--topmenu-capsule-height);
+  padding: var(--spacing-capsule-padding);
+  
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-capsule);
+  
+  cursor: pointer;
+  transition: var(--transition-fast);
+  
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Capsule hover state */
+.capsule:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 212, 255, var(--border-opacity-hover));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 12px rgba(0, 212, 255, 0.15);
+  z-index: 10;
+}
+
+/* Capsule active/pressed state */
+.capsule:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Capsule focus state for keyboard navigation */
+.capsule:focus-visible {
+  outline: var(--focus-visible-outline);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   STATUS INDICATOR (状态指示灯)
+   ============================================================================ */
+
+.capsule__indicator {
+  width: var(--topmenu-indicator-size);
+  height: var(--topmenu-indicator-size);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  
+  transition: 
+    background-color var(--duration-normal) var(--ease-in-out),
+    box-shadow var(--duration-normal) var(--ease-in-out);
+}
+
+/* Normal status (<60%) - Green glow */
+.capsule__indicator--normal {
+  background-color: var(--color-success-500);
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* Warning status (60-80%) - Amber pulse */
+.capsule__indicator--warning {
+  background-color: var(--color-warning-500);
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.5);
+  animation: breatheWarning 2s ease-in-out infinite;
+}
+
+/* Danger status (>80%) - Red pulse */
+.capsule__indicator--danger {
+  background-color: var(--color-danger-500);
+  box-shadow: 0 0 8px rgba(255, 51, 102, 0.6);
+  animation: pulseDanger 1.5s ease-in-out infinite;
+}
+
+/* Inactive/disabled status */
+.capsule__indicator--inactive {
+  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+  animation: none;
+}
+
+/* ============================================================================
+   CAPSULE ICON (胶囊图标)
+   ============================================================================ */
+
+.capsule__icon {
+  width: var(--topmenu-icon-size);
+  height: var(--topmenu-icon-size);
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  
+  color: rgba(255, 255, 255, var(--text-opacity-default));
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.capsule__icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+/* Icon color based on status */
+.capsule--normal .capsule__icon { color: var(--color-success-400); }
+.capsule--warning .capsule__icon { color: var(--color-warning-400); }
+.capsule--danger .capsule__icon { color: var(--color-danger-400); }
+
+/* Fire icon animation for high temperature */
+.capsule__icon--fire {
+  animation: flicker 0.5s ease-in-out infinite;
+  color: var(--color-danger-500) !important;
+}
+
+/* ============================================================================
+   CAPSULE VALUE AND UNIT (数值和单位)
+   ============================================================================ */
+
+.capsule__content {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  min-width: 0;  /* Allow text truncation */
+}
+
+.capsule__value {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  color: rgba(255, 255, 255, var(--text-opacity-emphasis));
+  font-feature-settings: 'tnum' on, 'lnum' on;
+  
+  transition: color var(--duration-normal) var(--ease-in-out);
+}
+
+.capsule__unit {
+  font-family: var(--font-family-mono);
+  font-size: 9px;
+  font-weight: var(--font-weight-normal);
+  line-height: 1;
+  color: rgba(255, 255, 255, var(--text-opacity-secondary));
+  text-transform: uppercase;
+  margin-left: 1px;
+  
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+/* Value colors based on status */
+.capsule--normal .capsule__value { color: var(--color-success-400); }
+.capsule--warning .capsule__value { color: var(--color-warning-400); }
+.capsule--danger .capsule__value { color: var(--color-danger-400); }
+
+/* ============================================================================
+   PRED SPECIAL CAPSULE (PRED 特殊胶囊 - 圆环进度)
+   ============================================================================ */
+
+.capsule--pred {
+  min-width: auto;
+  padding-right: var(--space-2);
+}
+
+.capsule__pred-ring {
+  width: 18px;
+  height: 18px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.capsule__pred-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.capsule__pred-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 2.5;
+}
+
+.capsule__pred-ring-progress {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  
+  transition: 
+    stroke-dashoffset var(--duration-slower) var(--ease-out-quart),
+    stroke var(--duration-normal) var(--ease-in-out);
+  
+  /* Gradient stroke via CSS */
+  stroke: url(#pred-ring-gradient);
+}
+
+/* PRED status variants */
+.capsule--pred.normal .capsule__pred-ring-progress {
+  stroke: var(--color-success-500);
+  filter: drop-shadow(0 0 4px rgba(0, 255, 136, 0.5));
+}
+
+.capsule--pred.warning .capsule__pred-ring-progress {
+  stroke: var(--color-warning-500);
+  filter: drop-shadow(0 0 4px rgba(255, 170, 0, 0.5));
+}
+
+.capsule--pred.danger .capsule__pred-ring-progress {
+  stroke: var(--color-danger-500);
+  filter: drop-shadow(0 0 4px rgba(255, 51, 102, 0.6));
+  animation: pulseDanger 2s ease-in-out infinite;
+}
+
+/* ============================================================================
+   SPARKLINE TOOLTIP (悬停迷你图表)
+   ============================================================================ */
+
+.capsule__sparkline {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  
+  width: 160px;
+  height: 60px;
+  padding: var(--space-2);
+  
+  background: var(--bg-primary);
+  backdrop-filter: var(--backdrop-filter-glass);
+  -webkit-backdrop-filter: var(--backdrop-filter-glass);
+  
+  border: var(--border-glass);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), var(--glow-primary);
+  
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  
+  transition: 
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out-back),
+    visibility var(--duration-fast) var(--ease-out);
+  
+  z-index: var(--z-tooltip-sparkline);
+}
+
+/* Show sparkline on hover */
+.capsule:hover .capsule__sparkline {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* Sparkline canvas */
+.capsule__sparkline-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Sparkline tooltip arrow */
+.capsule__sparkline::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(0, 212, 255, 0.2);
+  
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* ============================================================================
+   POWER WAVEFORM ANIMATION (功耗波形动画)
+   ============================================================================ */
+
+.capsule--power .capsule__waveform {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  opacity: 0.6;
+}
+
+.capsule__waveform-path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  
+  animation: waveForm 2s ease-in-out infinite;
+}
+
+/* ============================================================================
+   RESPONSIVE ADAPTATIONS (响应式适配)
+   ============================================================================ */
+
+/*
+ * NOTE: Mobile responsive breakpoints have been removed for performance optimization.
+ * ComfyUI-Feixue-UniversalMonitor is designed for desktop use with fixed positioning.
+ *
+ * Removed breakpoints:
+ * - @media (max-width: 1023px) - Tablet mode
+ * - @media (max-width: 767px)  - Mobile minimal mode
+ *
+ * If mobile support is needed in the future, restore from version control history.
+ */
+
+/* ============================================================================
+   HIGH CONTRAST MODE (高对比度模式)
+   ============================================================================ */
+
+@media (prefers-contrast: more) {
+  .capsule {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  .capsule__value {
+    font-weight: var(--font-weight-bold);
+  }
+  
+  .capsule__unit {
+    opacity: 0.8;
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES (打印样式)
+   ============================================================================ */
+
+@media print {
+  .top-menu-bar {
+    position: static;
+    background: #fff;
+    color: #000;
+    border: 1px solid #000;
+    box-shadow: none;
+  }
+  
+  .capsule {
+    background: #f0f0f0;
+    border-color: #ccc;
+  }
+  
+  .capsule__sparkline {
+    display: none;
+  }
+}

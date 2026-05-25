@@ -1,0 +1,281 @@
+# ============================================================================
+# ComfyUI-Feixue-UniversalMonitor - Pre-commit Configuration
+# ============================================================================
+# Git 提交前自动检查工具配置
+#
+# 功能:
+#   - 代码格式化 (Black)
+#   - 导入排序 (isort)
+#   - Linting (Ruff)
+#   - 类型检查 (MyPy)
+#   - 安全扫描 (Bandit)
+#   - 文件检查（无大文件、无调试代码等）
+#
+# 安装:
+#   pip install pre-commit
+#   pre-commit install
+#
+# 使用:
+#   # 手动运行所有检查
+#   pre-commit run --all-files
+#
+#   # 只运行特定 hook
+#   pre-commit run black --files core/monitor.py
+#
+#   # 更新到最新版本
+#   pre-commit autoupdate
+#
+# 跳过检查（不推荐）:
+#   git commit --no-verify
+#   SKIP=black,isort git commit -m "message"
+#
+# 文档: https://pre-commit.com/
+# ============================================================================
+
+# 最低版本要求
+minimum_pre_commit_version: "3.2.0"
+
+# 全局排除文件和目录
+exclude: |
+    (?x)^(
+        \.git/
+        | \.hg/
+        | \.mypy_cache/
+        | \.tox/
+        | \.venv/
+        | venv/
+        | _build/
+        | buck-out/
+        | build/
+        | dist/
+        | \.eggs/
+        | .*\.egg-info/
+    )
+
+# 默认语言版本
+default_language_version:
+  python: python3.11
+
+# ============================================================================
+# Hooks 定义
+# ============================================================================
+repos:
+
+  # ==========================================================================
+  # 1. 通用 Git 检查
+  # ==========================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # 检测是否有大文件 (>500KB)
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+        name: Check for large files
+
+      # 检测合并冲突标记
+      - id: check-merge-conflict
+        name: Check merge conflicts
+
+      # 检测是否包含损坏的 JSON 文件
+      - id: check-json
+        name: Validate JSON files
+
+      # 检测 YAML 文件语法
+      - id: check-yaml
+        args: ['--unsafe']  # 允许自定义标签
+        name: Validate YAML files
+
+      # 检测是否有私有密钥提交
+      - id: detect-private-key
+        name: Detect private keys
+
+      # 删除行尾空白字符
+      - id: trailing-whitespace
+        name: Fix trailing whitespace
+
+      # 确保文件以换行符结尾
+      - id: end-of-file-fixer
+        name: Ensure newline at EOF
+
+      # 检测 debug 语句（如 pdb.set_trace(), breakpoint()）
+      - id: debug-statements
+        name: Detect debug statements
+
+      # 检查文件名是否符合规范
+      - id: check-case-conflict
+        name: Check case conflicts
+
+      # 防止提交到 main/master 分支
+      - id: no-commit-to-branch
+        args: ['--branch', 'main', '--branch', 'master']
+        name: Prevent commits to main branch
+
+  # ==========================================================================
+  # 2. Python 代码格式化 - Black
+  # ==========================================================================
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        name: Black (Code Formatter)
+        language_version: python3.11
+        args:
+          - '--line-length=120'
+          - '--target-version=py310'
+        # 排除不需要格式化的文件
+        exclude: |
+            (?x)^(
+                migrations/
+                | version.py
+            )
+
+  # ==========================================================================
+  # 3. Python 导入排序 - isort
+  # ==========================================================================
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (Import Sorter)
+        args:
+          - '--profile=black'
+          - '--line-length=120'
+          - '--multi-line=3'
+          - '--trailing-comma'
+          - '--force-grid-wrap=0'
+          - '--use-parentheses'
+          - '--ensure-newline-before-comments'
+
+  # ==========================================================================
+  # 4. Python Linting - Ruff (超快!)
+  # ==========================================================================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.2.0
+    hooks:
+      # Ruff Linter：检测代码问题
+      - id: ruff
+        name: Ruff (Linter)
+        args:
+          - '--fix'  # 自动修复可修复的问题
+          - '--exit-non-zero-on-fix'  # 如果有修复则返回非零退出码
+
+      # Ruff Formatter：代码格式化（可选，如果不想用 Black）
+      # - id: ruff-format
+      #   name: Ruff (Formatter)
+
+  # ==========================================================================
+  # 5. Python 类型检查 - MyPy
+  # ==========================================================================
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        name: MyPy (Type Checker)
+        additional_dependencies:
+          - types-psutil
+          - types-requests
+          - types-PyYAML
+        args:
+          - '--ignore-missing-imports'
+          - '--no-strict-optional'
+          - '--show-error-codes'
+          - '--pretty'
+        # 只检查核心代码，跳过测试和示例
+        exclude: |
+            (?x)^(
+                tests/
+                | examples/
+                | setup\.py
+            )
+
+  # ==========================================================================
+  # 6. Python 安全扫描 - Bandit
+  # ==========================================================================
+  - repo: https:///github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        name: Bandit (Security Scanner)
+        args:
+          - '-c'
+          - .bandit.yml
+          - '-r'
+          - '.'
+        exclude: |
+            (?x)^(
+                tests/
+            )
+        # 不阻止提交，只报警告
+        pass_filenames: false
+
+  # ==========================================================================
+  # 7. 文档生成 - Docformatter
+  # ==========================================================================
+  - repo: https:///github.com/pycqa/pydocstringformatter
+    rev: v0.7.3
+    hooks:
+      - id: pydocstringformatter
+        name: Format docstrings
+        args:
+          - '--max-summary-length=79'
+          - '--wrap-summaries=79'
+          - '--wrap-descriptions=72'
+
+  # ==========================================================================
+  # 8. Conventional Commits 检查
+  # ==========================================================================
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        name: Check commit message format
+        stages: [commit-msg]
+        args:
+          - '--feat'
+          - 'fix'
+          - 'docs'
+          - 'style'
+          - 'refactor'
+          - 'perf'
+          - 'test'
+          - 'chore'
+          - 'ci'
+          - 'build'
+
+  # ==========================================================================
+  # 9. Markdown 格式化（如果有文档）
+  # ==========================================================================
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.17
+    hooks:
+      - id: mdformat
+        name: mdformat (Markdown formatter)
+        additional_dependencies:
+          - mdformat-gfm  # GitHub Flavored Markdown
+        exclude: |
+            (?x)^(
+                CHANGELOG\.md  # 自动生成的 changelog 不需要格式化
+            )
+
+  # ==========================================================================
+  # 10. YAML 格式化
+  # ==========================================================================
+  - repo: https://github.com/macisam/language-tools-everywhere
+    rev: v0.2.0
+    hooks:
+      - id: yamlfmt
+        name: yamlfmt (YAML formatter)
+
+# ============================================================================
+# CI 设置（用于 GitHub Actions）
+# ============================================================================
+ci:
+  # 在 CI 中跳过某些可能失败的 hook（避免误报）
+  autofix_prs: true
+  autofix_commit_msg: 'style: auto-fix pre-commit issues'
+  skip: [mypy]  # CI 中单独运行 mypy 以获得更好的控制
+
+# ============================================================================
+# 本地设置覆盖
+# ============================================================================
+# 可以通过 .pre-commit-local-config.yaml 覆盖此文件的配置

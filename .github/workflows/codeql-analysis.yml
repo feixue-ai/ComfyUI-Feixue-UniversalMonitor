@@ -1,0 +1,141 @@
+# ============================================================================
+# ComfyUI-Feixue-UniversalMonitor - CodeQL Analysis
+# ============================================================================
+# GitHub Advanced Security - CodeQL 代码安全与质量分析
+#
+# 触发条件:
+#   - Push 到 main 分支
+#   - Pull Request
+#   - 每周定时扫描（周一 UTC 0:00）
+#   - 手动触发
+#
+# 分析语言: Python
+# 检测内容:
+#   - 安全漏洞 (SQL注入、命令注入、XSS等)
+#   - 代码质量问题
+#   - 最佳实践违规
+# ============================================================================
+
+name: CodeQL Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 每周一 UTC 0:00 运行全面扫描
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write  # 上传 SARIF 结果到 GitHub Security tab
+
+jobs:
+  analyze:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['python']
+        # 可选：添加更多语言
+        # language: [ 'python', 'javascript' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 初始化 CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # 如果需要自定义查询
+          # queries: security-extended,security-and-quality
+
+      # 自动构建（如果项目需要编译步骤）
+      # 对于纯 Python 项目，这一步可能不需要
+      - name: Perform CodeQL Analysis
+        if: matrix.language == 'python'
+        run: |
+          echo "Python project detected, using autobuild"
+          # CodeQL 会自动分析 Python 代码，无需额外构建步骤
+
+      # 执行 CodeQL 分析
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+
+  # ==========================================================================
+  # 额外：自定义查询（可选）
+  # ==========================================================================
+  custom-queries:
+    name: Custom Security Queries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: analyze
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run custom security checks
+        run: |
+          pip install bandit
+
+          # 自定义 Bandit 配置文件检查
+          cat > .bandit-custom.yml << 'EOF'
+          hardcoded_tmp_directory:
+            - tmp_dir: /tmp, /var/tmp, /dev/shm
+
+          linux_commands_wildcard_injection:
+            shell: True
+            no_shell: False
+
+          EOF
+
+          bandit -r . \
+            --configfile .bandit-custom.yml \
+            --format json \
+            --output custom-security-results.json \
+            || true
+
+          # 分析结果摘要
+          if [ -f custom-security-results.json ]; then
+            python3 << 'PYEOF'
+          import json
+
+          with open('custom-security-results.json') as f:
+              data = json.load(f)
+
+          results = data.get('results', [])
+          if results:
+              print("Custom Security Findings:")
+              for r in results[:10]:  # 只显示前 10 个结果
+                  print(f"  - [{r.get('issue_severity')}] {r.get('test_id')}: {r.get('test_name')}")
+                  print(f"    File: {r.get('filename')}:{r.get('line_number')}")
+              if len(results) > 10:
+                  print(f"  ... and {len(results) - 10} more findings")
+          else:
+              print("No custom security findings detected")
+          PYEOF
+          fi
+
+      - name: Upload custom security results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-custom-results-${{ github.run_id }}
+          path: custom-security-results.json
+          retention-days: 30

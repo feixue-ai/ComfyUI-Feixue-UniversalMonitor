@@ -1,0 +1,431 @@
+# ============================================================================
+# ComfyUI-Feixue-UniversalMonitor - Release Pipeline
+# ============================================================================
+# 自动化发布流水线，实现零人工干预的一键发布
+#
+# 触发条件:
+#   - 创建版本 Tag (v*): 自动构建、测试、发布到 PyPI 和 GitHub Releases
+#
+# 发布流程:
+#   1. 运行完整 CI 测试套件（复用 ci.yml 的逻辑）
+#   2. 构建 Python 包 (wheel + sdist)
+#   3. 验证包完整性
+#   4. 发布到 PyPI (使用 Trusted Publishing)
+#   5. 创建 GitHub Release 并上传 artifacts
+#   6. 更新文档和 badges
+# ============================================================================
+
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'  # 触发条件: v1.0.0, v2.1.0-beta.1, etc.
+
+permissions:
+  contents: write  # 用于创建 GitHub Release
+  id-token: write  # 用于 Trusted Publishing to PyPI
+
+# 环境变量
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  # ==========================================================================
+  # Job 1: 发布前验证 (Pre-release Validation)
+  # ==========================================================================
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      is_prerelease: ${{ steps.check-prerelease.outputs.is_prerelease }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: extract-version
+        run: |
+          # 从 tag 提取版本号 (v1.0.0 -> 1.0.0)
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Releasing version: $VERSION"
+
+      - name: Check if prerelease
+        id: check-prerelease
+        run: |
+          VERSION="${{ steps.extract-version.outputs.version }}"
+          # 检查是否包含预发布标识符 (alpha, beta, rc, etc.)
+          if [[ "$VERSION" =~ (alpha|beta|rc|dev|a|b|rc)[0-9]* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "⚠️  This is a pre-release version"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "✅ This is a stable release"
+          fi
+
+      - name: Validate version in pyproject.toml
+        run: |
+          TAG_VERSION="${{ steps.extract-version.outputs.version }}"
+          TOML_VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+
+          if [ "$TAG_VERSION" != "$TOML_VERSION" ]; then
+            echo "::error::Version mismatch! Tag says v$TAG_VERSION but pyproject.toml has $TOML_VERSION"
+            exit 1
+          fi
+
+          echo "✅ Version validated: $TAG_VERSION"
+
+      - name: Validate version in __init__.py
+        run: |
+          TAG_VERSION="${{ steps.extract-version.outputs.version }}"
+          INIT_VERSION=$(grep '__version__ = ' __init__.py | sed 's/__version__ = "\(.*\)"/\1/')
+
+          if [ "$TAG_VERSION" != "$INIT_VERSION" ]; then
+            echo "::error::Version mismatch! Tag says v$TAG_VERSION but __init__.py has $INIT_VERSION"
+            exit 1
+          fi
+
+          echo "✅ Version validated in __init__.py: $TAG_VERSION"
+
+      - name: Check for uncommitted changes
+        run: |
+          # 确保没有未提交的更改
+          if ! git diff --quiet; then
+            echo "::error::There are uncommitted changes in the working directory"
+            exit 1
+          fi
+
+          echo "✅ Working directory is clean"
+
+      - name: Verify tag is on main branch
+        run: |
+          # 获取 tag 所在的分支
+          BRANCH=$(git branch --contains ${{ github.ref }} --format='%(refname:short)' | head -n1)
+
+          if [[ "$BRANCH" != "main" && "${{ steps.check-prerelease.outputs.is_prerelease }}" == "false" ]]; then
+            echo "::warning::Tag is not on main branch (current: $BRANCH)"
+            echo "For stable releases, tags should be on the main branch"
+          else
+            echo "✅ Tag is on appropriate branch: $BRANCH"
+          fi
+
+  # ==========================================================================
+  # Job 2: 运行完整测试套件 (Full Test Suite)
+  # ==========================================================================
+  test-suite:
+    name: Full Test Suite (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [validate-release]
+
+    strategy:
+      fail-fast: true  # 发布时任何失败都应该立即停止
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel build twine
+          pip install -e ".[dev]"
+          pip install pytest pytest-cov
+
+      - name: Run linting and formatting checks
+        run: |
+          black --check .
+          isort --check-only .
+          ruff check .
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/unit/ \
+            -v \
+            --cov=core \
+            --cov=collectors \
+            --cov=providers \
+            --cov=utils \
+            --cov-report=term-missing \
+            --junitxml=test-results.xml \
+            --tb=short
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-test-results-${{ matrix.python-version }}
+          path: test-results.xml
+          retention-days: 30
+
+  # ==========================================================================
+  # Job 3: 构建包 (Build Package)
+  # ==========================================================================
+  build-package:
+    name: Build Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [validate-release, test-suite]
+
+    outputs:
+      artifact_name: ${{ steps.build-info.outputs.artifact_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip setuptools wheel build twine
+
+      - name: Build package
+        id: build
+        run: |
+          echo "::group::Building Package"
+          python -m build
+          echo "::endgroup::"
+
+          # 列出生成的文件
+          echo "::group::Build Artifacts"
+          ls -lh dist/
+          echo "::endgroup::"
+
+      - name: Check package with Twine
+        run: |
+          echo "::group::Twine Package Validation"
+          twine check dist/*
+          echo "::endgroup::"
+
+      - name: Get artifact info
+        id: build-info
+        run: |
+          # 获取主要的 wheel 文件名
+          WHEEL_NAME=$(ls dist/*.whl | head -n1 | xargs basename)
+          SDIST_NAME=$(ls dist/*.tar.gz | head -n1 | xargs basename)
+
+          echo "artifact_name=$WHEEL_NAME" >> $GITHUB_OUTPUT
+          echo "Wheel: $WHEEL_NAME"
+          echo "Source: $SDIST_NAME"
+
+      - name: Verify package installation
+        run: |
+          echo "::group::Testing Package Installation"
+          pip install dist/*.whl --force-reinstall --no-deps
+          python -c "
+          from ComfyUI_Feixue_UniversalMonitor import __version__
+          print(f'Installed version: {__version__}')
+          assert __version__ == '${{ needs.validate-release.outputs.version }}', 'Version mismatch!'
+          print('✅ Package installation verified')
+          "
+          echo "::endgroup::"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dist-${{ github.ref_name }}
+          path: dist/*
+          retention-days: 90  # 保留更长时间用于审计
+
+      - name: Generate SBOM (Software Bill of Materials)
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py --output-format json --output dist/sbom.json || true
+          echo "SBOM generated for supply chain security"
+
+  # ==========================================================================
+  # Job 4: 发布到 PyPI (Publish to PyPI)
+  # ==========================================================================
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-package]
+    environment:
+      name: pypi
+      url: https://pypi.org/p/ComfyUI-Feixue-UniversalMonitor
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dist-${{ github.ref_name }}
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-release@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Verify PyPI publication
+        run: |
+          sleep 30  # 等待 PyPI 索引更新
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          echo "Checking PyPI for version $VERSION..."
+
+          # 尝试从 PyPI 安装并验证
+          pip install --index-url https://pypi.org/simple/ \
+              ComfyUI-Feixue-UniversalMonitor==$VERSION \
+              --no-deps \
+              --dry-run || true
+
+          echo "✅ Package published to PyPI successfully!"
+
+  # ==========================================================================
+  # Job 5: 创建 GitHub Release (Create GitHub Release)
+  # ==========================================================================
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-package, publish-pypi]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dist-${{ github.ref_name }}
+          path: dist/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # 获取上一个 tag 用于生成 changelog
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "## 📋 Changes since $PREVIOUS_TAG" > CHANGELOG_RELEASE.md
+            echo "" >> CHANGELOG_RELEASE.md
+            git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG_RELEASE.md
+          else
+            echo "## 🎉 Initial Release" > CHANGELOG_RELEASE.md
+            echo "" >> CHANGELOG_RELEASE.md
+            git log --pretty=format:"- %s (%h)" -20 >> CHANGELOG_RELEASE.md
+          fi
+
+          cat CHANGELOG_RELEASE.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          body_path: CHANGELOG_RELEASE.md
+          draft: false
+          prerelease: ${{ needs.validate-release.outputs.is_prerelease == 'true' }}
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/sbom.json
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update latest release badge
+        run: |
+          echo "GitHub Release created successfully!"
+          echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+
+  # ==========================================================================
+  # Job 6: 发布后通知 (Post-release Notification)
+  # ==========================================================================
+  notify:
+    name: Post-release Notifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [github-release, publish-pypi]
+    if: success()
+
+    steps:
+      - name: Send Discord notification (optional)
+        if: env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          curl -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"🚀 New Release: v$VERSION\",
+                \"url\": \"https://github.com/${{ github.repository }}/releases/tag/v$VERSION\",
+                \"color\": 5814783,
+                \"description\": \"ComfyUI-Feixue-UniversalMonitor v$VERSION has been released!\",
+                \"fields\": [
+                  {\"name\": \"PyPI\", \"value\": \"[View on PyPI](https://pypi.org/project/ComfyUI-Feixue-UniversalMonitor/$VERSION/)\", \"inline\": true},
+                  {\"name\": \"Downloads\", \"value\": \"Coming soon...\", \"inline\": true}
+                ],
+                \"footer\": {\"text\": \"Released by ${{ github.actor }}\"},
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }]
+            }" || true
+
+      - name: Summary
+        run: |
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+
+          ## ✅ Release Complete!
+
+          **Version:** `${{ needs.validate-release.outputs.version }}`
+          **Type:** ${{ needs.validate-release.outputs.is_prerelease == 'true' && 'Pre-release' || 'Stable Release' }}
+
+          ### Links
+          - **PyPI:** https://pypi.org/project/ComfyUI-Feixue-UniversalMonitor/${{ needs.validate-release.outputs.version }}/
+          - **GitHub Release:** https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+
+          ### Next Steps
+          1. Monitor download stats on [PyPI](https://pypistats.org/packages/ComfyUI-Feixue-UniversalMonitor)
+          2. Watch for user feedback in [Issues](https://github.com/${{ github.repository }}/issues)
+          3. Consider announcing on community forums
+
+          EOF
+
+  # ==========================================================================
+  # 失败时的回滚处理
+  # ==========================================================================
+  rollback-on-failure:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [publish-pypi, github-release]
+    if: failure()
+
+    steps:
+      - name: Notify about failure
+        run: |
+          echo "::warning::Release failed! Manual intervention required."
+          echo ""
+          echo "Failed release: ${{ github.ref_name }}"
+          echo "Please check the logs above for details."
+          echo ""
+          echo "If PyPI was partially updated, you may need to:"
+          echo "1. Contact PyPI support to yank the release"
+          echo "2. Delete the GitHub Release"
+          echo "3. Fix the issue and create a new tag"

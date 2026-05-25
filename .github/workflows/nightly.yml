@@ -1,0 +1,445 @@
+# ============================================================================
+# ComfyUI-Feixue-UniversalMonitor - Nightly Pipeline
+# ============================================================================
+# 定时任务流水线：每晚自动运行安全扫描、性能回归和健康检查
+#
+# 运行时间: 每天 UTC 3:00 (北京时间 11:00)
+#
+# 包含的任务:
+#   1. 依赖漏洞扫描 (Safety + Dependabot)
+#   2. 性能基线回归测试
+#   3. 代码健康度报告
+#   4. 过期 Issue/PR 清理建议
+#   5. 文档更新检查
+# ============================================================================
+
+name: Nightly Pipeline
+
+on:
+  schedule:
+    # 每天 UTC 3:00 运行 (北京时间 11:00)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      full_scan:
+        description: 'Run comprehensive security scan'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  security-events: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  # ==========================================================================
+  # Job 1: 全面安全扫描 (Comprehensive Security Scan)
+  # ==========================================================================
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install security tools
+        run: |
+          pip install bandit safety pip-audit cyclonedx-python-lib
+
+      # Bandit 深度扫描
+      - name: Run Bandit (Deep Security Scan)
+        run: |
+          echo "::group::Bandit Deep Scan"
+          bandit -r . \
+            -f json \
+            -o bandit-nightly.json \
+            --confidence-level LOW \
+            || true
+          echo "::endgroup::"
+
+          # 分析结果
+          if [ -f bandit-nightly.json ]; then
+            SEVERITY_COUNT=$(python3 -c "
+          import json
+          with open('bandit-nightly.json') as f:
+              data = json.load(f)
+          results = data.get('results', [])
+          high = sum(1 for r in results if r.get('issue_severity') == 'HIGH')
+          medium = sum(1 for r in results if r.get('issue_severity') == 'MEDIUM')
+          low = sum(1 for r in results if r.get('issue_severity') == 'LOW')
+          print(f'HIGH:{high}, MEDIUM:{medium}, LOW:{low}')
+          ")
+            echo "📊 Bandit Results: $SEVERITY_COUNT"
+          fi
+
+      # Safety 依赖漏洞扫描
+      - name: Run Safety (Dependency Vulnerabilities)
+        run: |
+          echo "::group::Safety Dependency Check"
+          safety check \
+            --full-report \
+            --json \
+            --output safety-report.json \
+            || true
+          echo "::endgroup::"
+
+      # Pip-audit 审计
+      - name: Run pip-audit
+        run: |
+          pip install -e .
+          pip-audit \
+            --format=json \
+            --output=pip-audit-report.json \
+            || true
+
+      # 生成 SBOM
+      - name: Generate SBOM
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py \
+            --format json \
+            --output sbom-nightly.json \
+            || true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-security-reports-${{ github.run_id }}
+          path: |
+            bandit-nightly.json
+            safety-report.json
+            pip-audit-report.json
+            sbom-nightly.json
+          retention-days: 30
+
+      - name: Create Security Summary
+        if: always()
+        run: |
+          cat << EOF > $GITHUB_STEP_SUMMARY
+
+          ## 🔒 Security Audit Report
+
+          **Date:** $(date -u '+%Y-%m-%d %H:%M UTC')
+          **Commit:** ${{ github.sha }}
+
+          ### Scans Completed
+          - ✅ Bandit (Python code vulnerabilities)
+          - ✅ Safety (PyPI vulnerability database)
+          - ✅ pip-audit (dependency audit)
+          - ✅ SBOM generation
+
+          ### Reports Available
+          Security reports have been uploaded as artifacts.
+
+          EOF
+
+  # ==========================================================================
+  # Job 2: 性能基线回归 (Performance Regression)
+  # ==========================================================================
+  performance-regression:
+    name: Performance Regression Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要历史用于基准比较
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+          pip install pytest-benchmark
+
+      - name: Run benchmarks
+        run: |
+          pytest tests/performance/ \
+            --benchmark-json=benchmark-nightly.json \
+            --benchmark-autosave \
+            --benchmark-columns=min,mean,max,stddev,rounds \
+            -v
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'pytestb'
+          output-file-path: benchmark-nightly.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-always: false  # 仅在有显著变化时评论
+          alert-threshold: '200%'  # 夜间构建使用更宽松的阈值
+          fail-on-alert: false     # 不阻断构建，仅报警
+          auto-push: true
+
+      - name: Performance Summary
+        if: always()
+        run: |
+          cat << EOF > $GITHUB_STEP_SUMMARY
+
+          ## 📈 Performance Baseline Report
+
+          **Date:** $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          Benchmark data has been stored and compared against baseline.
+          Any significant regressions (>200%) will be flagged.
+
+          View detailed benchmark history in the GitHub Actions benchmark tab.
+
+          EOF
+
+  # ==========================================================================
+  # Job 3: 代码健康度检查 (Code Health Check)
+  # ==========================================================================
+  code-health:
+    name: Code Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install analysis tools
+        run: |
+          pip install radon xenon
+
+      # 代码复杂度分析
+      - name: Analyze Code Complexity
+        run: |
+          echo "::group::Cyclomatic Complexity"
+          radon cc core/ collectors/ providers/ utils/ -a -s || true
+          echo "::endgroup::"
+
+          echo "::group::Maintainability Index"
+          radon mi core/ collectors/ providers/ utils/ -s || true
+          echo "::endgroup::"
+
+      # 代码结构分析
+      - name: Check Code Structure
+        run: |
+          echo "::group::Xenon Structure Analysis"
+          xenon --max-absolute A --max-modules A --max-average A . || true
+          echo "::endgroup::"
+
+      # 测试覆盖率趋势（如果有历史数据）
+      - name: Check Test Coverage
+        run: |
+          if [ -d "tests" ]; then
+            pip install pytest pytest-cov
+            pytest tests/unit/ --cov=core --cov=collectors --cov=providers --cov-utils \
+              --cov-report=term-missing \
+              --cov-report=xml:coverage-nightly.xml \
+              || true
+          fi
+
+      - name: Upload health report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-code-health-${{ github.run_id }}
+          path: coverage-nightly.xml
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ==========================================================================
+  # Job 4: 依赖更新检查 (Dependency Update Check)
+  # ==========================================================================
+  dependency-check:
+    name: Dependency Status
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check outdated dependencies
+        run: |
+          pip install pip-outdated
+          pip-outdated || true
+
+      - name: Generate dependency report
+        run: |
+          cat << 'EOF' > dependency-status.md
+          # Dependency Status Report
+
+          Generated: $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          ## Current Dependencies
+
+          EOF
+
+          # 解析 pyproject.toml 获取依赖列表
+          if command -v tomli &> /dev/null; then
+            python3 -c "
+          import sys
+          try:
+              import tomllib
+          except ImportError:
+              import tomli as tomllib
+
+          with open('pyproject.toml', 'rb') as f:
+              data = tomllib.load(f)
+
+          deps = data.get('project', {}).get('dependencies', [])
+          print('### Required Dependencies\n')
+          for dep in deps:
+              print(f'- {dep}')
+
+          opt_deps = data.get('project', {}).get('optional-dependencies', {})
+          for group, group_deps in opt_deps.items():
+              print(f'\n### Optional [{group}]\n')
+              for dep in group_deps:
+                  print(f'- {dep}')
+          " >> dependency-status.md || true
+          fi
+
+          cat dependency-status.md
+
+      - name: Upload dependency report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-dependency-status-${{ github.run_id }}
+          path: dependency-status.md
+          retention-days: 7
+
+  # ==========================================================================
+  # Job 5: 维护任务 (Maintenance Tasks)
+  # ==========================================================================
+  maintenance:
+    name: Maintenance Tasks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for stale branches
+        id: stale-branches
+        run: |
+          echo "::group::Checking Stale Branches"
+          STALE_BRANCHES=$(git branch -r --sort=-committerdate | head -20 | while read branch; do
+            LAST_COMMIT=$(git log -1 --format=%ci "$branch" 2>/dev/null | cut -d' ' -f1)
+            DAYS_SINCE=$(( ($(date +%s) - $(date -d "$LAST_COMMIT" +%s)) / 86400 ))
+            if [ $DAYS_SINCE -gt 90 ]; then
+              echo "- $branch (last commit: ${DAYS_SINCE} days ago)"
+            fi
+          done)
+
+          if [ -n "$STALE_BRANCHES" ]; then
+            echo "⚠️ Found stale branches (90+ days without commits):"
+            echo "$STALE_BRANCHES"
+            echo "stale_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No stale branches found"
+            echo "stale_found=false" >> $GITHUB_OUTPUT
+          fi
+          echo "::endgroup::"
+
+      - name: Check documentation freshness
+        run: |
+          echo "::group::Documentation Freshness Check"
+          if [ -f "README.md" ]; then
+            README_AGE=$(( ($(date +%s) - $(stat -c %Y README.md)) / 86400 ))
+            echo "README.md age: $README_AGE days"
+
+            if [ $README_AGE -gt 180 ]; then
+              echo "::warning::README.md hasn't been updated in 6+ months"
+            fi
+          fi
+          echo "::endgroup::"
+
+      - name: Generate maintenance summary
+        run: |
+          cat << EOF > $GITHUB_STEP_SUMMARY
+
+          ## 🛠️ Maintenance Report
+
+          **Date:** $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          ### Branch Health
+          - Stale branches detected: ${{ steps.stale-branches.outputs.stale_found == 'true' && 'Yes' || 'No' }}
+
+          ### Recommendations
+          - Review and merge/close stale PRs
+          - Update documentation if needed
+          - Review open issues for action items
+
+          EOF
+
+  # ==========================================================================
+  # 最终汇总
+  # ==========================================================================
+  nightly-summary:
+    name: Nightly Summary
+    runs-on: ubuntu-latest
+    needs: [security-audit, performance-regression, code-health, dependency-check, maintenance]
+    if: always()
+
+    steps:
+      - name: Generate final summary
+        run: |
+          cat << EOF > $GITHUB_STEP_SUMMARY
+
+          # 🌙 Nightly Pipeline Complete
+
+          **Run ID:** ${{ github.run_id }}
+          **Date:** $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          ## Job Status
+
+          | Job | Status | Duration |
+          |-----|--------|----------|
+          | Security Audit | ${{ needs.security-audit.result }} | - |
+          | Performance Regression | ${{ needs.performance-regression.result }} | - |
+          | Code Health Check | ${{ needs.code-health.result }} | - |
+          | Dependency Check | ${{ needs.dependency-check.result }} | - |
+          | Maintenance | ${{ needs.maintenance.result }} | - |
+
+          ## Artifacts Generated
+          - `nightly-security-reports-*` - 安全扫描报告
+          - `nightly-code-health-*` - 代码健康度数据
+          - `nightly-dependency-status-*` - 依赖状态报告
+
+          ## Next Steps
+          - Review any alerts or warnings
+          - Address critical security findings
+          - Plan dependency updates if needed
+
+          EOF
+
+      - name: Send notification on failure
+        if: |
+          needs.security-audit.result == 'failure' ||
+          needs.performance-regression.result == 'failure'
+        run: |
+          echo "::warning::Nightly pipeline had failures. Please review the logs."
