@@ -134,7 +134,7 @@ jobs:
 
       - name: Upload custom security results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codeql-custom-results-${{ github.run_id }}
           path: custom-security-results.json

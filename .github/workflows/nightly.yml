@@ -114,7 +114,7 @@ jobs:
             || true
 
       - name: Upload security reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nightly-security-reports-${{ github.run_id }}
           path: |
@@ -257,7 +257,7 @@ jobs:
 
       - name: Upload health report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nightly-code-health-${{ github.run_id }}
           path: coverage-nightly.xml
@@ -325,7 +325,7 @@ jobs:
           cat dependency-status.md
 
       - name: Upload dependency report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nightly-dependency-status-${{ github.run_id }}
           path: dependency-status.md

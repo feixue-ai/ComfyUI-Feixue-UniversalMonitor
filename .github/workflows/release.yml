@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-test-results-${{ matrix.python-version }}
           path: test-results.xml
@@ -242,7 +242,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-dist-${{ github.ref_name }}
           path: dist/*
