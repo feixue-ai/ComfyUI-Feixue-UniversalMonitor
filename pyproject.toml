@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ComfyUI-Feixue-UniversalMonitor"
-version = "2.5.0"
+version = "2.5.1"
 description = "ComfyUI系统实时监控插件 - 飞雪监测器 | Feixue Monitor | Feixui Monitor | Real-time system monitoring plugin for ComfyUI | World-class capsule UI with 3 themes"
 readme = "README.md"
 license = {text = "MIT"}
@@ -27,7 +27,7 @@ Issues = "https://github.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor/issues"
 include = ["core*", "collectors*", "providers*", "utils*", "config*"]
 
 [tool.comfy]
-PublisherId = "feixue"          # Publisher ID（在registry.comfy.org创建的，影响AUTHOR显示）
+PublisherId = "feixui"          # Publisher ID（API密钥对应的Publisher名称）
 DisplayName = "飞雪监测器 | Feixue Monitor | Feixui Monitor"     # 在Manager中显示的名称
 Icon = "https://raw.githubusercontent.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor/main/feixue.png"  # 使用GitHub Raw URL确保图标可访问
 
