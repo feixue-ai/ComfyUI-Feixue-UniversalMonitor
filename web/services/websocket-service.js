@@ -71,8 +71,8 @@ class WebSocketService {
    * @param {Object} [options={}] - Configuration options.
    * @param {string} [options.url] - WebSocket server URL. Defaults to `ws://${host}/ws/feixue_monitor`.
    * @param {boolean} [options.reconnect=true] - Enable automatic reconnection.
-   * @param {number} [options.maxReconnectDelay=30000] - Maximum reconnection delay in ms (30s).
-   * @param {number} [options.heartbeatInterval=30000] - Heartbeat ping interval in ms (30s).
+   * @param {number} [options.maxReconnectDelay=10000] - Maximum reconnection delay in ms (10s).
+   * @param {number} [options.heartbeatInterval=5000] - Heartbeat ping interval in ms (5s).
    * @param {number} [options.maxMissedHeartbeats=3] - Max missed heartbeats before disconnect.
    * @param {number} [options.offlineQueueSize=10] - Maximum offline queue size.
    */
@@ -93,13 +93,13 @@ class WebSocketService {
      * Maximum reconnection delay in milliseconds.
      * @type {number}
      */
-    this.maxReconnectDelay = options.maxReconnectDelay || 30000; // 30s
+    this.maxReconnectDelay = options.maxReconnectDelay || 10000; // 10s (reduced from 30s)
 
     /**
      * Heartbeat ping interval in milliseconds.
      * @type {number}
      */
-    this.heartbeatInterval = options.heartbeatInterval || 30000; // 30s
+    this.heartbeatInterval = options.heartbeatInterval || 5000; // 5s (reduced from 30s)
 
     /**
      * Maximum number of missed heartbeats before forcing disconnect.

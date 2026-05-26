@@ -215,6 +215,20 @@ class HoverPanel {
     this._currentData = null;
 
     /**
+     * 数据保持缓存：存储上次成功的指标数据，用于数据中断时的降级显示。
+     * @type {Object}
+     * @private
+     */
+    this._cachedMetrics = {
+      cpu: { utilization: '--', cores: '--', freq_mhz: '--' },
+      ram: { percent: '--', used_gb: '--', total_gb: '--' },
+      gpu: { utilization: '--', vram_used_gb: '--', vram_total_gb: '--', 
+             temperature: '--', power_usage_w: '--' },
+      vram: { percent: '--', used_mb: '--', total_mb: '--' },
+      prediction: { success_rate: '--', risk_level: 'UNKNOWN', confidence: '--' },
+    };
+
+    /**
      * requestAnimationFrame ID，用于取消未执行的渲染帧。
      * @type {number|null}
      * @private
@@ -605,22 +619,129 @@ class HoverPanel {
    * 内部方法：执行实际的 DOM 渲染更新。
    *
    * 渲染顺序（按视觉重要性排列）：
-   * 1. PRED 预测结果卡片
-   * 2. 趋势图（更新历史数据并绘制）
-   * 3. 系统信息卡片
-   * 4. 底部信息栏（时间戳 + 数据源）
+   * 1. 更新数据保持缓存（使用新数据或保持旧数据）
+   * 2. PRED 预测结果卡片
+   * 3. 趋势图（更新历史数据并绘制）
+   * 4. 系统信息卡片
+   * 5. 底部信息栏（时间戳 + 数据源）
    *
    * @param {Object} data - 数据快照。
    * @private
    */
   _performRender(data) {
-    this._renderPredictionCard(data);
-    this._renderChart(data);
-    this._renderSystemInfo(data);
-    this._renderFooter(data);
+    // 先更新数据保持缓存（关键修复：数据中断时显示缓存值）
+    this._updateMetricsCache(data);
+    
+    // 使用缓存数据进行渲染
+    const renderData = this._getRenderData(data);
+    
+    this._renderPredictionCard(renderData);
+    this._renderChart(renderData);
+    this._renderSystemInfo(renderData);
+    this._renderFooter(renderData);
 
     // 缓存当前数据用于后续 Diff 比较
     this._currentData = data;
+  }
+
+  /**
+   * 更新数据保持缓存：将新数据合并到缓存中。
+   * @param {Object} data - 新的数据快照。
+   * @private
+   */
+  _updateMetricsCache(data) {
+    // 更新 CPU 缓存
+    if (data.cpu != null) {
+      this._cachedMetrics.cpu.utilization = 
+        (data.cpu.utilization != null) ? data.cpu.utilization.toFixed(1) : this._cachedMetrics.cpu.utilization;
+      this._cachedMetrics.cpu.cores = 
+        (data.cpu.cores != null) ? data.cpu.cores : this._cachedMetrics.cpu.cores;
+      this._cachedMetrics.cpu.freq_mhz = 
+        (data.cpu.freq_mhz != null) ? Math.round(data.cpu.freq_mhz) : this._cachedMetrics.cpu.freq_mhz;
+    }
+    
+    // 更新 RAM 缓存
+    if (data.ram != null) {
+      this._cachedMetrics.ram.percent = 
+        (data.ram.percent != null) ? data.ram.percent.toFixed(1) : this._cachedMetrics.ram.percent;
+      this._cachedMetrics.ram.used_gb = 
+        (data.ram.used_gb != null) ? data.ram.used_gb.toFixed(2) : this._cachedMetrics.ram.used_gb;
+      this._cachedMetrics.ram.total_gb = 
+        (data.ram.total_gb != null) ? data.ram.total_gb.toFixed(2) : this._cachedMetrics.ram.total_gb;
+    }
+    
+    // 更新 GPU 缓存
+    if (data.gpu != null) {
+      this._cachedMetrics.gpu.utilization = 
+        (data.gpu.utilization != null) ? data.gpu.utilization.toFixed(1) : this._cachedMetrics.gpu.utilization;
+      this._cachedMetrics.gpu.vram_used_gb = 
+        (data.gpu.vram_used_gb != null) ? data.gpu.vram_used_gb.toFixed(2) : this._cachedMetrics.gpu.vram_used_gb;
+      this._cachedMetrics.gpu.vram_total_gb = 
+        (data.gpu.vram_total_gb != null) ? data.gpu.vram_total_gb.toFixed(2) : this._cachedMetrics.gpu.vram_total_gb;
+      this._cachedMetrics.gpu.temperature = 
+        (data.gpu.temperature != null) ? data.gpu.temperature : this._cachedMetrics.gpu.temperature;
+      this._cachedMetrics.gpu.power_usage_w = 
+        (data.gpu.power_usage_w != null) ? data.gpu.power_usage_w.toFixed(0) : this._cachedMetrics.gpu.power_usage_w;
+    }
+    
+    // 更新 VRAM 缓存
+    if (data.gpu != null) {
+      this._cachedMetrics.vram.percent = 
+        (data.gpu.vram_percent != null) ? data.gpu.vram_percent.toFixed(1) : this._cachedMetrics.vram.percent;
+      this._cachedMetrics.vram.used_mb = 
+        (data.gpu.vram_used_mb != null) ? data.gpu.vram_used_mb : this._cachedMetrics.vram.used_mb;
+      this._cachedMetrics.vram.total_mb = 
+        (data.gpu.vram_total_mb != null) ? data.gpu.vram_total_mb : this._cachedMetrics.vram.total_mb;
+    }
+    
+    // 更新预测数据缓存
+    if (data.prediction != null) {
+      this._cachedMetrics.prediction.success_rate = 
+        (data.prediction.success_rate != null) ? data.prediction.success_rate.toFixed(1) : this._cachedMetrics.prediction.success_rate;
+      this._cachedMetrics.prediction.risk_level = 
+        (data.prediction.risk_level != null) ? data.prediction.risk_level : this._cachedMetrics.prediction.risk_level;
+      this._cachedMetrics.prediction.confidence = 
+        (data.prediction.confidence != null) ? data.prediction.confidence.toFixed(1) : this._cachedMetrics.prediction.confidence;
+    }
+  }
+
+  /**
+   * 获取用于渲染的数据：优先使用新数据，新数据缺失时使用缓存数据。
+   * @param {Object} data - 新的数据快照。
+   * @returns {Object} 用于渲染的完整数据对象。
+   * @private
+   */
+  _getRenderData(data) {
+    return {
+      cpu: {
+        utilization: (data.cpu != null && data.cpu.utilization != null) ? data.cpu.utilization : this._cachedMetrics.cpu.utilization,
+        cores: (data.cpu != null && data.cpu.cores != null) ? data.cpu.cores : this._cachedMetrics.cpu.cores,
+        freq_mhz: (data.cpu != null && data.cpu.freq_mhz != null) ? data.cpu.freq_mhz : this._cachedMetrics.cpu.freq_mhz,
+        ...(data.cpu || {}),
+      },
+      ram: {
+        percent: (data.ram != null && data.ram.percent != null) ? data.ram.percent : parseFloat(this._cachedMetrics.ram.percent),
+        used_gb: (data.ram != null && data.ram.used_gb != null) ? data.ram.used_gb : parseFloat(this._cachedMetrics.ram.used_gb),
+        total_gb: (data.ram != null && data.ram.total_gb != null) ? data.ram.total_gb : parseFloat(this._cachedMetrics.ram.total_gb),
+        ...(data.ram || {}),
+      },
+      gpu: {
+        utilization: (data.gpu != null && data.gpu.utilization != null) ? data.gpu.utilization : parseFloat(this._cachedMetrics.gpu.utilization),
+        vram_used_gb: (data.gpu != null && data.gpu.vram_used_gb != null) ? data.gpu.vram_used_gb : parseFloat(this._cachedMetrics.gpu.vram_used_gb),
+        vram_total_gb: (data.gpu != null && data.gpu.vram_total_gb != null) ? data.gpu.vram_total_gb : parseFloat(this._cachedMetrics.gpu.vram_total_gb),
+        temperature: (data.gpu != null && data.gpu.temperature != null) ? data.gpu.temperature : this._cachedMetrics.gpu.temperature,
+        power_usage_w: (data.gpu != null && data.gpu.power_usage_w != null) ? data.gpu.power_usage_w : parseFloat(this._cachedMetrics.gpu.power_usage_w),
+        ...(data.gpu || {}),
+      },
+      prediction: {
+        success_rate: (data.prediction != null && data.prediction.success_rate != null) ? data.prediction.success_rate : parseFloat(this._cachedMetrics.prediction.success_rate),
+        risk_level: (data.prediction != null && data.prediction.risk_level != null) ? data.prediction.risk_level : this._cachedMetrics.prediction.risk_level,
+        confidence: (data.prediction != null && data.prediction.confidence != null) ? data.prediction.confidence : parseFloat(this._cachedMetrics.prediction.confidence),
+        ...(data.prediction || {}),
+      },
+      timestamp: data.timestamp || Date.now(),
+      data_source: data.data_source || 'cached',
+    };
   }
 
   // ---------------------------------------------------------------------------

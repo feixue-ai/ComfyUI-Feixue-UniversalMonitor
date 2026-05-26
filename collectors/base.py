@@ -186,6 +186,9 @@ class BaseCollector(abc.ABC, Generic[T]):
         self._total_collection_time: float = 0.0
         self._last_collection_time: Optional[float] = None
         self._last_error: Optional[Exception] = None
+        
+        # ----- 数据缓存（用于超时降级）-----
+        self._last_success_data: Optional[T] = None
 
     @abc.abstractmethod
     def collect(self) -> T:
@@ -215,12 +218,13 @@ class BaseCollector(abc.ABC, Generic[T]):
         - 异常捕获和日志记录
         - 统计信息更新（成功/失败计数、耗时统计）
         - 重试机制（如果配置了 retry_count > 0）
+        - 超时降级：采集失败时返回上次成功的数据（缓存）
 
         Args:
-            default: 采集失败时返回的默认值，默认为 None
+            default: 采集失败且无缓存数据时返回的默认值，默认为 None
 
         Returns:
-            采集成功返回数据对象（类型 T），失败返回 default
+            采集成功返回数据对象（类型 T），失败返回缓存数据或 default
 
         示例::
 
@@ -267,6 +271,9 @@ class BaseCollector(abc.ABC, Generic[T]):
             self._last_collection_time = elapsed
             self._total_collection_time += elapsed
             self._last_error = None
+            
+            # 缓存成功数据（用于超时降级）
+            self._last_success_data = result
 
             return result
 
@@ -274,8 +281,19 @@ class BaseCollector(abc.ABC, Generic[T]):
             # 更新失败统计
             self._failed_collections += 1
             self._last_error = e
+            
+            # 降级处理：返回上次成功的数据（如果有）
+            if self._last_success_data is not None:
+                self.logger.warning(
+                    "Collector '%s' failed, returning cached data: %s", 
+                    self.name, e
+                )
+                return self._last_success_data
+            
+            # 无缓存数据，返回默认值
             self.logger.warning(
-                "Collector '%s' failed: %s", self.name, e
+                "Collector '%s' failed with no cached data: %s", 
+                self.name, e
             )
             return default
 
