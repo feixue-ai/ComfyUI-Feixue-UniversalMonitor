@@ -26,6 +26,11 @@ Issues = "https://github.com/feixui/ComfyUI-Feixue-UniversalMonitor/issues"
 [tool.setuptools.packages.find]
 include = ["core*", "collectors*", "providers*", "utils*", "config*"]
 
+[tool.comfy]
+PublisherId = ""              # 从registry.comfy.org获取后填写
+DisplayName = "飞雪监测器"     # 在Manager中显示的名称
+Icon = ""                     # 可选：图标URL（SVG/PNG/JPG/GIF，最大800x400px）
+
 [tool.black]
 line-length = 100
 target-version = ['py310']

@@ -102,7 +102,7 @@ class HighPrecisionTimer:
         if self.elapsed_ms > 50:  # 超过 50ms 记录警告
             logger.warning(f"[PERF] {self.name} took {self.elapsed_ms:.2f}ms")
         else:
-            logger.debug(f"[PERF] {self.name}: {self.elapsed_ms:.2fms")
+            logger.debug(f"[PERF] {self.name}: {self.elapsed_ms:.2f}ms")
 
     def get_report(self) -> Dict[str, Any]:
         """获取详细的计时报告"""
