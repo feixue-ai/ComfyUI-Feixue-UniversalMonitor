@@ -27,7 +27,7 @@ Issues = "https://github.com/feixui/ComfyUI-Feixue-UniversalMonitor/issues"
 include = ["core*", "collectors*", "providers*", "utils*", "config*"]
 
 [tool.comfy]
-PublisherId = "feixui"          # 你的Publisher ID（GitHub用户名）
+PublisherId = "feixue"          # 你的Publisher ID（在registry.comfy.org创建的）
 DisplayName = "飞雪监测器 | Feixue Monitor | Feixui Monitor"     # 在Manager中显示的名称（中英文双语，包含两种拼写）
 Icon = "feixue.png"                     # 可选：图标URL（SVG/PNG/JPG/GIF，最大800x400px）
 
