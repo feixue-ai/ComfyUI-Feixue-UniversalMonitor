@@ -4,16 +4,16 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 
 功能：
 - 实时监测 ComfyUI 工作流执行状态
-- Cyberpunk风格监控面板
-- 毛玻璃顶部菜单栏
+- Emerald Capsule 翡翠胶囊 UI
+- 胶囊形悬浮监控栏
 - 实时GPU/CPU/内存监控（后端服务）
 - WebSocket实时推送（<100ms延迟，替代HTTP轮询）
 
 作者: Feixue Team
-版本: 2.0.0 (Stable + WebSocket Real-time)
+版本: 3.1.0 (Emerald Capsule + Multi-Style + Extended Metrics)
 """
 
-__version__ = "3.0.1"
+__version__ = "3.1.0"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -21,7 +21,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.0.0 Emerald Capsule + Real-time Monitor)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.1.0 Multi-Style + Extended Metrics)")
 
 # ============================================================================
 # 获取插件根目录（用于导入 core 模块）

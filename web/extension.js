@@ -339,6 +339,19 @@
     /** 当前激活的主题 */
     let currentTheme = 'emerald';
 
+    // ============================================================
+    // 拖拽状态
+    // ============================================================
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let barStartLeft = 0;
+    let barStartTop = 0;
+    let dragEnabled = false;          // 拖拽开关状态
+    let savedBarLeft = null;          // localStorage 记忆位置
+    let savedBarTop = null;
+    const DRAG_STORAGE_KEY = 'feixue_monitor_bar_pos';
+
     /** 五主题定义 */
     const THEMES = {
         'emerald':   { name: '翡翠绿', color: '#00D080', primary: '#00D080', secondary: '#00A068', light: '#4FFFBF', rgb: '0,208,128' },
@@ -347,6 +360,17 @@
         'blue':      { name: '极光蓝', color: '#00B4D8', primary: '#00B4D8', secondary: '#0077B6', light: '#90E0EF', rgb: '0,180,216' },
         'pink':      { name: '樱花粉', color: '#FF6B9D', primary: '#FF6B9D', secondary: '#C9184A', light: '#FFB3D0', rgb: '255,107,157' },
     };
+
+    /** 多风格预设定义 */
+    const STYLES = {
+        'capsule':   { name: '翡翠胶囊', className: 'fx-style-capsule', desc: '药丸形·霓虹发光' },
+        'titanium':  { name: '赛博钛金', className: 'fx-style-titanium', desc: '拉丝金属·虹彩流光' },
+        'biolume':   { name: '生物发光', className: 'fx-style-biolume', desc: '微生物脉动·有机光效' },
+        'blueprint': { name: '结构蓝图', className: 'fx-style-blueprint', desc: '等距线框·双色蓝图' },
+        'pixel':     { name: '极简像素', className: 'fx-style-pixel', desc: '像素字体·方块进度' },
+    };
+
+    let currentStyle = 'capsule';
 
     /**
      * 应用主题到所有需要同步的元素
@@ -409,9 +433,91 @@
      * @param {string} activeTheme - 当前激活的主题key
      */
     function syncThemeButtons(activeTheme) {
+        // 更新循环按钮显示
+        const dot = document.getElementById('fxm-theme-dot');
+        const name = document.getElementById('fxm-theme-name');
+        const theme = THEMES[activeTheme];
+        if (dot && theme) {
+            dot.style.background = theme.color;
+        }
+        if (name && theme) {
+            name.textContent = theme.name;
+        }
+        // 兼容旧的芯片按钮
         const btns = document.querySelectorAll('.fx-theme-btn[data-theme], .fxm-theme-chip[data-theme]');
         btns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.theme === activeTheme);
+        });
+    }
+
+    /**
+     * 应用风格预设到 dock 和 panel
+     * @param {string} styleKey - 风格标识符
+     */
+    function applyStyle(styleKey) {
+        if (!STYLES[styleKey]) {
+            console.warn('[飞雪监测器] ⚠️ 未知风格:', styleKey);
+            return;
+        }
+
+        currentStyle = styleKey;
+
+        // 更新 Dock 容器的 data-fx-style 属性
+        const dock = document.getElementById('fx-capsule-dock');
+        if (dock) {
+            dock.setAttribute('data-fx-style', styleKey);
+        }
+
+        // 同步更新悬浮面板的风格属性
+        const panel = document.getElementById('fxm-floating-panel');
+        if (panel) {
+            panel.setAttribute('data-fx-style', styleKey);
+        }
+
+        // 保存到 localStorage
+        try {
+            localStorage.setItem('fxm_style_v31', styleKey);
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ 无法保存风格偏好:', e.message);
+        }
+
+        // 更新按钮 active 状态
+        syncStyleButtons(styleKey);
+
+        console.log(`[飞雪监测器] 🎨 风格已切换为: ${STYLES[styleKey].name}`);
+    }
+
+    /**
+     * 从 localStorage 恢复已保存的风格
+     */
+    function restoreStyle() {
+        try {
+            const savedStyle = localStorage.getItem('fxm_style_v31');
+            if (savedStyle && STYLES[savedStyle]) {
+                applyStyle(savedStyle);
+                console.log(`[飞雪监测器] ♻️ 已恢复风格: ${STYLES[savedStyle].name}`);
+            }
+            // 如果没有保存的风格，保持默认 capsule（不额外设置属性）
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ 恢复风格失败，使用默认值');
+        }
+    }
+
+    /**
+     * 同步所有风格按钮的 active 状态
+     * @param {string} activeStyle - 当前激活的风格key
+     */
+    function syncStyleButtons(activeStyle) {
+        // 更新循环按钮显示
+        const name = document.getElementById('fxm-style-name');
+        const style = STYLES[activeStyle];
+        if (name && style) {
+            name.textContent = style.name;
+        }
+        // 兼容旧的芯片按钮
+        const chips = document.querySelectorAll('.fxm-style-chip[data-style]');
+        chips.forEach(chip => {
+            chip.classList.toggle('active', chip.dataset.style === activeStyle);
         });
     }
 
@@ -445,49 +551,49 @@
     --fx-primary: #00D080;
     --fx-secondary: #00A068;
     --fx-light: #4FFFBF;
-    --fx-glow: rgba(0, 208, 128, 0.65);
-    --fx-glow-soft: rgba(0, 208, 128, 0.35);
-    --fx-glow-diffuse: rgba(0, 208, 128, 0.18);
+    --fx-glow: rgba(0, 208, 128, 0.25);
+    --fx-glow-soft: rgba(0, 208, 128, 0.15);
+    --fx-glow-diffuse: rgba(0, 208, 128, 0.06);
     --fx-rgb: 0, 208, 128;
-    --fx-border-color: rgba(0, 208, 128, 0.65);
-    --fx-shadow-glow: 0 0 16px rgba(0, 208, 128, 0.35);
-    --fx-shadow-glow-large: 0 0 32px rgba(0, 208, 128, 0.18);
+    --fx-border-color: rgba(0, 208, 128, 0.30);
+    --fx-shadow-glow: 0 0 20px rgba(0, 208, 128, 0.08);
+    --fx-shadow-glow-large: 0 0 40px rgba(0, 208, 128, 0.04);
     --fx-text-accent: #00D080;
 }
 
 /* ---------- 赛博紫 Purple ---------- */
 [data-fx-theme="purple"] {
     --fx-primary: #B04DFF; --fx-secondary: #7C3AED; --fx-light: #E0B3FF;
-    --fx-glow: rgba(176, 77, 255, 0.6); --fx-glow-soft: rgba(176, 77, 255, 0.32); --fx-glow-diffuse: rgba(176, 77, 255, 0.15);
-    --fx-rgb: 176, 77, 255; --fx-border-color: rgba(176, 77, 255, 0.65);
-    --fx-shadow-glow: 0 0 16px rgba(176, 77, 255, 0.35); --fx-shadow-glow-large: 0 0 32px rgba(176, 77, 255, 0.18);
+    --fx-glow: rgba(176, 77, 255, 0.25); --fx-glow-soft: rgba(176, 77, 255, 0.15); --fx-glow-diffuse: rgba(176, 77, 255, 0.06);
+    --fx-rgb: 176, 77, 255; --fx-border-color: rgba(176, 77, 255, 0.30);
+    --fx-shadow-glow: 0 0 20px rgba(176, 77, 255, 0.08); --fx-shadow-glow-large: 0 0 40px rgba(176, 77, 255, 0.04);
     --fx-text-accent: #B04DFF;
 }
 
 /* ---------- 琥珀金 Amber ---------- */
 [data-fx-theme="amber"] {
     --fx-primary: #FFB800; --fx-secondary: #CC8800; --fx-light: #FFE060;
-    --fx-glow: rgba(255, 184, 0, 0.6); --fx-glow-soft: rgba(255, 184, 0, 0.32); --fx-glow-diffuse: rgba(255, 184, 0, 0.15);
-    --fx-rgb: 255, 184, 0; --fx-border-color: rgba(255, 184, 0, 0.65);
-    --fx-shadow-glow: 0 0 16px rgba(255, 184, 0, 0.35); --fx-shadow-glow-large: 0 0 32px rgba(255, 184, 0, 0.18);
+    --fx-glow: rgba(255, 184, 0, 0.25); --fx-glow-soft: rgba(255, 184, 0, 0.15); --fx-glow-diffuse: rgba(255, 184, 0, 0.06);
+    --fx-rgb: 255, 184, 0; --fx-border-color: rgba(255, 184, 0, 0.30);
+    --fx-shadow-glow: 0 0 20px rgba(255, 184, 0, 0.08); --fx-shadow-glow-large: 0 0 40px rgba(255, 184, 0, 0.04);
     --fx-text-accent: #FFB800;
 }
 
 /* ---------- 极光蓝 Blue ---------- */
 [data-fx-theme="blue"] {
     --fx-primary: #00B4D8; --fx-secondary: #0077B6; --fx-light: #90E0EF;
-    --fx-glow: rgba(0, 180, 216, 0.6); --fx-glow-soft: rgba(0, 180, 216, 0.32); --fx-glow-diffuse: rgba(0, 180, 216, 0.15);
-    --fx-rgb: 0, 180, 216; --fx-border-color: rgba(0, 180, 216, 0.65);
-    --fx-shadow-glow: 0 0 16px rgba(0, 180, 216, 0.35); --fx-shadow-glow-large: 0 0 32px rgba(0, 180, 216, 0.18);
+    --fx-glow: rgba(0, 180, 216, 0.25); --fx-glow-soft: rgba(0, 180, 216, 0.15); --fx-glow-diffuse: rgba(0, 180, 216, 0.06);
+    --fx-rgb: 0, 180, 216; --fx-border-color: rgba(0, 180, 216, 0.30);
+    --fx-shadow-glow: 0 0 20px rgba(0, 180, 216, 0.08); --fx-shadow-glow-large: 0 0 40px rgba(0, 180, 216, 0.04);
     --fx-text-accent: #00B4D8;
 }
 
 /* ---------- 樱花粉 Pink ---------- */
 [data-fx-theme="pink"] {
     --fx-primary: #FF6B9D; --fx-secondary: #C9184A; --fx-light: #FFB3D0;
-    --fx-glow: rgba(255, 107, 157, 0.6); --fx-glow-soft: rgba(255, 107, 157, 0.32); --fx-glow-diffuse: rgba(255, 107, 157, 0.15);
-    --fx-rgb: 255, 107, 157; --fx-border-color: rgba(255, 107, 157, 0.65);
-    --fx-shadow-glow: 0 0 16px rgba(255, 107, 157, 0.35); --fx-shadow-glow-large: 0 0 32px rgba(255, 107, 157, 0.18);
+    --fx-glow: rgba(255, 107, 157, 0.25); --fx-glow-soft: rgba(255, 107, 157, 0.15); --fx-glow-diffuse: rgba(255, 107, 157, 0.06);
+    --fx-rgb: 255, 107, 157; --fx-border-color: rgba(255, 107, 157, 0.30);
+    --fx-shadow-glow: 0 0 20px rgba(255, 107, 157, 0.08); --fx-shadow-glow-large: 0 0 40px rgba(255, 107, 157, 0.04);
     --fx-text-accent: #FF6B9D;
 }
 
@@ -506,23 +612,39 @@
     pointer-events: auto;
 }
 
+/* 拖拽模式：dock 可被拖动 */
+.fx-capsule-dock.fx-draggable {
+    cursor: grab;
+}
+.fx-capsule-dock.fx-draggable:active {
+    cursor: grabbing;
+}
+.fx-top-bar.fx-dragging {
+    transition: none !important;
+}
+
 /* ============================================
    核心容器：Capsule Dock 胶囊形药丸底座
    不透明实底背景！禁止 backdrop-filter！
    ============================================ */
 .fx-capsule-dock {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 0;
-    padding: 10px 16px;   /* v13样本对齐：更紧凑 */
+    gap: 6px;             /* 紧凑间距 */
+    padding: 8px 14px;    /* 收窄上下8px 左右14px */
     border-radius: 999px; /* 完美药丸形 */
-    background: #12181f;
-    border: 1.5px solid var(--fx-primary);
+    max-width: 900px;     /* 匹配 demo 样本最大宽度 */
+    background: rgba(18, 24, 31, 0.82);
+    backdrop-filter: blur(12px) saturate(1.15);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+    border: 1px solid rgba(var(--fx-rgb), 0.25);
     box-shadow:
-        0 0 16px var(--fx-glow),
-        0 0 32px var(--fx-glow-diffuse),
-        inset 0 1px 0 rgba(255, 255, 255, 0.10),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+        0 0 4px rgba(var(--fx-rgb), 0.20),
+        0 0 12px rgba(var(--fx-rgb), 0.10),
+        0 0 30px rgba(var(--fx-rgb), 0.04),
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12);
     position: relative;
     overflow: hidden;
     transition: all 0.4s ease;
@@ -561,19 +683,6 @@
 }
 
 /* ============================================
-   分隔线
-   ============================================ */
-.fx-metric-divider {
-    width: 1px;
-    height: 36px;
-    background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.14) 30%, rgba(255,255,255,0.14) 70%, transparent 100%);
-    margin: 0 8px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 2;
-}
-
-/* ============================================
    指标项 Metric Item
    ============================================ */
 .fx-metric-item {
@@ -582,7 +691,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px 6px;     /* v13样本对齐：更紧凑 */
+    padding: 6px 5px;     /* 收窄更紧凑 */
     background: rgba(22, 27, 34, 0.9);
     border-radius: 12px;   /* v13样本一致 */
     min-width: 80px;      /* v13样本对齐：从90→80 */
@@ -643,7 +752,7 @@
     max-width: 100%;
     width: 0%;
     background: linear-gradient(90deg, var(--fx-secondary), var(--fx-primary), var(--fx-light));
-    box-shadow: 0 0 8px rgba(var(--fx-rgb), 0.4);
+    box-shadow: 0 0 6px rgba(var(--fx-rgb), 0.20);
     position: relative;
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -923,14 +1032,15 @@
     align-items: center;
     gap: 0;
     padding: 14px 20px;
-    border-radius: 18px;
-    background: #12181f;
-    border: 1.5px solid var(--fx-border-color);
+    border-radius: 14px;
+    background: rgba(18, 24, 31, 0.85);
+    backdrop-filter: blur(12px) saturate(1.15);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow:
         0 12px 48px rgba(0, 0, 0, 0.45),
-        var(--fx-shadow-glow-large),
-        var(--fx-shadow-glow),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        0 0 4px rgba(var(--fx-rgb), 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
     transition: all 0.3s ease;
     position: relative;
     animation: fxFadeInUpBottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -1025,7 +1135,7 @@
     width: 0%;
     position: relative;
     background: linear-gradient(90deg, var(--fx-secondary), var(--fx-primary), var(--fx-light));
-    box-shadow: 0 0 8px rgba(var(--fx-rgb), 0.4);
+    box-shadow: 0 0 8px rgba(var(--fx-rgb), 0.2);
     transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .fxm-temp-progress-bar::before {
@@ -1048,8 +1158,8 @@
 }
 
 /* ============================================
-   悬浮面板 Floating Panel — 不透明卡片风格
-   禁止 backdrop-filter！所有背景均为实色
+   悬浮面板 Floating Panel — 黑曜石毛玻璃风格
+   深邃半透明 + backdrop-filter + 玻璃边缘高光
    ============================================ */
 .fxm-floating-panel {
     position: fixed !important;
@@ -1058,14 +1168,17 @@
     width: 320px !important;
     max-height: 75vh;
     z-index: 1050 !important;
-    border-radius: 20px !important;
+    border-radius: 16px !important;
     overflow: hidden !important;
-    background: #0d1117 !important;
-    border: 1.5px solid var(--fx-border-color) !important;
+    background: rgba(10, 14, 20, 0.88) !important;
+    backdrop-filter: blur(20px) saturate(1.3) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.50),
-        var(--fx-shadow-glow-large),
-        var(--fx-shadow-glow) !important;
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+        0 1px 0 rgba(255, 255, 255, 0.04) inset,
+        0 16px 48px rgba(0, 0, 0, 0.55),
+        0 4px 12px rgba(0, 0, 0, 0.30) !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     font-size: 13px !important;
     color: #e6edf3 !important;
@@ -1074,6 +1187,16 @@
     display: flex !important;
     flex-direction: column !important;
     transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0.3s ease !important;
+}
+/* 玻璃顶部高光线 */
+.fxm-floating-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 16px; right: 16px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    z-index: 2;
+    pointer-events: none;
 }
 .fxm-floating-panel > * {
     position: relative;
@@ -1091,14 +1214,14 @@
     transform: translateY(0) scale(1) !important;
 }
 
-/* 面板标题栏 Header */
+/* 面板标题栏 Header — 毛玻璃通透感 */
 .fxm-panel-header {
     padding: 14px 16px 10px 16px;
-    border-bottom: 1px solid rgba(var(--fx-rgb), 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: linear-gradient(135deg, #161b22, #0d1117);
+    background: transparent;
 }
 .fxm-panel-title-wrapper {
     display: flex;
@@ -1128,8 +1251,8 @@
 .fxm-btn-close {
     width: 32px;
     height: 32px;
-    border: none;
-    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.03);
     color: #8b949e;
     border-radius: 8px;
     cursor: pointer;
@@ -1142,6 +1265,7 @@
 .fxm-btn-close:hover {
     background: rgba(239, 68, 68, 0.20);
     color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.30);
 }
 
 /* 面板内容区 Body */
@@ -1151,13 +1275,13 @@
     overflow-y: auto;
 }
 .fxm-panel-glass-accent {
-    height: 3px;
+    height: 2px;
     width: 100%;
-    background: linear-gradient(90deg, transparent 0%, var(--fx-primary) 20%, var(--fx-light) 60%, transparent 100%);
-    border-radius: 2px;
-    opacity: 0.8;
+    background: linear-gradient(90deg, transparent 0%, var(--fx-primary) 15%, var(--fx-light) 50%, var(--fx-primary) 85%, transparent 100%);
+    border-radius: 1px;
+    opacity: 0.45;
     margin-bottom: 16px;
-    box-shadow: 0 0 12px var(--fx-glow-soft);
+    box-shadow: none;
 }
 
 /* 主题切换区 Theme Section */
@@ -1177,7 +1301,80 @@
 }
 .fxm-section-icon {
     font-size: 12px;
+    color: var(--fx-primary);
 }
+
+/* 拖拽开关 — 工业方形拨动开关 */
+.fxm-toggle-section {
+    margin-bottom: 18px;
+}
+.fxm-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.fxm-toggle-label {
+    font-size: 12px !important;
+    color: #c9d1d9 !important;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.fxm-toggle-icon {
+    font-size: 14px;
+    color: var(--fx-primary);
+}
+/* 工业方形拨动开关 */
+.fxm-toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+.fxm-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.fxm-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #1c2128;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s ease;
+}
+.fxm-toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background: #555;
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s ease;
+}
+.fxm-toggle-switch input:checked + .fxm-toggle-slider {
+    background: var(--fx-primary);
+    border-color: rgba(var(--fx-rgb), 0.4);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 8px rgba(var(--fx-rgb), 0.15);
+}
+.fxm-toggle-switch input:checked + .fxm-toggle-slider::before {
+    transform: translateX(18px);
+    background: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 .fxm-button-group {
     display: flex;
     flex-wrap: wrap;
@@ -1260,7 +1457,78 @@
     letter-spacing: 0.2px;
 }
 
-/* 数据卡片 Data Cards */
+/* ---------- 风格预设区域 ---------- */
+.fxm-style-section {
+    margin-bottom: 18px;
+}
+.fxm-style-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.fxm-style-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 11px !important;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.65) !important;
+}
+.fxm-style-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.20);
+    transform: translateY(-1px);
+}
+.fxm-style-chip.active {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--fx-primary);
+    color: #fff !important;
+    box-shadow: 0 0 12px rgba(var(--fx-rgb), 0.30);
+}
+
+/* ========== 系统详情区域 ========== */
+.fxm-system-details {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(var(--fx-rgb), 0.10);
+}
+.fxm-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+}
+.fxm-detail-icon {
+    width: 18px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--fx-primary);
+    opacity: 0.7;
+}
+.fxm-detail-label {
+    width: 32px;
+    color: rgba(255,255,255,0.5);
+    flex-shrink: 0;
+}
+.fxm-detail-value {
+    font-family: 'Consolas', 'Menlo', monospace;
+    color: rgba(255,255,255,0.85);
+    font-size: 11px;
+}
+.fxm-detail-value.na {
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+}
+
+/* 数据卡片 Data Cards — 微玻璃卡片 */
 .fxm-data-cards {
     display: flex;
     flex-direction: column;
@@ -1268,16 +1536,17 @@
     margin-bottom: 14px;
 }
 .fxm-data-card {
-    background: #161b22;
-    border: 1px solid rgba(var(--fx-rgb), 0.20);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
     padding: 12px 14px;
     transition: all 0.25s ease;
 }
 .fxm-data-card:hover {
-    border-color: var(--fx-glow);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.30);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(var(--fx-rgb), 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 .fxm-card-header {
     display: flex;
@@ -1287,6 +1556,8 @@
 }
 .fxm-card-icon {
     font-size: 16px;
+    color: var(--fx-primary);
+    text-shadow: 0 0 6px var(--fx-glow-soft);
 }
 .fxm-card-title {
     font-size: 13px !important;
@@ -1319,28 +1590,46 @@
 }
 .fxm-card-progress {
     flex: 1;
-    height: 7px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.30);
+    border-radius: 3px;
     overflow: hidden;
     position: relative;
+    box-shadow:
+        inset 0 1px 3px rgba(0, 0, 0, 0.5),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .fxm-card-progress-bar {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 2px;
     max-width: 100%;
     width: 0%;
     position: relative;
-    background: linear-gradient(90deg, var(--fx-secondary), var(--fx-primary), var(--fx-light));
-    box-shadow: 0 0 8px rgba(var(--fx-rgb), 0.4);
+    background: linear-gradient(180deg,
+        rgba(255,255,255,0.15) 0%,
+        transparent 30%,
+        transparent 70%,
+        rgba(0,0,0,0.15) 100%
+    ),
+    linear-gradient(90deg, var(--fx-secondary), var(--fx-primary), var(--fx-light));
+    background-size: 100% 100%, 200% 100%;
+    box-shadow:
+        0 0 6px rgba(var(--fx-rgb), 0.15),
+        inset 0 1px 0 rgba(255,255,255,0.15);
     transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: fx-card-gradient-drift 3s ease-in-out infinite;
+}
+@keyframes fx-card-gradient-drift {
+    0%, 100% { background-position: 0 0, 0 0; }
+    50% { background-position: 0 0, -100% 0; }
 }
 .fxm-card-progress-bar::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 30%, rgba(255,255,255,0.30) 50%, transparent 70%);
-    animation: fxLiquidShinePanel 2.0s ease-in-out infinite;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0.15) 50%, transparent 65%);
+    animation: fxLiquidShinePanel 2.5s ease-in-out infinite;
     pointer-events: none;
 }
 @keyframes fxLiquidShinePanel {
@@ -1354,18 +1643,18 @@
     text-align: right;
     flex-shrink: 0;
     color: var(--fx-text-accent) !important;
-    text-shadow: 0 0 8px var(--fx-glow-soft), 0 0 16px var(--fx-glow-diffuse);
+    text-shadow: 0 0 8px var(--fx-glow-soft);
 }
 
-/* 底部状态栏 Footer Status Bar */
+/* 底部状态栏 Footer Status Bar — 玻璃效果 */
 .fxm-status-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
     margin-top: 4px;
-    border-top: 1px solid rgba(var(--fx-rgb), 0.12);
-    background: #161b22;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.20);
     font-size: 10px !important;
     color: #8b949e !important;
     font-family: 'JetBrains Mono', monospace;
@@ -1376,15 +1665,15 @@
     gap: 6px;
 }
 .fxm-status-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--fx-primary);
-    box-shadow: 0 0 8px var(--fx-glow-soft), 0 0 16px var(--fx-glow-diffuse);
+    box-shadow: 0 0 6px rgba(var(--fx-rgb), 0.3);
     animation: fxStatusPulse 2s ease-in-out infinite;
 }
 @keyframes fxStatusPulse {
-    0%,100%{opacity:0.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.1)}
+    0%,100%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.15)}
 }
 
 /* ============================================
@@ -1405,6 +1694,468 @@
         width: 320px !important;
         right: 8px !important;
     }
+}
+/* ============================================
+   风格预设 - 每种风格完全重新设计，视觉差异巨大
+   核心原则：不同风格必须从形状、材质、边框、背景等
+   多方面完全区分，不能仅靠颜色变化
+   ============================================ */
+
+/* ==========================================================
+   风格1：翡翠胶囊 Capsule（默认）
+   药丸形 + 3D圆柱左侧光效 + 霓虹发光边框
+   这是唯一保留 ::before 伪元素（动车车头）的风格
+   ========================================================== */
+.fx-capsule-dock[data-fx-style="capsule"] {
+    border-radius: 999px;
+    background: rgba(18, 24, 31, 0.82);
+    backdrop-filter: blur(12px) saturate(1.15);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+    border: 1px solid rgba(var(--fx-rgb), 0.25);
+    box-shadow:
+        0 0 4px rgba(var(--fx-rgb), 0.20),
+        0 0 12px rgba(var(--fx-rgb), 0.10),
+        0 0 30px rgba(var(--fx-rgb), 0.04),
+        0 8px 32px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+    padding: 8px 14px;
+    gap: 6px;
+    overflow: hidden;
+}
+/* 胶囊专属：3D圆柱横截面 ::before（动车车头）*/
+.fx-capsule-dock[data-fx-style="capsule"]::before {
+    display: block;
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 120px;
+    height: 100%;
+    border-radius: 50% 0 0 50%;
+    background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.60) 0%,
+        rgba(255,255,255,0.30) 5%,
+        var(--fx-light) 15%,
+        var(--fx-primary) 35%,
+        var(--fx-secondary) 65%,
+        rgba(0,0,0,0.35) 85%,
+        rgba(0,0,0,0.48) 95%,
+        rgba(0,0,0,0.55) 100%
+    );
+    opacity: 0.92;
+    z-index: 1;
+    pointer-events: none;
+}
+[data-fx-style="capsule"] .fx-metric-item {
+    background: rgba(22,27,34,0.9);
+    border-radius: 12px;
+    border: none;
+    padding: 6px 5px;
+    box-shadow: none;
+}
+[data-fx-style="capsule"] .fx-metric-item:first-child {
+    padding-left: 28px;
+    border-radius: 16px 12px 12px 16px;
+}
+[data-fx-style="capsule"] .fx-metric-item:hover {
+    background: rgba(30,36,46,0.95);
+    border: 1px solid var(--fx-light);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 8px var(--fx-glow-diffuse);
+    transform: translateY(-1px);
+}
+[data-fx-style="capsule"] .fx-progress-fill {
+    background: linear-gradient(90deg, var(--fx-secondary), var(--fx-primary), var(--fx-light));
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(var(--fx-rgb), 0.20);
+}
+[data-fx-style="capsule"] .fx-progress-bar {
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+}
+[data-fx-style="capsule"] .fx-metric-value {
+    color: var(--fx-text-accent);
+    font-size: 13px;
+    text-shadow: 0 0 8px var(--fx-glow-soft), 0 0 16px var(--fx-glow-diffuse);
+}
+[data-fx-style="capsule"] .fx-metric-label {
+    color: #8b949e;
+    font-size: 9px;
+}
+
+/* ==========================================================
+   风格2：赛博钛金 Titanium
+   完全隐藏 ::before，方形硬朗拉丝金属面板 + 铆钉边框
+   与胶囊风格从形状到材质完全不同
+   ========================================================== */
+.fx-capsule-dock[data-fx-style="titanium"] {
+    border-radius: 3px;
+    background: linear-gradient(180deg, #2a2a32 0%, #1a1a22 40%, #22222c 100%);
+    border: 1px solid #3a3a44;
+    box-shadow:
+        0 2px 12px rgba(0,0,0,0.5),
+        inset 0 2px 0 rgba(255,255,255,0.06),
+        inset 0 -2px 0 rgba(0,0,0,0.3);
+    padding: 6px 10px;
+    gap: 3px;
+    overflow: visible;
+}
+/* 钛金：完全隐藏 ::before 动车车头 */
+.fx-capsule-dock[data-fx-style="titanium"]::before {
+    display: none !important;
+}
+[data-fx-style="titanium"] .fx-metric-item {
+    background: linear-gradient(180deg, #1e1e28 0%, #181820 100%);
+    border-radius: 2px;
+    border: 1px solid #3a3a44;
+    padding: 5px 7px;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.04), 0 1px 3px rgba(0,0,0,0.3);
+}
+[data-fx-style="titanium"] .fx-metric-item:first-child {
+    border-radius: 2px;
+    padding-left: 7px;
+}
+[data-fx-style="titanium"] .fx-metric-item:hover {
+    background: linear-gradient(180deg, #282838 0%, #202028 100%);
+    border-color: #555;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.5);
+    transform: none;
+}
+[data-fx-style="titanium"] .fx-progress-fill {
+    background: linear-gradient(90deg, #555, #888, #aaa);
+    background-size: 200% 100%;
+    border-radius: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 0 6px rgba(255,255,255,0.1);
+    animation: fx-titanium-flow 2.5s linear infinite;
+}
+[data-fx-style="titanium"] .fx-progress-bar {
+    background: #111;
+    border-radius: 0;
+    border: 1px solid #333;
+}
+[data-fx-style="titanium"] .fx-progress-fill::after { animation: none; }
+[data-fx-style="titanium"] .fx-metric-value {
+    color: #ddd;
+    font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    font-weight: 700;
+}
+[data-fx-style="titanium"] .fx-metric-label {
+    color: #888;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+@keyframes fx-titanium-flow { to { background-position: -200% 0; } }
+
+/* ==========================================================
+   风格3：生物发光 Biolume
+   完全隐藏 ::before，大圆角有机半透明胶状体 + 脉动呼吸光效
+   每个指标项都是独立的发光细胞体
+   ========================================================== */
+.fx-capsule-dock[data-fx-style="biolume"] {
+    border-radius: 24px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 4px 8px;
+    gap: 8px;
+    overflow: visible;
+}
+/* 生物发光：完全隐藏 ::before 动车车头 */
+.fx-capsule-dock[data-fx-style="biolume"]::before {
+    display: none !important;
+}
+[data-fx-style="biolume"] .fx-metric-item {
+    background: radial-gradient(ellipse at 50% 30%, rgba(20,20,50,0.7) 0%, rgba(5,5,15,0.9) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(var(--fx-rgb), 0.3);
+    padding: 8px 10px;
+    box-shadow:
+        0 0 14px rgba(var(--fx-rgb), 0.2),
+        0 0 28px rgba(var(--fx-rgb), 0.08),
+        inset 0 0 12px rgba(var(--fx-rgb), 0.06);
+    animation: fx-biolume-breathe 3s ease-in-out infinite;
+}
+[data-fx-style="biolume"] .fx-metric-item:nth-child(2) { animation-delay: 0.4s; }
+[data-fx-style="biolume"] .fx-metric-item:nth-child(3) { animation-delay: 0.8s; }
+[data-fx-style="biolume"] .fx-metric-item:nth-child(4) { animation-delay: 1.2s; }
+[data-fx-style="biolume"] .fx-metric-item:nth-child(5) { animation-delay: 1.6s; }
+[data-fx-style="biolume"] .fx-metric-item:nth-child(6) { animation-delay: 2.0s; }
+[data-fx-style="biolume"] .fx-metric-item:first-child {
+    border-radius: 16px;
+    padding-left: 10px;
+}
+[data-fx-style="biolume"] .fx-metric-item:hover {
+    background: radial-gradient(ellipse at 50% 30%, rgba(40,40,80,0.8) 0%, rgba(10,10,30,0.95) 100%);
+    border-color: rgba(var(--fx-rgb), 0.7);
+    box-shadow:
+        0 0 24px rgba(var(--fx-rgb), 0.22),
+        0 0 48px rgba(var(--fx-rgb), 0.08),
+        inset 0 0 20px rgba(var(--fx-rgb), 0.08);
+    transform: translateY(-2px) scale(1.04);
+}
+[data-fx-style="biolume"] .fx-progress-fill {
+    background: radial-gradient(circle at 30% 50%, rgba(var(--fx-rgb), 0.9) 0%, transparent 60%),
+                radial-gradient(circle at 70% 50%, rgba(var(--fx-rgb), 0.6) 0%, transparent 50%);
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(var(--fx-rgb), 0.22);
+    animation: fx-biolume-shift 3s ease-in-out infinite;
+}
+[data-fx-style="biolume"] .fx-progress-bar {
+    background: rgba(255,255,255,0.03);
+    border-radius: 4px;
+}
+[data-fx-style="biolume"] .fx-metric-value {
+    color: rgba(255,255,255,0.9);
+    font-size: 13px;
+    text-shadow: 0 0 10px rgba(var(--fx-rgb), 0.25), 0 0 20px rgba(var(--fx-rgb), 0.10);
+}
+[data-fx-style="biolume"] .fx-metric-label {
+    color: rgba(255,255,255,0.35);
+    font-size: 9px;
+}
+@keyframes fx-biolume-shift {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+@keyframes fx-biolume-breathe {
+    0%, 100% { box-shadow: 0 0 14px rgba(var(--fx-rgb), 0.2), 0 0 28px rgba(var(--fx-rgb), 0.08), inset 0 0 12px rgba(var(--fx-rgb), 0.06); }
+    50% { box-shadow: 0 0 22px rgba(var(--fx-rgb), 0.20), 0 0 40px rgba(var(--fx-rgb), 0.08), inset 0 0 18px rgba(var(--fx-rgb), 0.08); }
+}
+
+/* ==========================================================
+   风格4：结构蓝图 Blueprint
+   隐藏 ::before，纯白底工程图纸 + 主题色响应
+   边框/图标/进度条均跟随当前主题色变化
+   ========================================================== */
+.fx-capsule-dock[data-fx-style="blueprint"] {
+    border-radius: 0;
+    background: #f0f0e8;
+    border: 2px solid var(--fx-primary);
+    box-shadow:
+        3px 3px 0 rgba(0,0,0,0.10),
+        inset 0 0 0 2px rgba(var(--fx-rgb), 0.06);
+    padding: 6px 10px;
+    gap: 3px;
+    overflow: visible;
+}
+.fx-capsule-dock[data-fx-style="blueprint"]::before {
+    display: none !important;
+}
+[data-fx-style="blueprint"] .fx-metric-item {
+    background: rgba(255,255,255,0.85);
+    border-radius: 0;
+    border: 1px solid var(--fx-primary);
+    padding: 5px 7px;
+    box-shadow: none;
+    position: relative;
+}
+/* 蓝图每个指标项左上角主题色标记 */
+[data-fx-style="blueprint"] .fx-metric-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 4px;
+    background: var(--fx-light);
+}
+[data-fx-style="blueprint"] .fx-metric-item:first-child {
+    border-radius: 0;
+    padding-left: 7px;
+    border-left: 2px solid var(--fx-secondary);
+}
+[data-fx-style="blueprint"] .fx-metric-item:hover {
+    background: rgba(var(--fx-rgb), 0.04);
+    border-color: var(--fx-secondary);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.08);
+    transform: none;
+}
+[data-fx-style="blueprint"] .fx-progress-fill {
+    background: repeating-linear-gradient(90deg, var(--fx-primary) 0, var(--fx-primary) 3px, transparent 3px, transparent 5px);
+    border-radius: 0;
+    box-shadow: none;
+    animation: none;
+}
+[data-fx-style="blueprint"] .fx-progress-fill::after { animation: none; }
+[data-fx-style="blueprint"] .fx-progress-bar {
+    background: rgba(0,0,0,0.05);
+    border-radius: 0;
+    border: 1px solid rgba(var(--fx-rgb), 0.20);
+}
+[data-fx-style="blueprint"] .fx-metric-value {
+    color: #1a1a2e;
+    font-size: 12px;
+    text-shadow: none;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+[data-fx-style="blueprint"] .fx-metric-label {
+    color: #4a5568;
+    font-size: 8px;
+    text-shadow: none;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+/* 蓝图图标：使用主题色变量，随主题切换而变化 */
+[data-fx-style="blueprint"] .fx-icon-gpu {
+    background: linear-gradient(135deg, var(--fx-primary), var(--fx-secondary)) !important;
+    box-shadow: none !important;
+}
+[data-fx-style="blueprint"] .fx-icon-gpu::before {
+    background:
+        radial-gradient(circle at 25% 25%, var(--fx-light) 1px, transparent 1px),
+        radial-gradient(circle at 75% 25%, var(--fx-light) 1px, transparent 1px),
+        radial-gradient(circle at 25% 75%, var(--fx-light) 1px, transparent 1px),
+        radial-gradient(circle at 75% 75%, var(--fx-light) 1px, transparent 1px);
+}
+[data-fx-style="blueprint"] .fx-icon-vram {
+    background: linear-gradient(180deg, var(--fx-light), var(--fx-primary)) !important;
+    box-shadow: none !important;
+}
+[data-fx-style="blueprint"] .fx-icon-vram::before {
+    background: rgba(0,0,0,0.15) !important;
+}
+[data-fx-style="blueprint"] .fx-icon-cpu {
+    background: linear-gradient(135deg, var(--fx-primary), var(--fx-secondary)) !important;
+    box-shadow: none !important;
+}
+[data-fx-style="blueprint"] .fx-icon-cpu::before {
+    background: #f0f0e8 !important;
+}
+[data-fx-style="blueprint"] .fx-icon-cpu::after {
+    background: linear-gradient(135deg, var(--fx-light), var(--fx-primary)) !important;
+}
+[data-fx-style="blueprint"] .fx-icon-ram {
+    background: linear-gradient(180deg, var(--fx-light), var(--fx-secondary)) !important;
+    box-shadow: none !important;
+}
+[data-fx-style="blueprint"] .fx-icon-ram::before {
+    background: repeating-linear-gradient(90deg, var(--fx-primary) 0px, var(--fx-primary) 2px, transparent 2px, transparent 3px) !important;
+}
+[data-fx-style="blueprint"] .fx-icon-swap {
+    background: linear-gradient(180deg, var(--fx-light), var(--fx-secondary)) !important;
+    box-shadow: none !important;
+}
+[data-fx-style="blueprint"] .fx-icon-swap::before,
+[data-fx-style="blueprint"] .fx-icon-swap::after {
+    background: rgba(0,0,0,0.15) !important;
+}
+[data-fx-style="blueprint"] .fx-icon-temp {
+    background: linear-gradient(to bottom, var(--fx-light), var(--fx-primary), var(--fx-secondary)) !important;
+    box-shadow: none !important;
+}
+[data-fx-style="blueprint"] .fx-icon-temp::after {
+    background: var(--fx-primary) !important;
+}
+/* 蓝图数值无发光 */
+[data-fx-style="blueprint"] .fx-metric-value {
+    text-shadow: none !important;
+}
+
+/* ==========================================================
+   风格5：极简像素 Pixel
+   隐藏 ::before，纯方形无圆角 + 等宽像素字体 + 无动画
+   复古终端/CRT监视器风格
+   ========================================================== */
+.fx-capsule-dock[data-fx-style="pixel"] {
+    border-radius: 0;
+    background: #0a0a0a;
+    border: 2px solid #333;
+    box-shadow: inset 0 0 0 1px #1a1a1a, 0 0 0 1px #000;
+    padding: 2px 4px;
+    gap: 2px;
+    overflow: visible;
+    font-family: 'Courier New', 'Consolas', monospace;
+}
+.fx-capsule-dock[data-fx-style="pixel"]::before {
+    display: none !important;
+}
+[data-fx-style="pixel"] .fx-metric-item {
+    background: #0d0d0d;
+    border-radius: 0;
+    border: 1px solid #2a2a2a;
+    padding: 3px 5px;
+    box-shadow: none;
+    font-family: 'Courier New', 'Consolas', monospace;
+}
+[data-fx-style="pixel"] .fx-metric-item:first-child {
+    border-radius: 0;
+    padding-left: 5px;
+    border-left: 2px solid var(--fx-primary);
+}
+[data-fx-style="pixel"] .fx-metric-item:hover {
+    background: #111;
+    border-color: var(--fx-primary);
+    box-shadow: none;
+    transform: none;
+}
+[data-fx-style="pixel"] .fx-progress-fill {
+    background: var(--fx-primary);
+    border-radius: 0;
+    box-shadow: none;
+    animation: none;
+}
+[data-fx-style="pixel"] .fx-progress-fill::after { animation: none; }
+[data-fx-style="pixel"] .fx-progress-bar {
+    background: #1a1a1a;
+    border-radius: 0;
+    border: 1px solid #222;
+}
+[data-fx-style="pixel"] .fx-metric-value {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 10px;
+    color: var(--fx-primary);
+    text-shadow: none;
+    font-weight: 700;
+}
+[data-fx-style="pixel"] .fx-metric-label {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 8px;
+    color: #666;
+    text-shadow: none;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* ---------- 悬浮面板：循环切换按钮 ---------- */
+.fxm-cycle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+}
+.fxm-cycle-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.fxm-cycle-btn:hover {
+    border-color: var(--fx-primary);
+    background: rgba(255,255,255,0.1);
+}
+.fxm-cycle-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: block;
+}
+.fxm-cycle-icon {
+    font-size: 14px;
+}
+.fxm-cycle-name {
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+    font-weight: 500;
 }
 `;
 
@@ -1443,14 +2194,7 @@
         dock.setAttribute('data-fx-theme', 'emerald');
 
         // 创建6个胶囊指标
-        METRIC_DEFS.forEach((metric, index) => {
-            // 在每个非首项前添加分隔线
-            if (index > 0) {
-                const divider = document.createElement('div');
-                divider.className = 'fx-metric-divider';
-                dock.appendChild(divider);
-            }
-
+        METRIC_DEFS.forEach((metric) => {
             // 创建单个指标项
             const item = createMetricItem(metric);
             dock.appendChild(item);
@@ -1664,6 +2408,7 @@
 
     let floatingPanel = null;
     let isPanelVisible = false;
+    let dragInitialized = false;       // 防止重复初始化拖拽
 
     /**
      * 切换悬浮面板显示状态
@@ -1671,6 +2416,11 @@
     function toggleFloatingPanel() {
         if (!floatingPanel) {
             createFloatingPanel();
+            // 首次创建面板后初始化拖拽功能
+            if (!dragInitialized) {
+                dragInitialized = true;
+                initDrag();
+            }
         }
 
         isPanelVisible = !isPanelVisible;
@@ -1710,11 +2460,46 @@
             <div class="fxm-panel-content">
                 <div class="fxm-panel-glass-accent"></div>
 
-                <!-- 五主题切换 -->
                 <div class="fxm-theme-section">
-                    <div class="fxm-section-label"><span class="fxm-section-icon">\u{1F3A8}</span>主题切换</div>
-                    <div class="fxm-theme-grid" id="fxm-theme-grid">
-                        <!-- 由 JS 动态生成 -->
+                    <div class="fxm-section-label">🎨 外观</div>
+                    <div class="fxm-cycle-row">
+                        <button class="fxm-cycle-btn" id="fxm-theme-cycle" title="切换颜色主题">
+                            <span class="fxm-cycle-dot" id="fxm-theme-dot"></span>
+                        </button>
+                        <span class="fxm-cycle-name" id="fxm-theme-name">翡翠绿</span>
+                        <button class="fxm-cycle-btn" id="fxm-style-cycle" title="切换风格预设" style="margin-left:16px">
+                            <span class="fxm-cycle-icon">🎨</span>
+                        </button>
+                        <span class="fxm-cycle-name" id="fxm-style-name">翡翠胶囊</span>
+                    </div>
+                </div>
+
+                <!-- 系统详情 -->
+                <div class="fxm-system-details">
+                    <div class="fxm-section-label">📊 系统详情</div>
+                    <div class="fxm-detail-row" id="fxm-disk-row">
+                        <span class="fxm-detail-icon">💾</span>
+                        <span class="fxm-detail-label">磁盘</span>
+                        <span class="fxm-detail-value" id="fxm-disk-value">--</span>
+                    </div>
+                    <div class="fxm-detail-row" id="fxm-net-row">
+                        <span class="fxm-detail-icon">🌐</span>
+                        <span class="fxm-detail-label">网络</span>
+                        <span class="fxm-detail-value" id="fxm-net-value">--</span>
+                    </div>
+                </div>
+
+                <!-- 拖拽开关 -->
+                <div class="fxm-toggle-section">
+                    <div class="fxm-section-label">🖱️ 面板位置</div>
+                    <div class="fxm-toggle-row">
+                        <span class="fxm-toggle-label">
+                            <span class="fxm-toggle-icon">\u{2702}</span>启用拖拽
+                        </span>
+                        <label class="fxm-toggle-switch">
+                            <input type="checkbox" id="fxm-drag-toggle">
+                            <span class="fxm-toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
 
@@ -1795,21 +2580,31 @@
         document.body.appendChild(panel);
         floatingPanel = panel;
 
-        // 动态生成5个主题按钮
-        const themeGrid = panel.querySelector('#fxm-theme-grid');
-        if (themeGrid) {
-            Object.entries(THEMES).forEach(([key, theme]) => {
-                const btn = document.createElement('button');
-                btn.className = 'fxm-theme-chip';
-                btn.dataset.theme = key;
-                btn.innerHTML =
-                    '<span class="fxm-chip-dot" style="background:' + theme.color + ';box-shadow:0 0 6px ' + theme.color + '66"></span>' +
-                    '<span class="fxm-chip-name">' + theme.name + '</span>';
-                themeGrid.appendChild(btn);
+        // 初始化主题循环按钮
+        const themeCycleBtn = panel.querySelector('#fxm-theme-cycle');
+        if (themeCycleBtn) {
+            themeCycleBtn.addEventListener('click', () => {
+                const themeKeys = Object.keys(THEMES);
+                const currentIndex = themeKeys.indexOf(currentTheme);
+                const nextKey = themeKeys[(currentIndex + 1) % themeKeys.length];
+                applyTheme(nextKey);
             });
-            // 同步当前激活状态
-            syncThemeButtons(currentTheme);
         }
+
+        // 初始化风格循环按钮
+        const styleCycleBtn = panel.querySelector('#fxm-style-cycle');
+        if (styleCycleBtn) {
+            styleCycleBtn.addEventListener('click', () => {
+                const styleKeys = Object.keys(STYLES);
+                const currentIndex = styleKeys.indexOf(currentStyle);
+                const nextKey = styleKeys[(currentIndex + 1) % styleKeys.length];
+                applyStyle(nextKey);
+            });
+        }
+
+        // 同步当前主题和风格的循环按钮显示
+        syncThemeButtons(currentTheme);
+        syncStyleButtons(currentStyle);
 
         console.log('[飞雪监测器] ✅ 悬浮面板已创建 (Emerald Capsule v13.0)');
     }
@@ -2035,7 +2830,17 @@
             if (sourceTextEl) {
                 let newSourceText;
                 if (backendAvailable) {
-                    newSourceText = `Source: ${data.data_source || 'Connected'}`;
+                    const SOURCE_NAMES = {
+                        'windows_wmi': 'Windows (WMI)',
+                        'amdsmi': 'AMD SMI',
+                        'rocm_smi': 'ROCm SMI',
+                        'sysfs': 'Linux sysfs',
+                        'error_fallback': 'Fallback',
+                        'none': 'None',
+                    };
+                    const src = data.data_source || 'Connected';
+                    const friendly = SOURCE_NAMES[src] || src;
+                    newSourceText = `Source: ${friendly}`;
                 } else {
                     newSourceText = 'Source: Disconnected';
                 }
@@ -2079,6 +2884,38 @@
     let updateTimer = null;
 
     /**
+     * 更新系统详情区域（磁盘、网络）
+     * @param {Object} rawData - WebSocket/REST 推送的原始 snapshot 数据
+     */
+    function updateSystemDetails(rawData) {
+        const diskVal = document.getElementById('fxm-disk-value');
+        const netVal = document.getElementById('fxm-net-value');
+
+        if (diskVal) {
+            const disk = rawData.disk_io;
+            if (disk && disk.read_mbps !== undefined && disk.write_mbps !== undefined) {
+                diskVal.textContent = 'R ' + disk.read_mbps.toFixed(1) + ' / W ' + disk.write_mbps.toFixed(1) + ' MB/s';
+                diskVal.classList.remove('na');
+            } else {
+                diskVal.textContent = 'N/A';
+                diskVal.classList.add('na');
+            }
+        }
+
+        if (netVal) {
+            const net = rawData.network_io;
+            if (net && net.upload_mbps !== undefined && net.download_mbps !== undefined) {
+                netVal.textContent = '\u2191 ' + net.upload_mbps.toFixed(1) + ' \u2193 ' + net.download_mbps.toFixed(1) + ' MB/s';
+                netVal.classList.remove('na');
+            } else {
+                netVal.textContent = 'N/A';
+                netVal.classList.add('na');
+            }
+        }
+
+    }
+
+    /**
      * 主更新循环
      */
     async function mainUpdateLoop() {
@@ -2096,6 +2933,9 @@
             if (isPanelVisible && floatingPanel) {
                 updateFloatingPanelData(data);
             }
+
+            // 5. 更新系统详情（磁盘、网络）
+            updateSystemDetails(cachedData);
 
         } catch (e) {
             console.error('[飞雪监测器] ❌ 更新循环异常:', e);
@@ -2131,13 +2971,27 @@
             // 4. 恢复已保存的主题
             restoreTheme();
 
-            // 4.5 注册主题切换事件委托（document 级别，确保始终有效）
-            document.addEventListener('click', function(e) {
-                const btn = e.target.closest('.fx-theme-btn, .fxm-theme-chip');
-                if (btn && btn.dataset.theme) {
-                    applyTheme(btn.dataset.theme);
-                }
-            });
+            // 4.1 恢复已保存的风格
+            restoreStyle();
+
+            // 4.6 从 localStorage 恢复拖拽位置（面板未打开时也能还原）
+            const savedPos = localStorage.getItem(DRAG_STORAGE_KEY);
+            if (savedPos) {
+                try {
+                    const pos = JSON.parse(savedPos);
+                    if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+                        const topBar = document.querySelector('.fx-top-bar');
+                        if (topBar) {
+                            topBar.style.left = pos.left + 'px';
+                            topBar.style.top = pos.top + 'px';
+                            topBar.style.transform = 'none';
+                            topBar.style.transition = 'none';
+                            savedBarLeft = pos.left;
+                            savedBarTop = pos.top;
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+            }
 
             // 5. 启动数据更新循环
             await mainUpdateLoop();
@@ -2147,6 +3001,144 @@
         } catch (e) {
             console.error('[飞雪监测器] ❌ 初始化失败:', e);
         }
+    }
+
+    // ============================================================
+    // 拖拽功能
+    // ============================================================
+
+    /**
+     * 初始化拖拽功能
+     * - 监听面板中的拖拽开关
+     * - 加载 localStorage 中的保存位置
+     * - 绑定 mousedown/mousemove/mouseup 事件
+     */
+    function initDrag() {
+        const topBar = document.querySelector('.fx-top-bar');
+        const dock = document.querySelector('.fx-capsule-dock');
+        const toggleEl = document.getElementById('fxm-drag-toggle');
+        if (!topBar || !dock || !toggleEl) return;
+
+        // 1. 从 localStorage 恢复拖拽开关状态
+        const savedEnabled = localStorage.getItem('feixue_drag_enabled');
+        if (savedEnabled === 'true') {
+            dragEnabled = true;
+            toggleEl.checked = true;
+            dock.classList.add('fx-draggable');
+        }
+
+        // 2. 从 localStorage 恢复位置
+        const savedPos = localStorage.getItem(DRAG_STORAGE_KEY);
+        if (savedPos) {
+            try {
+                const pos = JSON.parse(savedPos);
+                if (typeof pos.left === 'number' && typeof pos.top === 'number') {
+                    savedBarLeft = pos.left;
+                    savedBarTop = pos.top;
+                    applyBarPosition(pos.left, pos.top);
+                }
+            } catch (e) { /* ignore parse error */ }
+        }
+
+        // 3. 拖拽开关事件
+        toggleEl.addEventListener('change', function() {
+            dragEnabled = this.checked;
+            localStorage.setItem('feixue_drag_enabled', dragEnabled ? 'true' : 'false');
+
+            if (dragEnabled) {
+                dock.classList.add('fx-draggable');
+            } else {
+                dock.classList.remove('fx-draggable');
+                // 关闭拖拽时重置居中
+                resetBarToCenter();
+                localStorage.removeItem(DRAG_STORAGE_KEY);
+                savedBarLeft = null;
+                savedBarTop = null;
+            }
+        });
+
+        // 4. mousedown: 开始拖拽（只在 dock 上且启用了拖拽时）
+        dock.addEventListener('mousedown', function(e) {
+            if (!dragEnabled) return;
+
+            // 排除交互元素：按钮、输入框、可点击的指标项
+            const tag = e.target.tagName;
+            if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'LABEL') return;
+            if (e.target.closest('.fx-settings-btn, .fxm-toggle-switch, .fx-theme-btn, .fxm-theme-chip, .fxm-style-chip')) return;
+
+            e.preventDefault();
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+
+            const rect = topBar.getBoundingClientRect();
+            barStartLeft = rect.left;
+            barStartTop = rect.top;
+
+            topBar.classList.add('fx-dragging');
+            topBar.style.transition = 'none';
+        });
+
+        // 5. mousemove: 更新位置
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            let newLeft = barStartLeft + dx;
+            let newTop = barStartTop + dy;
+
+            // 边界限制
+            const maxLeft = window.innerWidth - dock.offsetWidth - 16;
+            const maxTop = window.innerHeight - dock.offsetHeight - 16;
+            newLeft = Math.max(8, Math.min(newLeft, maxLeft));
+            newTop = Math.max(40, Math.min(newTop, maxTop));  // 顶部留 40px 给 ComfyUI 菜单栏
+
+            topBar.style.left = newLeft + 'px';
+            topBar.style.top = newTop + 'px';
+            topBar.style.transform = 'none';
+
+            savedBarLeft = newLeft;
+            savedBarTop = newTop;
+        });
+
+        // 6. mouseup: 结束拖拽，保存位置
+        document.addEventListener('mouseup', function() {
+            if (!isDragging) return;
+            isDragging = false;
+            topBar.classList.remove('fx-dragging');
+
+            if (savedBarLeft !== null && savedBarTop !== null) {
+                localStorage.setItem(DRAG_STORAGE_KEY, JSON.stringify({
+                    left: savedBarLeft,
+                    top: savedBarTop
+                }));
+            }
+        });
+    }
+
+    /**
+     * 应用 bar 位置
+     */
+    function applyBarPosition(left, top) {
+        const topBar = document.querySelector('.fx-top-bar');
+        if (!topBar) return;
+        topBar.style.left = left + 'px';
+        topBar.style.top = top + 'px';
+        topBar.style.transform = 'none';
+        topBar.style.transition = 'none';
+    }
+
+    /**
+     * 重置 bar 到居中位置
+     */
+    function resetBarToCenter() {
+        const topBar = document.querySelector('.fx-top-bar');
+        if (!topBar) return;
+        topBar.style.left = '50%';
+        topBar.style.top = '8px';
+        topBar.style.transform = 'translateX(-50%)';
+        topBar.style.transition = '0.4s ease';
     }
 
     // ============================================================
@@ -2169,6 +3161,11 @@
         // 主题控制
         getCurrentTheme: () => currentTheme,
         setTheme: applyTheme,
+
+        // 风格控制
+        getCurrentStyle: () => currentStyle,
+        setStyle: applyStyle,
+        getStyleList: () => STYLES,
     };
 
     console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor');

@@ -201,6 +201,12 @@ class FeixueHardwareInfo:
         self._pynvml_handles: List[Any] = []
         self._pynvml_lock = threading.Lock()
 
+        # 磁盘/网络IO差值计算状态
+        self._prev_disk_io: Any = None
+        self._prev_net_io: Any = None
+        self._prev_disk_time: float = 0.0
+        self._prev_net_time: float = 0.0
+
         # 统计信息
         self._stats = {
             'total_collections': 0,
@@ -562,8 +568,11 @@ class FeixueHardwareInfo:
 
     def _init_pynvml(self) -> None:
         """一次性初始化 pynvml（避免每次 snapshot 都 init/shutdown 导致数据抖动）"""
+        import warnings
         try:
-            import pynvml
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', message='.*pynvml.*deprecated.*', category=FutureWarning)
+                import pynvml
             pynvml.nvmlInit()
             count = pynvml.nvmlDeviceGetCount()
             self._pynvml_handles = [pynvml.nvmlDeviceGetHandleByIndex(i) for i in range(count)]
@@ -663,6 +672,20 @@ class FeixueHardwareInfo:
                 'version': '2.1.0',   # 【v10.0】版本号升级（添加swap支持）
             }
 
+            # 辅助指标采集（每个独立try-except，单个失败不影响整体）
+            try:
+                snapshot['disk_io'] = self._collect_disk_io()
+            except Exception:
+                snapshot['disk_io'] = None
+            try:
+                snapshot['network_io'] = self._collect_network()
+            except Exception:
+                snapshot['network_io'] = None
+            try:
+                snapshot['fan_speed'] = self._collect_fan()
+            except Exception:
+                snapshot['fan_speed'] = None
+
             self._stats['successful_collections'] += 1
             return snapshot
 
@@ -719,6 +742,110 @@ class FeixueHardwareInfo:
         except Exception as e:
             logger.debug(f"Swap collection failed: {e}")
             return {'total_gb': 0.0, 'used_gb': 0.0, 'percent': 0}
+
+    # ------------------------------------------------------------------
+    # 辅助指标采集方法（磁盘IO、网络IO、风扇转速）
+    # ------------------------------------------------------------------
+
+    def _collect_disk_io(self):
+        """
+        采集磁盘IO速率（MB/s）。
+
+        使用 psutil.disk_io_counters() 获取累加值，与上次结果做差值计算。
+        首次调用时返回零值。
+
+        Returns:
+            {'read_mbps': float, 'write_mbps': float}，异常时返回 None
+        """
+        try:
+            import psutil
+            counters = psutil.disk_io_counters()
+            now = time.time()
+
+            result = {'read_mbps': 0.0, 'write_mbps': 0.0}
+
+            if self._prev_disk_io is not None and self._prev_disk_time > 0:
+                elapsed = now - self._prev_disk_time
+                if elapsed > 0:
+                    read_delta = counters.read_bytes - self._prev_disk_io.read_bytes
+                    write_delta = counters.write_bytes - self._prev_disk_io.write_bytes
+                    # 处理计数器重置（系统重启等）
+                    if read_delta >= 0:
+                        result['read_mbps'] = round(read_delta / elapsed / (1024 * 1024), 2)
+                    if write_delta >= 0:
+                        result['write_mbps'] = round(write_delta / elapsed / (1024 * 1024), 2)
+
+            # 更新上次值
+            self._prev_disk_io = counters
+            self._prev_disk_time = now
+
+            return result
+        except Exception as e:
+            logger.debug(f"Disk IO collection failed: {e}")
+            return None
+
+    def _collect_network(self):
+        """
+        采集网络IO速率（MB/s）。
+
+        使用 psutil.net_io_counters() 获取累加字节数，差值算法同 _collect_disk_io。
+        首次调用时返回零值。
+
+        Returns:
+            {'upload_mbps': float, 'download_mbps': float}，异常时返回 None
+        """
+        try:
+            import psutil
+            counters = psutil.net_io_counters()
+            now = time.time()
+
+            result = {'upload_mbps': 0.0, 'download_mbps': 0.0}
+
+            if self._prev_net_io is not None and self._prev_net_time > 0:
+                elapsed = now - self._prev_net_time
+                if elapsed > 0:
+                    sent_delta = counters.bytes_sent - self._prev_net_io.bytes_sent
+                    recv_delta = counters.bytes_recv - self._prev_net_io.bytes_recv
+                    # 处理计数器重置
+                    if sent_delta >= 0:
+                        result['upload_mbps'] = round(sent_delta / elapsed / (1024 * 1024), 2)
+                    if recv_delta >= 0:
+                        result['download_mbps'] = round(recv_delta / elapsed / (1024 * 1024), 2)
+
+            # 更新上次值
+            self._prev_net_io = counters
+            self._prev_net_time = now
+
+            return result
+        except Exception as e:
+            logger.debug(f"Network IO collection failed: {e}")
+            return None
+
+    def _collect_fan(self):
+        """
+        采集 GPU 风扇转速。
+
+        使用已初始化的 pynvml（通过 _init_pynvml() 初始化的持久化连接）。
+        读取第一个 GPU 的风扇转速百分比，加锁保护 pynvml 调用。
+
+        Returns:
+            {'rpm': None, 'percent': int}，pynvml不可用或异常时返回 None
+        """
+        try:
+            if not self._pynvml_available or not self._pynvml_handles:
+                return None
+
+            with self._pynvml_lock:
+                handle = self._pynvml_handles[0]
+                import pynvml
+                fan_percent = pynvml.nvmlDeviceGetFanSpeed(handle)
+                return {
+                    'rpm': None,
+                    'percent': int(fan_percent),
+                }
+        except Exception as e:
+            logger.debug(f"Fan speed collection failed: {e}")
+            return None
 
     def _safe_get_gpu_all(self) -> List[Dict[str, Any]]:
         """
@@ -1536,6 +1663,9 @@ class FeixueHardwareInfo:
             'gpus': [self._get_default_gpu_data()],
             'data_source': 'error_fallback',
             'version': '2.1.0',   # 【v10.0】版本号升级
+            'disk_io': None,
+            'network_io': None,
+            'fan_speed': None,
         }
 
     @staticmethod
