@@ -1,0 +1,10 @@
+# Comfy Registry 发布时排除的文件
+TEMPV1/
+__pycache__/
+*.pyc
+*.pyo
+web/demo-*.html
+*.backup-*
+*.old
+tests/
+.trae/

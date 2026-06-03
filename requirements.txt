@@ -1,0 +1,6 @@
+# 飞雪监测器 - 跨平台基础依赖
+# 平台特定依赖 (Windows: pynvml-amd-windows/wmi, Linux: amdsmi)
+# 由 install.py 自动处理，无需手动管理
+psutil>=5.9.0
+torch>=2.5.0
+orjson>=3.9.0
