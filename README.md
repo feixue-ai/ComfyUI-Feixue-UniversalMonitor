@@ -1,14 +1,15 @@
 # ComfyUI-Feixue-UniversalMonitor
 
 <p align="center">
-  <strong>飞雪监测器</strong> — Emerald Capsule UI · Real-time Hardware Monitor for ComfyUI
+  <strong>飞雪监测器</strong> — 专注AMD · 跨平台 · 5色×5风格 · 实时硬件监测器
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
-  <img src="https://img.shields.io/badge/GPU-AMD-orange" alt="GPU Support" />
+  <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
   <img src="https://img.shields.io/badge/Version-3.1.0-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Styles-5_Colors_×_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
 <p align="center">
@@ -21,7 +22,7 @@
 
 ![飞雪监测器 Emerald Capsule UI](screenshot.png)
 
-> 上图展示了翡翠绿主题下的完整胶囊形监控栏。支持 **5 种颜色主题** 一键切换。
+> 上图展示了翡翠胶囊风格（Emerald Capsule）的监控栏。支持 **5 种颜色主题 × 5 种风格预设**，共 25 种视觉搭配，一键切换。
 >
 > 在线交互演示：[Live Demo](https://feixue-ai.github.io/ComfyUI-Feixue-UniversalMonitor/?demo)
 
@@ -29,17 +30,18 @@
 
 ## 特性
 
-- **实时硬件监测** — GPU 利用率、显存(VRAM)、CPU 负载、物理内存(RAM)、虚拟内存(Swap)、GPU 温度、风扇转速、磁盘 I/O、网络速率，共 9 项指标
-- **翡翠胶囊 UI (Emerald Capsule)** — 药丸/胶囊形外观 + 3D 圆柱横截面立体效果 + 霓虹发光边框灯条 + 不透明实底背景
+- **实时硬件监测** — GPU 利用率、显存(VRAM)、CPU 负载、物理内存(RAM)、虚拟内存(Swap)、GPU 温度、磁盘 I/O、网络速率，共 8 项指标
+- **黑曜石毛玻璃面板** — 半透明毛玻璃悬浮面板 (backdrop-filter) + 多层弥散阴影 + 玻璃边缘高光，现代设计水准
 - **5 色主题系统** — 翡翠绿 / 赛博紫 / 琥珀金 / 极光蓝 / 樱花粉，一键切换整体色彩方案
 - **5 种风格预设** — 翡翠胶囊 / 赛博钛金 / 生物发光 / 结构蓝图 / 极简像素，颜色与风格独立组合（共 25 种搭配）
+- **完整的视觉隔离** — 每种风格从形状、材质、边框到光效完全不同，胶囊独有 3D 圆柱::before 效果
 - **拖拽自由定位** — 悬浮面板开关控制，可自由拖拽监测栏到任意位置，位置自动记忆（localStorage）
 - **CSS 芯片图标** — 每种硬件对应独特的 CSS 绘制图标（GPU 芯片、VRAM 颗粒、CPU 处理器、RAM 内存条、存储、温度计）
-- **渐变状态条** — 液态光泽动画进度条，直观展示各项资源使用率
-- **跨平台支持** — Windows（pynvml-amd-windows + WMI）和 Linux Ubuntu（amdsmi / ROCm / sysfs），专为 AMD GPU 优化
+- **凹陷进度条** — 内阴影凹陷轨道 + 渐变流体填充 + 缓慢漂移动画，直观展示各项资源使用率
+- **跨平台 AMD 优化** — Windows（pynvml-amd-windows + WMI）和 Linux Ubuntu（amdsmi / ROCm / sysfs），专为 AMD GPU 优化
 - **多源数据融合** — 三级 fallback 降级链，高负载下稳定可靠，超时保护 + 缓存降级
 - **WebSocket 实时推送** — 低于 100ms 延迟的数据推送，同时提供 HTTP API 降级模式
-- **悬浮设置面板** — 不透明卡片风格，包含主题切换、风格选择、数据详情、系统详情、拖拽开关
+- **工业方形拨动开关** — 拖拽开关采用方形机械拨动设计，贴合硬核硬件监测器定位
 
 ## 安装
 
@@ -67,7 +69,7 @@ git clone https://github.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor.git
 安装后，监控栏自动显示在 ComfyUI 界面顶部：
 
 - **6 项核心指标**：GPU 利用率 | 显存(VRAM) | CPU 负载 | 物理内存(RAM) | 虚拟内存(Swap) | GPU 温度
-- **3 项辅助指标**：磁盘 I/O | 网络速率 | 风扇转速（悬浮面板中查看）
+- **2 项辅助指标**：磁盘 I/O | 网络速率（悬浮面板中查看）
 - **主题切换**：点击监控栏右侧的 ⚙️ 齿轮按钮打开悬浮面板，在主题区选择颜色主题和风格预设
 - **拖拽定位**：悬浮面板中开启拖拽开关后，可拖拽监测栏到任意位置，关闭后自动回到居中
 - **实时更新**：默认 2 秒刷新间隔，数据通过 WebSocket 实时推送
@@ -89,7 +91,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # 配置管理
 ├── utils/                   # 平台检测、线程安全、性能优化
 ├── web/
-│   └── extension.js         # 前端 UI (Emerald Capsule v3.0.1)
+│   └── extension.js         # 前端 UI (v3.1.0 黑曜石玻璃)
 ├── docs/
 │   └── index.html           # 在线外观演示 (GitHub Pages)
 └── tests/                   # 单元测试
@@ -118,15 +120,18 @@ CPU/RAM/Swap: psutil (跨平台统一)
 
 ## 更新日志
 
-### v3.1.0 — Multi-Style Expansion (当前版本)
-- 新增磁盘 I/O 实时监测（读写速度 MB/s）
-- 新增网络速率监测（上行/下行 MB/s）
-- 新增 GPU 风扇转速监测（RPM/百分比）
-- **5 种风格预设**: 翡翠胶囊 / 赛博钛金 / 生物发光 / 结构蓝图 / 极简像素
-- 风格与颜色独立组合，共 25 种视觉搭配
-- 悬浮面板新增"系统详情"区域（磁盘/网络/风扇）
-- 全部 CSS 纯实现，零 Canvas/WebGL，不增加 GPU 资源消耗
-- 跨平台（Windows + Linux）所有新指标可用
+### v3.1.0 — 黑曜石玻璃重构 + 5风格完全隔离 (当前版本)
+- 悬浮面板全面重构：半透明毛玻璃 (backdrop-filter) + 多层弥散阴影 + 玻璃边缘高光
+- 进度条重构为凹陷轨道 + 渐变流体填充 + 缓慢漂移动画
+- Toggle 开关从 iOS 圆滑风格改为工业方形拨动开关
+- **5 种风格完全视觉隔离**：胶囊保留 ::before 3D 圆柱效果，其余 4 风格全部隐藏
+- 蓝图风格修复：图标/边框/进度条改用主题变量，切换主题色时装饰色跟随变化
+- 全局发光变量软化，消除生硬光晕
+- 面板装饰元素（图标、分隔线、标签）跟随主题色
+- 数据卡片改为微玻璃半透明卡片
+- 移除风扇转速监测（AMD Windows 不支持）
+- 新增磁盘 I/O 和网络速率监测
+- 跨平台（Windows + Linux）所有指标可用
 
 ### v3.0.1 — Emerald Capsule
 - 完整 UI 重写：药丸/胶囊形设计 + 3D 圆柱横截面立体效果
