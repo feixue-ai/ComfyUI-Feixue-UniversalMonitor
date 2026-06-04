@@ -207,6 +207,11 @@ class FeixueHardwareInfo:
         self._prev_disk_time: float = 0.0
         self._prev_net_time: float = 0.0
 
+        # AMD SMI 数值平滑（EMA 指数移动平均，解决 gfx_activity 瞬时跳动问题）
+        self._ema_gpu_util: float = 0.0      # GPU 利用率平滑值
+        self._ema_gpu_temp: float = 0.0       # 温度平滑值
+        self._ema_alpha: float = 0.25          # 平滑因子（越小越平滑，响应越慢）
+
         # 统计信息
         self._stats = {
             'total_collections': 0,
@@ -945,18 +950,22 @@ class FeixueHardwareInfo:
                 logger.warning(f"VRAM数据格式异常: {type(vram_info)}")
                 raise ValueError("Invalid VRAM data format")
 
-            # 2. GPU 利用率 (尝试多种方法)
+            # 2. GPU 利用率 (EMA 平滑，解决 amdsmi gfx_activity 瞬时跳动)
             try:
                 activity = lib.amdsmi_get_gpu_activity(handle)
                 if activity and isinstance(activity, dict):
-                    # 尝试不同的字段名
-                    gfx_activity = (
+                    raw_util = (
                         activity.get('gfx_activity') or
                         activity.get('gpu_activity') or
                         activity.get('activity') or
                         0
                     )
-                    gpu_data['gpu_utilization'] = int(gfx_activity)
+                    # EMA 指数移动平均：alpha=0.25，约 4 个采样周期达到稳态
+                    if self._ema_gpu_util == 0:
+                        self._ema_gpu_util = float(raw_util)
+                    else:
+                        self._ema_gpu_util = self._ema_alpha * float(raw_util) + (1 - self._ema_alpha) * self._ema_gpu_util
+                    gpu_data['gpu_utilization'] = int(round(self._ema_gpu_util))
                 else:
                     gpu_data['gpu_utilization'] = 0
             except Exception as e:
@@ -1056,12 +1065,17 @@ class FeixueHardwareInfo:
         """通过 rocm_smi 采集 GPU 数据"""
         rsmi = self._source_instance
 
-        # GPU 利用率
+        # GPU 利用率 (EMA 平滑)
         gpu_utilization = 0
         try:
             util_result = self._call_rsmi_method(rsmi, ['getGpuUse', 'get_gpu_use'], device_id)
             if util_result is not None:
-                gpu_utilization = int(float(util_result)) if isinstance(util_result, (int, float, str)) else 0
+                raw_util = int(float(util_result)) if isinstance(util_result, (int, float, str)) else 0
+                if self._ema_gpu_util == 0:
+                    self._ema_gpu_util = float(raw_util)
+                else:
+                    self._ema_gpu_util = self._ema_alpha * raw_util + (1 - self._ema_alpha) * self._ema_gpu_util
+                gpu_utilization = int(round(self._ema_gpu_util))
         except Exception as e:
             logger.debug(f"rocm_smi gpu_util failed: {e}")
 
