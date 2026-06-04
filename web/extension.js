@@ -124,6 +124,74 @@
     }
 
     /**
+     * 将缓存的后端原始数据重新解析为标准内部格式
+     * 用于后端暂不可用时从缓存恢复显示，避免高负载时全屏 --
+     * @param {Object} rawData - 缓存的 fetchFromBackend 原始返回值
+     * @returns {Object} 标准化的系统监控数据
+     */
+    function _parseRawToStandard(rawData) {
+        if (!rawData) return getEmptyData('error');
+        const isNewFormat = rawData.cpu_utilization !== undefined;
+
+        if (isNewFormat) {
+            const gpu0 = (rawData.gpus && rawData.gpus.length > 0) ? rawData.gpus[0] : null;
+            return {
+                timestamp: rawData.timestamp || Date.now(),
+                cpu: { usage: rawData.cpu_utilization },
+                ram: {
+                    total: rawData.ram?.total_gb,
+                    used: rawData.ram?.used_gb,
+                    percent: rawData.ram?.percent,
+                },
+                gpu: {
+                    usage: gpu0?.gpu_utilization,
+                    vram_used: gpu0?.vram_used_mb,
+                    vram_total: gpu0?.vram_total_mb,
+                    vram_percent: gpu0?.vram_percent,
+                    temperature: gpu0?.gpu_temperature,
+                    power_draw: gpu0?.power_draw,
+                },
+                swap: {
+                    used_gb: rawData.swap?.used_gb || rawData.ram?.swap_used_gb || null,
+                    percent: rawData.swap?.percent || rawData.ram?.swap_percent || rawData.swap_percent || null,
+                },
+                data_source: rawData.data_source || 'cached',
+                _backend_available: false,  // 标记为缓存数据
+                _format: 'new',
+                network_io: rawData.network_io || null,
+                disk_io: rawData.disk_io || null,
+            };
+        } else {
+            return {
+                timestamp: rawData.timestamp || Date.now(),
+                cpu: { usage: rawData.cpu?.utilization },
+                ram: {
+                    total: rawData.ram?.total_gb,
+                    used: rawData.ram?.used_gb,
+                    percent: rawData.ram?.percent,
+                },
+                gpu: {
+                    usage: rawData.gpu?.utilization,
+                    vram_used: rawData.gpu?.vram_used_mb,
+                    vram_total: rawData.gpu?.vram_total_mb,
+                    vram_percent: rawData.gpu?.vram_percent,
+                    temperature: rawData.gpu?.temperature,
+                    power_draw: rawData.power?.current_power_w,
+                },
+                swap: {
+                    percent: rawData.ram?.swap_percent,
+                    used_gb: rawData.ram?.swap_used_gb || rawData.swap?.used_gb || null,
+                },
+                data_source: rawData.data_source || 'cached',
+                _backend_available: false,
+                _format: 'old',
+                network_io: rawData.network_io || null,
+                disk_io: rawData.disk_io || null,
+            };
+        }
+    }
+
+    /**
      * 统一数据采集和标准化接口
      *
      * **核心改进**：
@@ -139,7 +207,13 @@
             const realData = await fetchFromBackend();
 
             if (!realData) {
-                // 后端不可用
+                // 后端不可用：优先使用缓存数据（高负载时不闪 --）
+                // 只有完全没有历史数据时才返回空结构
+                if (cachedData && Object.keys(cachedData).length > 2) {
+                    console.debug('[飞雪监测器] 使用缓存数据（后端暂不可用）');
+                    // 从缓存重新解析，确保格式一致
+                    return _parseRawToStandard(cachedData);
+                }
                 return getEmptyData('unavailable');
             }
 
@@ -190,6 +264,10 @@
                     data_source: realData.data_source || 'backend-api',
                     _backend_available: true,
                     _format: 'new',
+
+                    // 网络与磁盘IO（透传原始字段供系统详情使用）
+                    network_io: realData.network_io || null,
+                    disk_io: realData.disk_io || null,
                 };
             } else {
                 // ===== 旧格式解析 (MonitorSnapshot) =====
@@ -223,6 +301,10 @@
                     data_source: realData.data_source || 'backend-api',
                     _backend_available: true,
                     _format: 'old',
+
+                    // 网络与磁盘IO（透传原始字段供系统详情使用）
+                    network_io: realData.network_io || null,
+                    disk_io: realData.disk_io || null,
                 };
             }
 
@@ -246,6 +328,8 @@
             swap: { percent: null },
             data_source: reason,
             _backend_available: false,
+            network_io: null,
+            disk_io: null,
         };
     }
 
@@ -559,6 +643,11 @@
     --fx-shadow-glow: 0 0 20px rgba(0, 208, 128, 0.08);
     --fx-shadow-glow-large: 0 0 40px rgba(0, 208, 128, 0.04);
     --fx-text-accent: #00D080;
+    /* 背景色 — 与 demo-v13-emerald.html 样本一致 */
+    --bg-primary: #12181f;
+    --bg-secondary: #0d1117;
+    --bg-card: #161b22;
+    --bg-item: rgba(22, 27, 34, 0.9);
 }
 
 /* ---------- 赛博紫 Purple ---------- */
@@ -628,23 +717,18 @@
    不透明实底背景！禁止 backdrop-filter！
    ============================================ */
 .fx-capsule-dock {
-    display: flex;
-    align-items: center;
-    gap: 6px;             /* 紧凑间距 */
-    padding: 8px 14px;    /* 收窄上下8px 左右14px */
+    /* 与样本 .capsule-container 一致：块级容器，不设 display:flex */
+    width: 100%;
+    max-width: 900px;
+    padding: 10px 16px;   /* 与原样板一致：上下10px 左右16px */
     border-radius: 999px; /* 完美药丸形 */
-    max-width: 900px;     /* 匹配 demo 样本最大宽度 */
-    background: rgba(18, 24, 31, 0.82);
-    backdrop-filter: blur(12px) saturate(1.15);
-    -webkit-backdrop-filter: blur(12px) saturate(1.15);
-    border: 1px solid rgba(var(--fx-rgb), 0.25);
+    background: var(--bg-primary);
+    border: 1.5px solid var(--fx-primary);
     box-shadow:
-        0 0 4px rgba(var(--fx-rgb), 0.20),
-        0 0 12px rgba(var(--fx-rgb), 0.10),
-        0 0 30px rgba(var(--fx-rgb), 0.04),
-        0 8px 32px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+        0 0 16px var(--fx-glow),
+        0 0 32px var(--fx-glow-diffuse),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
     transition: all 0.4s ease;
@@ -657,7 +741,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 120px;
+    width: 80px;
     height: 100%;
     border-radius: 50% 0 0 50%;
     background: linear-gradient(
@@ -682,8 +766,17 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* 指标项容器 — 与样本 .metrics-row 完全一致 */
+.fx-metrics-row {
+    display: flex;
+    align-items: stretch;   /* 子项撑满高度，让 ::before 圆柱效果不被压扁 */
+    gap: 8px;
+    position: relative;
+    z-index: 2;             /* 层叠在 ::before (z-index:1) 之上 */
+}
+
 /* ============================================
-   指标项 Metric Item
+   指标项 Metric Item — 与 demo-v13-emerald.html 样本完全一致
    ============================================ */
 .fx-metric-item {
     flex: 1;
@@ -691,24 +784,15 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 6px 5px;     /* 收窄更紧凑 */
-    background: rgba(22, 27, 34, 0.9);
-    border-radius: 12px;   /* v13样本一致 */
-    min-width: 80px;      /* v13样本对齐：从90→80 */
+    padding: 8px 6px;       /* 样本原始值：上下8px 左右6px */
+    background: var(--bg-item); /* 用CSS变量，跟随主题 */
+    border-radius: 12px;
+    min-width: 80px;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    z-index: 2;
-    animation: fxFadeInUp 0.5s ease-out backwards;
 }
-.fx-metric-item:nth-child(2) { animation-delay: 0.08s; }
-.fx-metric-item:nth-child(4) { animation-delay: 0.16s; }
-.fx-metric-item:nth-child(6) { animation-delay: 0.24s; }
-.fx-metric-item:nth-child(8) { animation-delay: 0.32s; }
-.fx-metric-item:nth-child(10) { animation-delay: 0.40s; }
-.fx-metric-item:nth-child(12) { animation-delay: 0.48s; }
-
-/* 第一个指标项特殊处理：为左侧3D圆柱效果留空间 */
+/* 第一个指标项特殊处理：向右推到渐变与黑底的过渡线上 */
 .fx-metric-item:first-child {
     padding-left: 28px;
     border-radius: 16px 12px 12px 16px;
@@ -1519,9 +1603,10 @@
     flex-shrink: 0;
 }
 .fxm-detail-value {
-    font-family: 'Consolas', 'Menlo', monospace;
-    color: rgba(255,255,255,0.85);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    color: var(--fx-text-accent);  /* 跟随主题变色 */
     font-size: 11px;
+    font-weight: 600;  /* 与卡片数值风格一致 */
 }
 .fxm-detail-value.na {
     color: rgba(255,255,255,0.3);
@@ -1681,7 +1766,7 @@
    ============================================ */
 @media (max-width: 768px) {
     .fx-capsule-dock {
-        padding: 8px 12px;
+        padding: 10px 12px;  /* 移动端保持上下10px，仅收窄左右 */
     }
     .fx-metric-item {
         padding: 6px 4px;
@@ -1707,20 +1792,16 @@
    这是唯一保留 ::before 伪元素（动车车头）的风格
    ========================================================== */
 .fx-capsule-dock[data-fx-style="capsule"] {
+    /* 与样本一致：不透明实底 + 强发光边框 */
     border-radius: 999px;
-    background: rgba(18, 24, 31, 0.82);
-    backdrop-filter: blur(12px) saturate(1.15);
-    -webkit-backdrop-filter: blur(12px) saturate(1.15);
-    border: 1px solid rgba(var(--fx-rgb), 0.25);
+    background: var(--bg-primary);
+    border: 1.5px solid var(--fx-primary);
     box-shadow:
-        0 0 4px rgba(var(--fx-rgb), 0.20),
-        0 0 12px rgba(var(--fx-rgb), 0.10),
-        0 0 30px rgba(var(--fx-rgb), 0.04),
-        0 8px 32px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.12);
-    padding: 8px 14px;
-    gap: 6px;
+        0 0 16px var(--fx-glow),
+        0 0 32px var(--fx-glow-diffuse),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    padding: 10px 16px;
     overflow: hidden;
 }
 /* 胶囊专属：3D圆柱横截面 ::before（动车车头）*/
@@ -1730,7 +1811,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 120px;
+    width: 80px;
     height: 100%;
     border-radius: 50% 0 0 50%;
     background: linear-gradient(
@@ -2179,7 +2260,7 @@
 
     /**
      * 创建完整的顶部栏 DOM 结构
-     * 匹配 v13.0 CSS 选择器：.fx-top-bar > .fx-capsule-dock > .fx-metric-item
+     * 匹配 v13.0 CSS 选择器：.fx-top-bar > .fx-capsule-dock > .fx-metrics-row > .fx-metric-item
      */
     function createTopBar() {
         // 顶部栏容器
@@ -2187,23 +2268,28 @@
         topBar.className = 'fx-top-bar';
         topBar.id = 'fx-top-bar';
 
-        // Dock 容器（胶囊形药丸底座）
+        // Dock 容器（胶囊形药丸底座 — 块级容器，与样本 .capsule-container 一致）
         const dock = document.createElement('div');
         dock.className = 'fx-capsule-dock';
         dock.id = 'fx-capsule-dock';
         dock.setAttribute('data-fx-theme', 'emerald');
 
+        // 指标项行容器（flex 容器，与样本 .metrics-row 一致）
+        const metricsRow = document.createElement('div');
+        metricsRow.className = 'fx-metrics-row';
+
         // 创建6个胶囊指标
         METRIC_DEFS.forEach((metric) => {
             // 创建单个指标项
             const item = createMetricItem(metric);
-            dock.appendChild(item);
+            metricsRow.appendChild(item);
         });
 
         // 设置按钮
         const settingsBtn = createSettingsButton();
-        dock.appendChild(settingsBtn);
+        metricsRow.appendChild(settingsBtn);
 
+        dock.appendChild(metricsRow);
         topBar.appendChild(dock);
         document.body.appendChild(topBar);
 
@@ -2708,8 +2794,8 @@
                             displayText = rawValue.toFixed(1);
                             isDanger = percentForBar >= CONFIG.thresholds.danger;
                         } else {
-                            // 所有路径均无数据时显示 0 而非 --
-                            displayText = '0';
+                            // 所有路径均无数据时显示 0.0 而非 --
+                            displayText = '0.0';
                             percentForBar = 0;
                         }
                         break;
@@ -2823,13 +2909,35 @@
             // ---- CPU & 内存卡片数据 ----
             updateCardMetric('fp-card-cpu', 'fp-card-cpu-pb', data.cpu?.usage, '%', 100);
             updateCardMetric('fp-card-ram', 'fp-card-ram-pb', data.ram?.percent, '%', 100);
-            updateCardMetric('fp-card-swap', 'fp-card-swap-pb', data.swap?.used_gb, 'GB', 100);
 
-            // ---- 状态栏（带缓存，避免文本闪烁） ----
+            // 虚拟内存特殊处理：无数据显示 0.0 GB 而非 -- GB
+            const swapEl = document.getElementById('fp-card-swap');
+            const swapPbEl = document.getElementById('fp-card-swap-pb');
+            if (swapEl && swapPbEl) {
+                const swapRaw = sanitizeValue(data.swap?.used_gb);
+                const swapPercent = sanitizeValue(data.swap?.percent) || 0;
+                if (swapRaw !== null && swapRaw >= 0) {
+                    swapEl.textContent = swapRaw.toFixed(1) + ' GB';
+                    swapPbEl.style.width = Math.min(swapPercent, 100) + '%';
+                } else {
+                    // 无数据时显示 0.0 GB 而非 -- GB
+                    swapEl.textContent = '0.0 GB';
+                    swapPbEl.style.width = '0%';
+                }
+            }
+
+            // ---- 状态栏（带粘性缓存，避免文本闪烁） ----
             const sourceTextEl = document.getElementById('fp-source-text');
             if (sourceTextEl) {
+                // 使用粘性来源：一旦成功连接过，就记住该来源，不因单次失败而丢失
+                if (!window._fxm_lastKnownSource) {
+                    window._fxm_lastKnownSource = null;
+                }
+
                 let newSourceText;
-                if (backendAvailable) {
+                if (backendAvailable && data.data_source) {
+                    // 成功获取数据：更新缓存的来源
+                    window._fxm_lastKnownSource = data.data_source;
                     const SOURCE_NAMES = {
                         'windows_wmi': 'Windows (WMI)',
                         'amdsmi': 'AMD SMI',
@@ -2838,11 +2946,23 @@
                         'error_fallback': 'Fallback',
                         'none': 'None',
                     };
-                    const src = data.data_source || 'Connected';
-                    const friendly = SOURCE_NAMES[src] || src;
-                    newSourceText = `Source: ${friendly}`;
+                    const friendly = SOURCE_NAMES[data.data_source] || data.data_source;
+                    newSourceText = `来源: ${friendly}`;
+                } else if (window._fxm_lastKnownSource) {
+                    // 本次失败但有历史成功记录：使用上一次成功的来源
+                    const SOURCE_NAMES = {
+                        'windows_wmi': 'Windows (WMI)',
+                        'amdsmi': 'AMD SMI',
+                        'rocm_smi': 'ROCm SMI',
+                        'sysfs': 'Linux sysfs',
+                        'error_fallback': 'Fallback',
+                        'none': 'None',
+                    };
+                    const friendly = SOURCE_NAMES[window._fxm_lastKnownSource] || window._fxm_lastKnownSource;
+                    newSourceText = `来源: ${friendly}`;
                 } else {
-                    newSourceText = 'Source: Disconnected';
+                    // 从未成功连接过
+                    newSourceText = '来源: 检测中...';
                 }
                 // 只在文本真正变化时才更新 DOM
                 if (sourceTextEl.textContent !== newSourceText) {
