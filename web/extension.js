@@ -731,7 +731,7 @@
         inset 0 -1px 0 rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
-    transition: all 0.4s ease;
+    transition: box-shadow 0.4s ease, border-color 0.4s ease;
     animation: fxFadeInUp 0.6s ease-out both;
 }
 
@@ -758,7 +758,7 @@
     opacity: 0.92;
     z-index: 1;
     pointer-events: none;
-    transition: all 0.4s ease;
+    transition: opacity 0.4s ease;
 }
 
 @keyframes fxFadeInUp {
@@ -773,6 +773,8 @@
     gap: 8px;
     position: relative;
     z-index: 2;             /* 层叠在 ::before (z-index:1) 之上 */
+    width: 100%;            /* 固定宽度，防止flex子项变化导致容器尺寸波动 */
+    flex-shrink: 0;         /* 防止父容器尺寸变化时被压缩 */
 }
 
 /* ============================================
@@ -788,7 +790,8 @@
     background: var(--bg-item); /* 用CSS变量，跟随主题 */
     border-radius: 12px;
     min-width: 80px;
-    transition: all 0.3s ease;
+    flex-shrink: 0;          /* 防止内容变化时被压缩 */
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
     position: relative;
     overflow: hidden;
 }

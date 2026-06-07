@@ -10,10 +10,10 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 - WebSocket实时推送（<100ms延迟，替代HTTP轮询）
 
 作者: Feixue Team
-版本: 3.1.0 (Emerald Capsule + Multi-Style + Extended Metrics)
+版本: 3.2.2 (AMD GPU Detection Fix + Capsule Resize Fix)
 """
 
-__version__ = "3.1.0"
+__version__ = "3.2.2"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -21,7 +21,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.1.0 Multi-Style + Extended Metrics)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.2.2 Multi-Style + Extended Metrics)")
 
 # ============================================================================
 # 获取插件根目录（用于导入 core 模块）

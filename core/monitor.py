@@ -458,22 +458,41 @@ class FeixueHardwareInfo:
 
     def _init_windows_wmi(self) -> bool:
         """
-        初始化 Windows WMI 数据源。
+        初始化 Windows GPU 数据源。
 
-        通过 Windows Management Instrumentation (WMI) 读取 AMD GPU 信息。
-        适用于 Windows + ROCm 或 DirectML 环境。
-
-        支持两级 fallback:
-        1. Python wmi 包 (pip install wmi)
-        2. subprocess wmic 命令行 (零依赖，Windows 内置)
+        按优先级尝试检测 AMD GPU：
+        1. pynvml (pynvml-amd-windows) — 最准确、最实时，驱动级接口
+        2. Python wmi 包 (pip install wmi)
+        3. subprocess wmic 命令行 (零依赖，Windows 内置)
         """
         import platform
         if platform.system() != 'Windows':
             return False
 
+        # ---- 方式1: pynvml 直接初始化（最优，驱动级实时数据）----
+        self._init_pynvml()
+        if self._pynvml_available and self._pynvml_handles:
+            self._device_count = len(self._pynvml_handles)
+            self._device_names = []
+            for i, handle in enumerate(self._pynvml_handles):
+                try:
+                    import pynvml
+                    raw_name = pynvml.nvmlDeviceGetName(handle)
+                    name = raw_name.decode('utf-8') if isinstance(raw_name, bytes) else str(raw_name)
+                    self._device_names.append(name)
+                except Exception:
+                    self._device_names.append(f"GPU {i}")
+            self._source_instance = {
+                'type': 'pynvml_direct',
+                'gpus': [{'name': n, 'adapter_ram_bytes': 0} for n in self._device_names],
+            }
+            logger.info(f"windows_wmi (pynvml) initialized: {self._device_count} GPU(s): "
+                       f"{', '.join(self._device_names)}")
+            return True
+
+        # ---- 方式2: Python wmi 包（降级）----
         amd_gpus = []
 
-        # ---- 方式1: Python wmi 包 ----
         try:
             import wmi
             c = wmi.WMI()
@@ -481,8 +500,6 @@ class FeixueHardwareInfo:
             for gpu in c.Win32_VideoController():
                 name = (gpu.Name or '').upper()
                 adapter_ram = gpu.AdapterRAM or 0
-                # Python wmi 包可能将大 VRAM 值返回为负数（32位有符号溢出）
-                # 例如 16GB 返回 -1048576，需要转换为无符号值
                 if isinstance(adapter_ram, int) and adapter_ram < 0:
                     adapter_ram = adapter_ram & 0xFFFFFFFF
                 if 'AMD' in name or 'RADEON' in name or 'ATI' in name:
@@ -492,7 +509,6 @@ class FeixueHardwareInfo:
                     })
 
             if not amd_gpus:
-                # 尝试 APU 检测
                 for gpu in c.Win32_VideoController():
                     if 'AMD' in (gpu.Name or '').upper() or \
                        'RADEON' in (gpu.Name or '').upper():
@@ -512,11 +528,8 @@ class FeixueHardwareInfo:
                     'type': 'wmi',
                     'gpus': amd_gpus,
                 }
-                logger.info(f"windows_wmi initialized: {self._device_count} AMD GPU(s): "
+                logger.info(f"windows_wmi (wmi fallback) initialized: {self._device_count} AMD GPU(s): "
                            f"{', '.join(self._device_names)}")
-
-                # pynvml 一次性初始化（避免每次 snapshot 都 init/shutdown 导致数据抖动）
-                self._init_pynvml()
                 return True
 
         except ImportError:
@@ -524,7 +537,7 @@ class FeixueHardwareInfo:
         except Exception as e:
             logger.debug(f"windows_wmi init via wmi package failed: {e}, trying wmic fallback...")
 
-        # ---- 方式2: subprocess wmic 命令行（零依赖 fallback）----
+        # ---- 方式3: subprocess wmic 命令行（最后兜底）----
         try:
             import subprocess
             result = subprocess.run(
@@ -535,10 +548,10 @@ class FeixueHardwareInfo:
 
             if result.returncode == 0:
                 lines = result.stdout.strip().split('\n')
-                for line in lines[1:]:  # 跳过表头
+                for line in lines[1:]:
                     if not line.strip():
                         continue
-                    parts = line.rsplit(None, 1)  # 最后一个是 AdapterRAM
+                    parts = line.rsplit(None, 1)
                     if len(parts) >= 2:
                         try:
                             ram_bytes = int(parts[1])
@@ -560,15 +573,12 @@ class FeixueHardwareInfo:
                 }
                 logger.info(f"windows_wmi (wmic fallback) initialized: {self._device_count} AMD GPU(s): "
                            f"{', '.join(self._device_names)}")
-
-                # pynvml 一次性初始化
-                self._init_pynvml()
                 return True
 
         except Exception as e:
             logger.debug(f"windows_wmi wmic fallback also failed: {e}")
 
-        logger.debug("windows_wmi: no AMD GPU found via any method")
+        logger.debug("windows_wmi: no GPU found via any method")
         return False
 
     def _init_pynvml(self) -> None:
