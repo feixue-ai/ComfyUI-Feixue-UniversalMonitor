@@ -14,7 +14,7 @@
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.0.1-EmeraldCapsule',
+        version: '3.2.2',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -2541,7 +2541,7 @@
             <div class="fxm-panel-header">
                 <div class="fxm-panel-title-wrapper">
                     <span class="fxm-panel-title">飞雪监测器</span>
-                    <span class="fxm-panel-version">v3.0</span>
+                    <span class="fxm-panel-version">v3.2.2</span>
                 </div>
                 <button class="fxm-btn fxm-btn-close" aria-label="关闭面板" title="关闭">&times;</button>
             </div>
@@ -2646,7 +2646,7 @@
                 <!-- 状态栏 -->
                 <div class="fxm-status-bar">
                     <span class="fxm-status-item"><span class="fxm-status-dot"></span><span id="fp-source-text">检测中...</span></span>
-                    <span>飞雪监测器 v3.0</span>
+                    <span>飞雪监测器 v3.2.2</span>
                 </div>
             </div>
         `;
