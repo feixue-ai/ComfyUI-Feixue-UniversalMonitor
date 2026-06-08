@@ -14,7 +14,7 @@
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.2.2',
+        version: '3.2.3',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -781,19 +781,22 @@
    指标项 Metric Item — 与 demo-v13-emerald.html 样本完全一致
    ============================================ */
 .fx-metric-item {
-    flex: 1;
+    flex: 1 1 0;             /* flex-basis=0：均分空间而非按内容分配，消除内容变化导致的布局跳变 */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 8px 6px;       /* 样本原始值：上下8px 左右6px */
-    background: var(--bg-item); /* 用CSS变量，跟随主题 */
+    padding: 8px 6px;
+    background: var(--bg-item);
     border-radius: 12px;
-    min-width: 80px;
-    flex-shrink: 0;          /* 防止内容变化时被压缩 */
-    transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    width: 0;                /* 配合 flex-basis=0，强制从 0 开始均分 */
+    min-width: 72px;         /* 最小宽度保证可读性 */
+    max-width: 160px;        /* 最大宽度防止某项撑开容器 */
+    flex-shrink: 0;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;  /* 移除 transform，避免 hover 时位移导致布局变化 */
     position: relative;
     overflow: hidden;
+    white-space: nowrap;     /* 文本不换行 */
 }
 /* 第一个指标项特殊处理：向右推到渐变与黑底的过渡线上 */
 .fx-metric-item:first-child {
@@ -802,7 +805,6 @@
 }
 
 .fx-metric-item:hover {
-    transform: translateY(-1px);
     background: rgba(30, 36, 46, 0.95);
     border: 1px solid var(--fx-light);
     box-shadow:
@@ -904,6 +906,8 @@
     text-shadow:
         0 0 8px var(--fx-glow-soft),
         0 0 16px var(--fx-glow-diffuse);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* 数值单位 */
@@ -1833,10 +1837,10 @@
     pointer-events: none;
 }
 [data-fx-style="capsule"] .fx-metric-item {
-    background: rgba(22,27,34,0.9);
+    background: var(--bg-item);  /* 用变量而非硬编码 */
     border-radius: 12px;
     border: none;
-    padding: 6px 5px;
+    padding: 8px 6px;           /* 与基础样式一致 */
     box-shadow: none;
 }
 [data-fx-style="capsule"] .fx-metric-item:first-child {
@@ -1847,7 +1851,6 @@
     background: rgba(30,36,46,0.95);
     border: 1px solid var(--fx-light);
     box-shadow: 0 4px 12px rgba(0,0,0,0.3), 0 0 8px var(--fx-glow-diffuse);
-    transform: translateY(-1px);
 }
 [data-fx-style="capsule"] .fx-progress-fill {
     background: linear-gradient(90deg, var(--fx-secondary), var(--fx-primary), var(--fx-light));
@@ -2541,7 +2544,7 @@
             <div class="fxm-panel-header">
                 <div class="fxm-panel-title-wrapper">
                     <span class="fxm-panel-title">飞雪监测器</span>
-                    <span class="fxm-panel-version">v3.2.2</span>
+                    <span class="fxm-panel-version">v3.2.3</span>
                 </div>
                 <button class="fxm-btn fxm-btn-close" aria-label="关闭面板" title="关闭">&times;</button>
             </div>
@@ -2646,7 +2649,7 @@
                 <!-- 状态栏 -->
                 <div class="fxm-status-bar">
                     <span class="fxm-status-item"><span class="fxm-status-dot"></span><span id="fp-source-text">检测中...</span></span>
-                    <span>飞雪监测器 v3.2.2</span>
+                    <span>飞雪监测器 v3.2.3</span>
                 </div>
             </div>
         `;

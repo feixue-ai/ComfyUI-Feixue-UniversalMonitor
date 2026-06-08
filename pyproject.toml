@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ComfyUI-Feixue-UniversalMonitor"
-version = "3.2.2"
+version = "3.2.3"
 description = "飞雪监测器 — Emerald Capsule 实时硬件监测，AMD GPU 优化"
 readme = "README.md"
 license = {text = "MIT"}
@@ -29,7 +29,7 @@ include = ["core*", "collectors*", "providers*", "utils*", "config*"]
 PublisherId = "feixue"
 DisplayName = "飞雪监测器 - Feixue Universal Monitor"
 Icon = "https://raw.githubusercontent.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor/main/feixue-ai/feixue-icon.png"
-Description = "飞雪监测器 (Feixue Universal Monitor) — v3.2.2 AMD GPU检测修复+胶囊弹跳修复. Real-time hardware monitor for ComfyUI with 5 color themes × 5 style presets (Capsule/Titanium/Biolume/Blueprint/Pixel). Monitor GPU utilization, VRAM, CPU, RAM, swap memory, GPU temperature, disk I/O, and network speed. Features: emerald capsule UI with 3D cylindrical gradient effect, multi-layer soft shadows, CSS-drawn chip icons, WebSocket real-time push, drag-to-reposition with position memory. EMA smoothing for AMD SMI gfx_activity. pynvml-first GPU detection priority for maximum accuracy. Fixed capsule resize bounce during high workload. Optimized for AMD GPUs on Windows (pynvml/WMI) and Linux (amdsmi/ROCm/sysfs). Keywords: feixue, monitor, hardware, gpu, vram, cpu, ram, temperature, system, resource, performance, amd, rocm, capsule, titan, biolume, blueprint, pixel, widget, overlay, status, dashboard, swap, disk, network, style, theme, glass, obsidian."
+Description = "飞雪监测器 (Feixue Universal Monitor) — v3.2.3 胶囊高负载跳动修复+样式还原. Real-time hardware monitor for ComfyUI with 5 color themes × 5 style presets (Capsule/Titanium/Biolume/Blueprint/Pixel). Monitor GPU utilization, VRAM, CPU, RAM, swap memory, GPU temperature, disk I/O, and network speed. Features: emerald capsule UI with 3D cylindrical gradient effect, multi-layer soft shadows, CSS-drawn chip icons, WebSocket real-time push, drag-to-reposition with position memory. EMA smoothing for AMD SMI gfx_activity. pynvml-first GPU detection priority for maximum accuracy. Fixed capsule bounce during high workload (flex-basis:0 + width constraint). Restored original capsule 3D shape from v13 demo. Optimized for AMD GPUs on Windows (pynvml/WMI) and Linux (amdsmi/ROCm/sysfs). Keywords: feixue, monitor, hardware, gpu, vram, cpu, ram, temperature, system, resource, performance, amd, rocm, capsule, titan, biolume, blueprint, pixel, widget, overlay, status, dashboard, swap, disk, network, style, theme, glass, obsidian."
 
 [tool.black]
 line-length = 100
