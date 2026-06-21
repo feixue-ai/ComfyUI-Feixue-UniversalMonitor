@@ -20,9 +20,9 @@
 
 ## 外观预览
 
-> 📸 请从实际 ComfyUI 界面截取 `screenshot.png` 并替换此处图片。
->
-> 推荐截图：Premium UI 默认的拟物白（Neu）风格监控栏，展示 GPU / VRAM / CPU / RAM / SWAP / TEMP 六项指标。
+![飞雪监测器 Premium UI v3.25](screenshot.png)
+
+> 上图展示了 Premium UI 默认的拟物白（Neu）风格监控栏，包含 GPU / VRAM / CPU / RAM / SWAP / TEMP 六项实时指标。
 >
 > 插件支持 **5 种颜色方案 × 5 种视觉风格**，共 **25 种组合**，可在设置面板中一键切换。
 >
