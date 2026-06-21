@@ -1,14 +1,14 @@
 # ComfyUI-Feixue-UniversalMonitor
 
 <p align="center">
-  <strong>飞雪监测器</strong> — 专注AMD · 跨平台 · 5色×5风格 · 实时硬件监测器
+  <strong>飞雪监测器</strong> — 专注 AMD · 跨平台 · 5 色 × 5 风格 · 实时硬件监测器
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.1.0-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-3.25-red" alt="Version" />
   <img src="https://img.shields.io/badge/Styles-5_Colors_×_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
@@ -20,28 +20,44 @@
 
 ## 外观预览
 
-![飞雪监测器 Emerald Capsule UI](screenshot.png)
-
-> 上图展示了翡翠胶囊风格（Emerald Capsule）的监控栏。支持 **5 种颜色主题 × 5 种风格预设**，共 25 种视觉搭配，一键切换。
+> 📸 请从实际 ComfyUI 界面截取 `screenshot.png` 并替换此处图片。
 >
-> 在线交互演示：[Live Demo](https://feixue-ai.github.io/ComfyUI-Feixue-UniversalMonitor/?demo)
+> 推荐截图：Premium UI 默认的拟物白（Neu）风格监控栏，展示 GPU / VRAM / CPU / RAM / SWAP / TEMP 六项指标。
+>
+> 插件支持 **5 种颜色方案 × 5 种视觉风格**，共 **25 种组合**，可在设置面板中一键切换。
+>
+> 在线演示（早期设计原型，非当前 ComfyUI 内真实 UI）：[Live Demo](https://feixue-ai.github.io/ComfyUI-Feixue-UniversalMonitor/?demo)
+
+### 5 种视觉风格
+
+| 风格 | 英文名 | 设计特点 |
+|------|--------|----------|
+| **拟物白** | Neu | 白色新拟态（Neumorphism），3D 圆柱横截面高光，柔和浮雕阴影 |
+| **钛金仪** | Ind | 航空级钛合金工业面板，VU 条段式电平表，螺丝与铆钉质感 |
+| **复古终端** | Retro | CRT 荧光屏效果，LED 段码条，扫描线与辉光，支持 5 种磷光色 |
+| **珠宝柜** | Lux | 黑金奢侈品展柜，金色镶边与宝石色调，高对比度数据卡片 |
+| **量子核** | Cyber | 重型钛金机架 + 霓虹灯管，HUD 数字，未来科幻感 |
+
+### 5 种颜色方案
+
+极光陶瓷 / 深海蓝 / 落日暖 / 森林绿 / 午夜黑（不同风格会映射为对应材质色或磷光色）。
 
 ---
 
 ## 特性
 
-- **实时硬件监测** — GPU 利用率、显存(VRAM)、CPU 负载、物理内存(RAM)、虚拟内存(Swap)、GPU 温度、磁盘 I/O、网络速率，共 8 项指标
-- **黑曜石毛玻璃面板** — 半透明毛玻璃悬浮面板 (backdrop-filter) + 多层弥散阴影 + 玻璃边缘高光，现代设计水准
-- **5 色主题系统** — 翡翠绿 / 赛博紫 / 琥珀金 / 极光蓝 / 樱花粉，一键切换整体色彩方案
-- **5 种风格预设** — 翡翠胶囊 / 赛博钛金 / 生物发光 / 结构蓝图 / 极简像素，颜色与风格独立组合（共 25 种搭配）
-- **完整的视觉隔离** — 每种风格从形状、材质、边框到光效完全不同，胶囊独有 3D 圆柱::before 效果
-- **拖拽自由定位** — 悬浮面板开关控制，可自由拖拽监测栏到任意位置，位置自动记忆（localStorage）
-- **CSS 芯片图标** — 每种硬件对应独特的 CSS 绘制图标（GPU 芯片、VRAM 颗粒、CPU 处理器、RAM 内存条、存储、温度计）
-- **凹陷进度条** — 内阴影凹陷轨道 + 渐变流体填充 + 缓慢漂移动画，直观展示各项资源使用率
-- **跨平台 AMD 优化** — Windows（pynvml-amd-windows + WMI）和 Linux Ubuntu（amdsmi / ROCm / sysfs），专为 AMD GPU 优化
-- **多源数据融合** — 三级 fallback 降级链，高负载下稳定可靠，超时保护 + 缓存降级
+- **实时硬件监测** — GPU 利用率、显存（VRAM，以 GB 显示）、CPU 负载、物理内存（RAM）、虚拟内存（Swap）、GPU 温度、磁盘 I/O、网络速率，共 8 项指标
+- **5 色 × 5 风格独立组合** — 颜色与视觉风格完全解耦，25 种搭配一键切换
+- **中/英文自动适配** — 根据浏览器语言自动显示中文或英文标签，避免翻译软件与布局溢出
+- **工作流声音提示** — ComfyUI 工作流完成或出错时播放提示音，开关状态跨主题持久同步
+- **拖拽自由定位** — 开启拖拽模式后可自由移动监测栏，关闭后自动回到顶部居中；主题切换后自动归位
+- **折叠式悬浮面板** — 点击齿轮打开设置面板，支持分区展开/收起
+- **Neu 风格 3D 横截面** — 监测条左侧 1mm 级受光高光，增强陶瓷/硅胶立体感
+- **跨平台 AMD 优化** — Windows（pynvml / WMI）与 Linux（amdsmi / ROCm / sysfs）三级 fallback 降级
 - **WebSocket 实时推送** — 低于 100ms 延迟的数据推送，同时提供 HTTP API 降级模式
-- **工业方形拨动开关** — 拖拽开关采用方形机械拨动设计，贴合硬核硬件监测器定位
+- **零外部前端依赖** — 单文件 `extension.js` 自包含全部 UI、CSS、事件与数据逻辑
+
+---
 
 ## 安装
 
@@ -64,22 +80,27 @@ git clone https://github.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor.git
 
 然后重启 ComfyUI，插件会自动启动后端监控服务。
 
+---
+
 ## 使用
 
 安装后，监控栏自动显示在 ComfyUI 界面顶部：
 
-- **6 项核心指标**：GPU 利用率 | 显存(VRAM) | CPU 负载 | 物理内存(RAM) | 虚拟内存(Swap) | GPU 温度
-- **2 项辅助指标**：磁盘 I/O | 网络速率（悬浮面板中查看）
-- **主题切换**：点击监控栏右侧的 ⚙️ 齿轮按钮打开悬浮面板，在主题区选择颜色主题和风格预设
-- **拖拽定位**：悬浮面板中开启拖拽开关后，可拖拽监测栏到任意位置，关闭后自动回到居中
+- **6 项核心指标**：GPU 利用率 | 显存（VRAM） | CPU 负载 | 物理内存（RAM） | 虚拟内存（Swap） | GPU 温度
+- **2 项辅助指标**：磁盘 I/O | 网络速率（在悬浮面板中查看）
+- **主题切换**：点击监测栏右侧的 ⚙️ 齿轮按钮打开设置面板，在「风格」与「色彩」区切换
+- **声音提示**：在设置面板中开启/关闭，状态会自动保存并在所有主题间同步
+- **拖拽定位**：开启「拖拽模式」后可拖拽监测栏，关闭后自动回到顶部居中
 - **实时更新**：默认 2 秒刷新间隔，数据通过 WebSocket 实时推送
+
+---
 
 ## 项目结构
 
 ```
 ComfyUI-Feixue-UniversalMonitor/
 ├── __init__.py              # 插件入口 & HTTP API 路由
-├── pyproject.toml           # 包元数据
+├── pyproject.toml           # 包元数据与 ComfyUI 注册表信息
 ├── install.py               # 跨平台自动依赖安装
 ├── requirements.txt         # 基础依赖声明
 ├── core/
@@ -91,20 +112,22 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # 配置管理
 ├── utils/                   # 平台检测、线程安全、性能优化
 ├── web/
-│   └── extension.js         # 前端 UI (v3.1.0 黑曜石玻璃)
+│   └── extension.js         # 前端 UI (Premium UI v3.25)
 ├── docs/
 │   └── index.html           # 在线外观演示 (GitHub Pages)
 └── tests/                   # 单元测试
 ```
+
+---
 
 ## 技术细节
 
 | 层级 | 技术栈 |
 |------|--------|
 | **后端数据采集** | Python (psutil, pynvml-amd-windows, amdsmi, WMI, PyTorch) |
-| **前端 UI** | Vanilla JavaScript (零外部依赖，自包含 extension.js) |
+| **前端 UI** | Vanilla JavaScript（零外部依赖，单文件自包含） |
 | **数据通道** | WebSocket (`feixue.monitor` 事件) + HTTP REST API |
-| **兼容性** | ComfyUI (Windows / Linux Ubuntu)，AMD GPU |
+| **兼容性** | ComfyUI (Windows / Linux Ubuntu)，AMD / NVIDIA GPU |
 
 ### 数据采集策略
 
@@ -118,42 +141,52 @@ CPU/RAM/Swap: psutil (跨平台统一)
 
 所有采集操作均有超时保护（≤8s），异常时自动降级到缓存数据或安全默认值，确保 ComfyUI 主流程不受影响。
 
+---
+
 ## 更新日志
 
-### v3.1.0 — 黑曜石玻璃重构 + 5风格完全隔离 (当前版本)
-- 悬浮面板全面重构：半透明毛玻璃 (backdrop-filter) + 多层弥散阴影 + 玻璃边缘高光
-- 进度条重构为凹陷轨道 + 渐变流体填充 + 缓慢漂移动画
-- Toggle 开关从 iOS 圆滑风格改为工业方形拨动开关
-- **5 种风格完全视觉隔离**：胶囊保留 ::before 3D 圆柱效果，其余 4 风格全部隐藏
-- 蓝图风格修复：图标/边框/进度条改用主题变量，切换主题色时装饰色跟随变化
-- 全局发光变量软化，消除生硬光晕
-- 面板装饰元素（图标、分隔线、标签）跟随主题色
-- 数据卡片改为微玻璃半透明卡片
-- 移除风扇转速监测（AMD Windows 不支持）
+### v3.25 — Premium UI 5 色 × 5 风格重构 + 国际化 + 声音同步（当前版本）
+
+- **全新 5 种视觉风格**：拟物白（Neu）、钛金仪（Ind）、复古终端（Retro）、珠宝柜（Lux）、量子核（Cyber）
+- **5 种颜色方案独立切换**：极光陶瓷 / 深海蓝 / 落日暖 / 森林绿 / 午夜黑
+- **中/英文自动适配**：根据系统语言显示中文或英文，关键标签保持简短避免 UI 溢出
+- **显存统一显示为 GB**：所有风格坞站与面板中 VRAM 均显示为已用/总容量（GB）
+- **声音提示状态持久同步**：修复主题切换后提示音开关状态不一致的问题，支持跨主题记忆
+- **主题切换自动归位**：切换风格后监测条自动回到顶部居中，避免旧位置残留
+- **Lux 温度显示修复**：补全珠宝柜风格的 GPU 温度渲染
+- **Cyber 折叠面板修复**：修复量子核风格设置面板展开/收起失效的问题
+- **Neu 3D 横截面**：拟物白监测条左侧新增 1mm 级高光横截面，增强立体感
+- **Retro 暗色 LED 条修复**：恢复未激活时的暗色背景条，保持监测条视觉饱满
+- **版本号统一**：代码、面板、包元数据全部统一为 v3.25
+- **清理遗留代码**：移除旧版 Emerald Capsule / v13 主题系统的死代码与 DEBUG 日志
+
+### v3.1.0 — 黑曜石玻璃重构 + 5 风格完全隔离
+
+- 悬浮面板全面重构：半透明毛玻璃 + 多层弥散阴影 + 玻璃边缘高光
+- 5 种风格完全视觉隔离
 - 新增磁盘 I/O 和网络速率监测
-- 跨平台（Windows + Linux）所有指标可用
+- 跨平台所有指标可用
 
 ### v3.0.1 — Emerald Capsule
+
 - 完整 UI 重写：药丸/胶囊形设计 + 3D 圆柱横截面立体效果
-- 新增 5 色主题系统（翡翠绿/赛博紫/琥珀金/极光蓝/樱花粉）
-- 新增拖拽自由定位功能，位置自动记忆
-- CSS 芯片图标系统（非 emoji，纯 CSS 绘制）
-- 渐变状态条 + 液态光泽动画
+- 新增 5 色主题系统
+- 新增拖拽自由定位功能
 - 新增 Swap 虚拟内存监测
-- 悬浮面板改为不透明卡片风格
-- 移除毛玻璃(glassmorphism)方案，解决 ComfyUI 复杂背景下灰蒙蒙问题
-- 跨平台完善：Windows 支持 (pynvml-amd-windows + WMI)，Linux (amdsmi/ROCm/sysfs)
-- 数据采集稳定性优化（pynvml 持久化连接、多源融合策略）
-- 修复 pynvml FutureWarning 警告
 
 ### v2.5.0
+
 - 首次公开发布
 - 基础监测功能 (GPU/CPU/RAM)
 - WebSocket 实时推送
 
+---
+
 ## 许可证
 
 MIT License
+
+---
 
 ## 作者
 

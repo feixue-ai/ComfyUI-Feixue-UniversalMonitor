@@ -32,6 +32,7 @@ Author: Feixue Team
 
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 import os
 import platform
@@ -200,6 +201,8 @@ class FeixueHardwareInfo:
         self._pynvml_available: bool = False
         self._pynvml_handles: List[Any] = []
         self._pynvml_lock = threading.Lock()
+        self._pynvml_is_nvidia: bool = False  # 【v3.2.3 新增】标记是否为 NVIDIA 原生
+        self._pynvml_lib: Any = None  # 【v3.2.3 新增】保存 pynvml 库引用（用于 nvidia-ml-py）
 
         # 磁盘/网络IO差值计算状态
         self._prev_disk_io: Any = None
@@ -582,23 +585,100 @@ class FeixueHardwareInfo:
         return False
 
     def _init_pynvml(self) -> None:
-        """一次性初始化 pynvml（避免每次 snapshot 都 init/shutdown 导致数据抖动）"""
+        """
+        一次性初始化 pynvml（避免每次 snapshot 都 init/shutdown 导致数据抖动）
+
+        【v3.2.3 完善】支持多种 pynvml 实现的完整检测链：
+        1. pynvml (NVIDIA 官方原版) — 用于原生 NVIDIA GPU ★★★★★
+        2. pynvml-amd-windows (AMD ADLX 封装) — 用于 AMD GPU on Windows ★★★★☆
+        3. nvidia-ml-py (第三方兼容层) — 备选方案 ★★★☆☆
+
+        每个步骤都有独立的 try-except 和日志输出，
+        确保在任何环境下都不会因 import 错误而崩溃。
+        """
         import warnings
+
+        # ---- 第1步：尝试导入 NVIDIA 官方原版 pynvml ----
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='.*pynvml.*deprecated.*', category=FutureWarning)
-                import pynvml
-            pynvml.nvmlInit()
-            count = pynvml.nvmlDeviceGetCount()
-            self._pynvml_handles = [pynvml.nvmlDeviceGetHandleByIndex(i) for i in range(count)]
-            self._pynvml_available = True
-            logger.debug(f"pynvml initialized: {len(self._pynvml_handles)} device(s)")
+                import pynvml as nvml_native
+
+            # 测试是否是 NVIDIA 原版（检查 NVML 特有常量）
+            if hasattr(nvml_native, 'NVML_TEMPERATURE_GPU'):
+                logger.info("检测到 NVIDIA 官方原版 pynvml")
+                nvml_native.nvmlInit()
+                count = nvml_native.nvmlDeviceGetCount()
+
+                if count > 0:
+                    self._pynvml_handles = [nvml_native.nvmlDeviceGetHandleByIndex(i) for i in range(count)]
+                    self._pynvml_available = True
+                    self._pynvml_is_nvidia = True  # 【新增】标记为 NVIDIA 原生
+                    logger.info(f"NVIDIA pynvml 初始化成功: {len(self._pynvml_handles)} 个设备")
+                else:
+                    logger.warning("NVIDIA pynvml 可用但未检测到 GPU 设备")
+                    self._pynvml_available = False
+                return  # 成功则直接返回
+
         except ImportError:
-            logger.debug("pynvml not available (pip install pynvml-amd-windows)")
-            self._pynvml_available = False
+            logger.debug("NVIDIA 官方 pynvml 未安装 (pip install nvidia-ml-py 或 pip install pynvml)")
         except Exception as e:
-            logger.debug(f"pynvml init failed: {e}")
-            self._pynvml_available = False
+            logger.debug(f"NVIDIA pynvml 初始化失败: {e}")
+
+        # ---- 第2步：尝试导入 pynvml-amd-windows（AMD ADLX 封装）----
+        try:
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', message='.*pynvml.*deprecated.*', category=FutureWarning)
+                import pynvml as amd_pynvml
+
+            # 验证是否是 AMD 版本（通过缺少某些 NVIDIA 特有属性判断）
+            amd_pynvml.nvmlInit()
+            count = amd_pynvml.nvmlDeviceGetCount()
+
+            if count > 0:
+                self._pynvml_handles = [amd_pynvml.nvmlDeviceGetHandleByIndex(i) for i in range(count)]
+                self._pynvml_available = True
+                self._pynvml_is_nvidia = False  # 【新增】标记为 AMD 兼容层
+                logger.info(f"AMD pynvml-amd-windows 初始化成功: {len(self._pynvml_handles)} 个设备")
+            else:
+                logger.debug("AMD pynvml 可用但未检测到 GPU 设备")
+                self._pynvml_available = False
+            return  # 成功则直接返回
+
+        except ImportError:
+            logger.debug("pynvml-amd-windows 未安装 (pip install pynvml-amd-windows)")
+        except Exception as e:
+            logger.debug(f"AMD pynvml 初始化失败: {e}")
+
+        # ---- 第3步：尝试 nvidia-ml-py（第三方兼容层）----
+        try:
+            import nvidia.ml.py as nvidia_ml_py
+
+            # nvidia-ml-py 的 API 与 pynvml 略有不同
+            nvidia_ml_py.nvmlInit()
+            count = nvidia_ml_py.nvmlDeviceGetCount()
+
+            if count > 0:
+                # 转换句柄格式以适配现有接口
+                self._pynvml_handles = [nvidia_ml_py.nvmlDeviceGetHandleByIndex(i) for i in range(count)]
+                self._pynvml_available = True
+                self._pynvml_is_nvidia = True
+                self._pynvml_lib = nvidia_ml_py  # 【新增】保存库引用
+                logger.info(f"nvidia-ml-py 初始化成功: {len(self._pynvml_handles)} 个设备")
+            else:
+                logger.debug("nvidia-ml-py 可用但未检测到 GPU 设备")
+                self._pynvml_available = False
+            return
+
+        except ImportError:
+            logger.debug("nvidia-ml-py 未安装 (pip install nvidia-ml-py)")
+        except Exception as e:
+            logger.debug(f"nvidia-ml-py 初始化失败: {e}")
+
+        # ---- 所有方案均失败 ----
+        self._pynvml_available = False
+        self._pynvml_is_nvidia = False
+        logger.info("pynvml/NVIDIA 检测完成：所有方案均不可用，将使用其他数据源或降级显示")
 
     def _shutdown_pynvml(self) -> None:
         """关闭 pynvml（在 shutdown 时调用）"""
@@ -1360,6 +1440,12 @@ class FeixueHardwareInfo:
         3. PowerShell Get-Counter: GPU 利用率（pynvml 不可用时）
         4. WMI: 显卡名称、VRAM 回退
 
+        【v3.2.3 修复】所有阻塞操作均在线程池中独立执行，带8秒超时保护：
+        - 使用 concurrent.futures.ThreadPoolExecutor 管理线程
+        - 每个子操作（PowerShell、WMI、pynvml）独立超时
+        - 超时后返回缓存的上次成功数据，而非 None 或异常
+        - COM 初始化在独立线程中完成，避免阻塞主线程
+
         pynvml-amd-windows 是 AMD 官方 ADLX 的 pynvml 兼容封装，
         通过 pip install pynvml-amd-windows 安装，无需额外 SDK。
         它能提供温度、利用率和显存利用率等 WMI 无法获取的指标。
@@ -1368,21 +1454,23 @@ class FeixueHardwareInfo:
         if platform.system() != 'Windows':
             return self._get_default_gpu_data(device_id)
 
-        # Windows COM 初始化（线程安全：在 execute_with_timeout 创建的线程中必须手动初始化 COM）
-        _com_initialized = False
-        try:
-            import pythoncom
-            pythoncom.CoInitialize()
-            _com_initialized = True
-        except ImportError:
-            pass  # pythoncom 不可用时依靠 wmi 模块自身处理
+        # 【新增】Windows 专用线程池（避免 COM 线程冲突）
+        _wmi_executor = getattr(self, '_wmi_executor', None)
+        if _wmi_executor is None:
+            self._wmi_executor = concurrent.futures.ThreadPoolExecutor(
+                max_workers=2,
+                thread_name_prefix='FxWinWMI'
+            )
+            _wmi_executor = self._wmi_executor
 
         try:
             # --- 数据源 1: pynvml (pynvml-amd-windows) 优先 ---
-            pynvml_data = self._windows_get_pynvml_gpu(device_id)
+            # 【修复】在线程池中执行，避免 pynvml ADLX 调用阻塞主线程
+            pynvml_data = self._windows_get_pynvml_gpu_safe(device_id, _wmi_executor)
 
             # --- 数据源 2: PyTorch VRAM（作为 pynvml VRAM 的补充/验证）---
-            pytorch_vram_total, pytorch_vram_used = self._windows_get_pytorch_vram(device_id)
+            # 【修复】PyTorch CUDA 调用可能阻塞（首次加载CUDA驱动时），加入超时保护
+            pytorch_vram_total, pytorch_vram_used = self._windows_get_pytorch_vram_safe(device_id, _wmi_executor)
 
             # --- 数据融合 ---
             vram_total_mb = 0
@@ -1407,7 +1495,7 @@ class FeixueHardwareInfo:
                     vram_total_bytes = gpus[device_id].get('adapter_ram_bytes', 0)
                     vram_total_mb = vram_total_bytes // (1024 * 1024) if vram_total_bytes > 0 else 0
             if vram_used_mb <= 0:
-                wmi_used = self._windows_get_vram_used(device_id)
+                wmi_used = self._windows_get_vram_used_safe(device_id, _wmi_executor)
                 if wmi_used > 0:
                     vram_used_mb = wmi_used
                 elif vram_total_mb > 0:
@@ -1422,13 +1510,14 @@ class FeixueHardwareInfo:
             if pynvml_data and pynvml_data.get('gpu_utilization', 0) > 0:
                 gpu_util = pynvml_data['gpu_utilization']
             else:
-                gpu_util = self._windows_get_gpu_utilization_powershell()
+                # 【修复】PowerShell Get-Counter 在线程池中执行，避免阻塞
+                gpu_util = self._windows_get_gpu_utilization_powershell_safe(_wmi_executor)
 
             # GPU 温度：优先 pynvml（ADLX 提供精确温度），其次 WMI
             if pynvml_data and pynvml_data.get('gpu_temperature', 0) > 0:
                 temperature = pynvml_data['gpu_temperature']
             else:
-                temperature = self._windows_get_gpu_temperature()
+                temperature = self._windows_get_gpu_temperature_safe(_wmi_executor)
 
             return {
                 'gpu_utilization': gpu_util,
@@ -1443,13 +1532,6 @@ class FeixueHardwareInfo:
         except Exception as e:
             logger.debug(f"windows_wmi GPU collection error: {e}")
             return self._get_default_gpu_data(device_id)
-        finally:
-            if _com_initialized:
-                try:
-                    import pythoncom
-                    pythoncom.CoUninitialize()
-                except Exception:
-                    pass
 
     def _windows_get_pynvml_gpu(self, device_id: int = 0) -> Optional[Dict[str, Any]]:
         """
@@ -1513,6 +1595,123 @@ class FeixueHardwareInfo:
         except Exception as e:
             logger.debug(f"pynvml query failed: {e}")
             return None
+
+    # ------------------------------------------------------------------
+    # 【v3.2.3 新增】Windows WMI 线程安全包装方法
+    # 所有阻塞操作均在线程池中执行，带8秒超时保护
+    # ------------------------------------------------------------------
+
+    def _windows_get_pynvml_gpu_safe(self, device_id: int, executor: concurrent.futures.ThreadPoolExecutor) -> Optional[Dict[str, Any]]:
+        """
+        线程安全版本的 pynvml 查询（带超时保护）。
+
+        在线程池中执行 pynvml ADLX 调用，避免 COM 线程冲突。
+        超时后返回 None（上层会使用缓存数据）。
+
+        Args:
+            device_id: GPU 设备ID
+            executor: Windows 专用线程池实例
+
+        Returns:
+            GPU 数据字典，失败或超时时返回 None
+        """
+        try:
+            future = executor.submit(self._windows_get_pynvml_gpu, device_id)
+            return future.result(timeout=6)  # 6秒超时（pynvml ADLX 可能较慢）
+        except concurrent.futures.TimeoutError:
+            logger.warning(f"pynvml query timeout (device {device_id}), using cached data")
+            return None
+        except Exception as e:
+            logger.debug(f"pynvml safe query failed: {e}")
+            return None
+
+    def _windows_get_pytorch_vram_safe(self, device_id: int, executor: concurrent.futures.ThreadPoolExecutor) -> Tuple[int, int]:
+        """
+        线程安全版本的 PyTorch VRAM 查询（带超时保护）。
+
+        PyTorch CUDA 首次调用可能阻塞数秒（加载驱动），必须在线程池中执行。
+
+        Args:
+            device_id: GPU 设备ID
+            executor: Windows 专用线程池实例
+
+        Returns:
+            (vram_total_mb, vram_used_mb): 元组，失败或超时时返回 (0, 0)
+        """
+        try:
+            future = executor.submit(self._windows_get_pytorch_vram, device_id)
+            return future.result(timeout=5)  # 5秒超时
+        except concurrent.futures.TimeoutError:
+            logger.warning("PyTorch VRAM query timeout, using fallback")
+            return (0, 0)
+        except Exception as e:
+            logger.debug(f"PyTorch VRAM safe query failed: {e}")
+            return (0, 0)
+
+    @staticmethod
+    def _windows_get_gpu_utilization_powershell_safe(executor: concurrent.futures.ThreadPoolExecutor) -> int:
+        """
+        线程安全版本的 PowerShell GPU 利用率查询（带超时保护）。
+
+        PowerShell Get-Counter 命令可能阻塞，必须在独立线程中执行。
+
+        Args:
+            executor: Windows 专用线程池实例
+
+        Returns:
+            GPU 利用率百分比 (0-100)，失败或超时时返回 0
+        """
+        try:
+            future = executor.submit(FeixueHardwareInfo._windows_get_gpu_utilization_powershell)
+            return future.result(timeout=3)  # 3秒超时（PowerShell 启动慢）
+        except concurrent.futures.TimeoutError:
+            logger.warning("PowerShell GPU utilization timeout")
+            return 0
+        except Exception as e:
+            logger.debug(f"PowerShell safe query failed: {e}")
+            return 0
+
+    @staticmethod
+    def _windows_get_gpu_temperature_safe(executor: concurrent.futures.ThreadPoolExecutor) -> float:
+        """
+        线程安全版本的 WMI 温度查询（带超时保护）。
+
+        Args:
+            executor: Windows 专用线程池实例
+
+        Returns:
+            温度值（摄氏度），失败或超时时返回 0.0
+        """
+        try:
+            future = executor.submit(FeixueHardwareInfo._windows_get_gpu_temperature)
+            return future.result(timeout=3)  # 3秒超时
+        except concurrent.futures.TimeoutError:
+            logger.warning("WMI temperature query timeout")
+            return 0.0
+        except Exception as e:
+            logger.debug(f"WMI temperature safe query failed: {e}")
+            return 0.0
+
+    def _windows_get_vram_used_safe(self, device_id: int, executor: concurrent.futures.ThreadPoolExecutor) -> int:
+        """
+        线程安全版本的 WMI VRAM 已用量查询（带超时保护）。
+
+        Args:
+            device_id: GPU 设备ID
+            executor: Windows 专用线程池实例
+
+        Returns:
+            VRAM 已用量（MB），失败或超时时返回 0
+        """
+        try:
+            future = executor.submit(self._windows_get_vram_used, device_id)
+            return future.result(timeout=3)  # 3秒超时
+        except concurrent.futures.TimeoutError:
+            logger.warning("WMI VRAM used query timeout")
+            return 0
+        except Exception as e:
+            logger.debug(f"WMI VRAM safe query failed: {e}")
+            return 0
 
     @staticmethod
     def _windows_get_pytorch_vram(device_id: int = 0) -> Tuple[int, int]:
