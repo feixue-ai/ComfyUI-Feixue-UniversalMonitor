@@ -688,29 +688,29 @@ body {
     z-index: 99999;
     display: flex;
     align-items: center;
-    gap: var(--neu-space-md);
-    padding: 0 56px 0 52px;
+    gap: 14px;
+    padding: 0 64px 0 60px;
 
-    /* 厚实硅胶/陶瓷带：纯色底 + 大圆角 */
+    /* 厚实医疗陶瓷/硅胶仪表带 */
     background-color: var(--neu-base-color);
-    border-radius: 36px;
+    border-radius: 38px;
 
-    /* 更强悬浮感：弥散投影 + 清晰横截面高光/暗边 */
+    /* 强悬浮感 + 清晰厚度截面 */
     box-shadow:
         /* 外部悬浮阴影 */
-        0 18px 44px rgba(0, 0, 0, 0.13),
-        0 7px 18px rgba(0, 0, 0, 0.08),
+        0 20px 50px rgba(0, 0, 0, 0.14),
+        0 8px 20px rgba(0, 0, 0, 0.09),
         /* 上沿/左沿高光（横截面亮面）*/
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.78),
-        inset 1.5px 0 0 rgba(255, 255, 255, 0.52),
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.80),
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.55),
         /* 下沿/右沿暗边（厚度阴影）*/
-        inset 0 -1.5px 0 rgba(0, 0, 0, 0.10),
-        inset -1.5px 0 0 rgba(0, 0, 0, 0.07),
+        inset 0 -1.5px 0 rgba(0, 0, 0, 0.11),
+        inset -1.5px 0 0 rgba(0, 0, 0, 0.08),
         /* 内凹倒角 */
-        inset 0 3px 5px rgba(255, 255, 255, 0.28),
-        inset 0 -3px 5px rgba(0, 0, 0, 0.04);
+        inset 0 3px 6px rgba(255, 255, 255, 0.30),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.05);
 
-    border: 1px solid rgba(255, 255, 255, 0.26);
+    border: 1px solid rgba(255, 255, 255, 0.28);
 
     /* 平滑过渡（用于主题切换）*/
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -720,21 +720,21 @@ body {
 
 #neu-dock:hover {
     box-shadow:
-        0 22px 52px rgba(0, 0, 0, 0.15),
-        0 9px 22px rgba(0, 0, 0, 0.10),
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.82),
-        inset 1.5px 0 0 rgba(255, 255, 255, 0.55),
-        inset 0 -1.5px 0 rgba(0, 0, 0, 0.11),
-        inset -1.5px 0 0 rgba(0, 0, 0, 0.08),
-        inset 0 3px 5px rgba(255, 255, 255, 0.30),
-        inset 0 -3px 5px rgba(0, 0, 0, 0.05);
+        0 24px 58px rgba(0, 0, 0, 0.16),
+        0 10px 24px rgba(0, 0, 0, 0.11),
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.84),
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.58),
+        inset 0 -1.5px 0 rgba(0, 0, 0, 0.12),
+        inset -1.5px 0 0 rgba(0, 0, 0, 0.09),
+        inset 0 3px 6px rgba(255, 255, 255, 0.32),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.06);
 }
 
-/* 左侧 ~5px 横截面高光 — 模拟厚硅胶/陶瓷带左边缘受光 */
+/* 左侧 ~5px 横截面高光 — 模拟厚仪表带左边缘受光 */
 #neu-dock::before {
     content: '';
     position: absolute;
-    left: 3px;
+    left: 4px;
     top: 14%;
     bottom: 14%;
     width: 5px;
@@ -752,23 +752,25 @@ body {
     z-index: 2;
 }
 
-/* 凹槽底座 — 厚实内嵌条带，6 个芯片像是嵌在一条硅胶轨道中 */
+/* 凹槽底座 — 精确覆盖 6 个芯片区域，形成一条连续的仪表轨道
+   left = padding-left + handle-width + half-gap = 60 + 32 + 7 = 99px
+   right = padding-right + settings-btn-width + half-gap = 64 + 42 + 7 = 113px */
 #neu-dock::after {
     content: '';
     position: absolute;
-    left: 62px;
-    right: 70px;
-    top: 9px;
-    bottom: 9px;
-    border-radius: 24px;
+    left: 99px;
+    right: 113px;
+    top: 10px;
+    bottom: 10px;
+    border-radius: 22px;
     background: linear-gradient(180deg,
-        rgba(0, 0, 0, 0.045) 0%,
-        rgba(0, 0, 0, 0.015) 45%,
-        rgba(255, 255, 255, 0.14) 100%);
+        rgba(0, 0, 0, 0.055) 0%,
+        rgba(0, 0, 0, 0.02) 45%,
+        rgba(255, 255, 255, 0.16) 100%);
     box-shadow:
-        inset 3px 3px 8px rgba(0, 0, 0, 0.10),
-        inset -3px -3px 8px rgba(255, 255, 255, 0.78),
-        0 1px 0 rgba(255, 255, 255, 0.40);
+        inset 4px 4px 10px rgba(0, 0, 0, 0.12),
+        inset -4px -4px 10px rgba(255, 255, 255, 0.82),
+        0 1px 0 rgba(255, 255, 255, 0.42);
     pointer-events: none;
     z-index: 0;
 }
@@ -798,26 +800,25 @@ body {
     box-shadow: var(--neu-shadow-concave-mini);
 }
 
-/* 单个指标模块 - 厚实硅胶按钮，嵌在底座凹槽中 */
+/* 单个指标模块 - 医疗仪表窗口，精确嵌在凹槽轨道中 */
 .neu-metric-chip {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    gap: 3px 8px;
-    height: 52px;
-    padding: 8px 14px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    height: 50px;
+    padding: 6px 11px 10px 11px;
     background-color: var(--neu-base-color);
-    border-radius: var(--neu-chip-radius);
+    border-radius: 16px;
 
-    /* 强微凸立体感：外凸阴影 + 清晰横截面高光/暗边 */
+    /* 内凹仪表窗口：看起来像从底座挖出的观测窗 */
     box-shadow:
-        var(--neu-shadow-convex-medium),
-        /* 上/左高光边 */
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.70),
-        inset 1.5px 0 0 rgba(255, 255, 255, 0.42),
-        /* 下/右暗边 */
-        inset 0 -1.5px 0 rgba(0, 0, 0, 0.07),
-        inset -1.5px 0 0 rgba(0, 0, 0, 0.05);
+        inset 3px 3px 8px rgba(0, 0, 0, 0.12),
+        inset -2px -2px 6px rgba(255, 255, 255, 0.80),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        /* 窗口边缘微凸 */
+        1px 1px 2px rgba(255, 255, 255, 0.45),
+        -1px -1px 2px rgba(0, 0, 0, 0.04);
 
     cursor: default;
     transition: all 0.25s ease;
@@ -826,64 +827,74 @@ body {
     position: relative;
     z-index: 1;
     flex: 1;
-    min-width: 100px;
-    max-width: 128px;
+    min-width: 92px;
+    max-width: 120px;
+    overflow: hidden;
 }
 
 .neu-metric-chip:hover {
-    transform: translateY(-4px) scale(1.03);
+    transform: translateY(-2px) scale(1.02);
     box-shadow:
-        var(--neu-shadow-hover-medium),
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.76),
-        inset 1.5px 0 0 rgba(255, 255, 255, 0.48),
-        inset 0 -1.5px 0 rgba(0, 0, 0, 0.08),
-        inset -1.5px 0 0 rgba(0, 0, 0, 0.06);
+        inset 3px 3px 8px rgba(0, 0, 0, 0.10),
+        inset -2px -2px 6px rgba(255, 255, 255, 0.85),
+        inset 0 1px 0 rgba(255, 255, 255, 0.60),
+        2px 3px 5px rgba(0, 0, 0, 0.08),
+        -1px -1px 2px rgba(255, 255, 255, 0.50);
 }
 
 .neu-metric-chip:active,
 .neu-metric-chip.pressed {
-    transform: translateY(0) scale(0.98);
+    transform: translateY(0) scale(0.99);
     box-shadow:
-        var(--neu-shadow-concave),
-        inset 0 1.5px 0 rgba(0, 0, 0, 0.05),
-        inset 1.5px 0 0 rgba(0, 0, 0, 0.04),
-        inset 0 -1.5px 0 rgba(255, 255, 255, 0.38),
-        inset -1.5px 0 0 rgba(255, 255, 255, 0.24);
+        inset 4px 4px 10px rgba(0, 0, 0, 0.14),
+        inset -3px -3px 8px rgba(255, 255, 255, 0.78),
+        inset 0 1px 0 rgba(255, 255, 255, 0.50);
+}
+
+/* 左侧数据区 */
+.neu-chip-data {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
 }
 
 /* 芯片图标 */
 .neu-chip-icon {
-    font-size: 18px;
+    font-size: 22px;
     line-height: 1;
-    grid-row: 1 / 3;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.88;
+    opacity: 0.82;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.06));
 }
 
 /* 芯片标签 */
 .neu-chip-label {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
     color: var(--neu-text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.7px;
     transition: color 0.5s ease;
+    line-height: 1.2;
 }
 
 /* 芯片数值 - JetBrains Mono等宽字体 */
 .neu-chip-value {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     font-family: var(--neu-font-mono);
     color: var(--neu-text-primary);
-    justify-self: end;
     transition: color 0.5s ease;
     font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+    margin-top: 1px;
 }
 
-/* 数值分类型纯色（对齐shili参考样本，稳定可靠）*/
+/* 数值分类型纯色 */
 .neu-metric-chip[data-type="gpu"] .neu-chip-value { color: #d69e2e; }
 .neu-metric-chip[data-type="vram"] .neu-chip-value { color: #3182ce; }
 .neu-metric-chip[data-type="cpu"] .neu-chip-value { color: #38a169; }
@@ -891,21 +902,23 @@ body {
 .neu-metric-chip[data-type="swap"] .neu-chip-value { color: #dd6b20; }
 .neu-metric-chip[data-type="temp"] .neu-chip-value { color: #c53030; }
 
-/* 迷你进度条 - 内凹槽 + 渐变填充(6px高) */
+/* 底部 VU 表式进度条 - 横跨整个芯片 */
 .neu-chip-progress-track {
-    grid-column: 1 / -1;
-    height: 6px;
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 5px;
+    height: 5px;
     background-color: var(--neu-base-color);
-    border-radius: 3px;
+    border-radius: 2.5px;
 
-    /* 微凹槽体 - 让进度条有"嵌入"感*/
+    /* 深凹槽体 */
     box-shadow:
         var(--neu-shadow-concave-mini),
-        inset 1px 1px 0 rgba(255, 255, 255, 0.25),
-        inset -1px -1px 0 rgba(0, 0, 0, 0.08);
+        inset 1px 1px 0 rgba(255, 255, 255, 0.28),
+        inset -1px -1px 0 rgba(0, 0, 0, 0.10);
 
     overflow: hidden;
-    position: relative;
     transition: all 0.5s ease;
 }
 
@@ -913,7 +926,7 @@ body {
     height: 100%;
     background: var(--neu-gradient-primary);
     background-size: 200% 100%;
-    border-radius: 3px;
+    border-radius: 2.5px;
     transition: width 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     position: relative;
 }
@@ -4832,124 +4845,143 @@ body.cyber-active {
    6. Ind Theme — Deep-space Glassmorphism
    ============================================ */
 
-/* Scoped color systems. Applied to #ind-dock / #ind-panel by JS. */
+/* Scoped color systems for Obsidian Prism HUD theme */
 .ind-theme-aurora {
-    --glass-bg: rgba(15, 19, 28, 0.92);
-    --glass-bg-solid: rgba(15, 19, 28, 0.92);
-    --glass-card-bg: rgba(255, 255, 255, 0.07);
-    --glass-border: rgba(255, 255, 255, 0.20);
-    --glass-highlight: rgba(255, 255, 255, 0.38);
-    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --glass-bg: rgba(12, 14, 20, 0.94);
+    --glass-panel-bg: rgba(16, 19, 27, 0.96);
+    --glass-card-bg: rgba(255, 255, 255, 0.045);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-edge: rgba(0, 240, 255, 0.55);
+    --glass-highlight: rgba(255, 255, 255, 0.30);
     --glass-accent-1: #00f0ff;
     --glass-accent-2: #ff00aa;
     --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.72);
-    --glass-glow: rgba(0, 240, 255, 0.55);
+    --glass-text-dim: rgba(255, 255, 255, 0.68);
+    --glass-glow: rgba(0, 240, 255, 0.45);
 }
 .ind-theme-ocean {
-    --glass-bg: rgba(15, 19, 28, 0.92);
-    --glass-bg-solid: rgba(15, 19, 28, 0.92);
-    --glass-card-bg: rgba(255, 255, 255, 0.07);
-    --glass-border: rgba(255, 255, 255, 0.20);
-    --glass-highlight: rgba(255, 255, 255, 0.38);
-    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --glass-bg: rgba(12, 14, 20, 0.94);
+    --glass-panel-bg: rgba(16, 19, 27, 0.96);
+    --glass-card-bg: rgba(255, 255, 255, 0.045);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-edge: rgba(0, 229, 255, 0.55);
+    --glass-highlight: rgba(255, 255, 255, 0.30);
     --glass-accent-1: #00e5ff;
     --glass-accent-2: #448aff;
     --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.72);
-    --glass-glow: rgba(0, 229, 255, 0.55);
+    --glass-text-dim: rgba(255, 255, 255, 0.68);
+    --glass-glow: rgba(0, 229, 255, 0.45);
 }
 .ind-theme-sunset {
-    --glass-bg: rgba(15, 19, 28, 0.92);
-    --glass-bg-solid: rgba(15, 19, 28, 0.92);
-    --glass-card-bg: rgba(255, 255, 255, 0.07);
-    --glass-border: rgba(255, 255, 255, 0.20);
-    --glass-highlight: rgba(255, 255, 255, 0.38);
-    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --glass-bg: rgba(12, 14, 20, 0.94);
+    --glass-panel-bg: rgba(16, 19, 27, 0.96);
+    --glass-card-bg: rgba(255, 255, 255, 0.045);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-edge: rgba(255, 107, 53, 0.55);
+    --glass-highlight: rgba(255, 255, 255, 0.30);
     --glass-accent-1: #ff6b35;
     --glass-accent-2: #ffca28;
     --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.72);
-    --glass-glow: rgba(255, 107, 53, 0.55);
+    --glass-text-dim: rgba(255, 255, 255, 0.68);
+    --glass-glow: rgba(255, 107, 53, 0.45);
 }
 .ind-theme-forest {
-    --glass-bg: rgba(15, 19, 28, 0.92);
-    --glass-bg-solid: rgba(15, 19, 28, 0.92);
-    --glass-card-bg: rgba(255, 255, 255, 0.07);
-    --glass-border: rgba(255, 255, 255, 0.20);
-    --glass-highlight: rgba(255, 255, 255, 0.38);
-    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --glass-bg: rgba(12, 14, 20, 0.94);
+    --glass-panel-bg: rgba(16, 19, 27, 0.96);
+    --glass-card-bg: rgba(255, 255, 255, 0.045);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-edge: rgba(0, 230, 118, 0.55);
+    --glass-highlight: rgba(255, 255, 255, 0.30);
     --glass-accent-1: #00e676;
     --glass-accent-2: #76ff03;
     --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.72);
-    --glass-glow: rgba(0, 230, 118, 0.55);
+    --glass-text-dim: rgba(255, 255, 255, 0.68);
+    --glass-glow: rgba(0, 230, 118, 0.45);
 }
 .ind-theme-midnight {
-    --glass-bg: rgba(15, 19, 28, 0.92);
-    --glass-bg-solid: rgba(15, 19, 28, 0.92);
-    --glass-card-bg: rgba(255, 255, 255, 0.07);
-    --glass-border: rgba(255, 255, 255, 0.20);
-    --glass-highlight: rgba(255, 255, 255, 0.38);
-    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --glass-bg: rgba(12, 14, 20, 0.94);
+    --glass-panel-bg: rgba(16, 19, 27, 0.96);
+    --glass-card-bg: rgba(255, 255, 255, 0.045);
+    --glass-border: rgba(255, 255, 255, 0.16);
+    --glass-edge: rgba(224, 64, 251, 0.55);
+    --glass-highlight: rgba(255, 255, 255, 0.30);
     --glass-accent-1: #e040fb;
     --glass-accent-2: #536dfe;
     --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.72);
-    --glass-glow: rgba(224, 64, 251, 0.55);
+    --glass-text-dim: rgba(255, 255, 255, 0.68);
+    --glass-glow: rgba(224, 64, 251, 0.45);
 }
 
 #ind-dock {
     position: fixed;
-    top: 12px;
+    top: 14px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10001;
     display: flex;
     align-items: stretch;
     gap: 0;
-    min-width: 720px;
+    min-width: 740px;
     max-width: 94vw;
-    height: 66px;
-    padding: 5px 48px 5px 44px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 22%), var(--glass-bg-solid, rgba(15, 19, 28, 0.92));
-    backdrop-filter: blur(20px) saturate(200%);
-    -webkit-backdrop-filter: blur(20px) saturate(200%);
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.20));
+    height: 70px;
+    padding: 4px 52px 4px 48px;
+    background: var(--glass-bg, rgba(12, 14, 20, 0.94));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.16));
+    border-radius: 8px;
+    clip-path: polygon(
+        0 12px, 12px 0,
+        calc(100% - 12px) 0, 100% 12px,
+        100% calc(100% - 12px), calc(100% - 12px) 100%,
+        12px 100%, 0 calc(100% - 12px)
+    );
     box-shadow:
-        inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.38)),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
-        0 12px 40px rgba(0, 0, 0, 0.45),
-        0 8px 24px var(--glass-glow, rgba(0, 240, 255, 0.18));
+        inset 0 0 0 1px rgba(255,255,255,0.06),
+        inset 0 1px 0 rgba(255,255,255,0.18),
+        0 0 0 1px rgba(0,0,0,0.4),
+        0 14px 40px rgba(0,0,0,0.55),
+        0 0 24px rgba(0,0,0,0.35),
+        0 0 2px var(--glass-edge, rgba(0,240,255,0.55));
     color: var(--glass-text, rgba(255,255,255,0.96));
     font-family: var(--neu-font-ui, 'Inter', sans-serif);
     box-sizing: border-box;
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
+#ind-dock::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--glass-accent-1, #00f0ff) 20%,
+        var(--glass-accent-2, #ff00aa) 80%,
+        transparent 100%);
+    opacity: 0.8;
+    filter: blur(0.5px);
+}
 
 .ind-dock-handle {
     position: absolute;
-    left: 14px;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 26px;
+    width: 18px;
+    height: 28px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     cursor: grab;
-    opacity: 0.65;
+    opacity: 0.6;
 }
 .ind-dock-handle:active { cursor: grabbing; }
 .ind-handle-dot {
     width: 3px;
     height: 3px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.70);
-    box-shadow: 0 0 4px rgba(255, 255, 255, 0.35);
+    background: var(--glass-accent-1, #00f0ff);
+    box-shadow: 0 0 5px var(--glass-glow, rgba(0,240,255,0.45));
+    transform: rotate(45deg);
 }
 
 .ind-cockpit {
@@ -4962,116 +4994,152 @@ body.cyber-active {
 .ind-metric {
     position: relative;
     flex: 1 1 0;
-    min-width: 90px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 12px;
-    border-right: 1px solid rgba(255, 255, 255, 0.10);
-}
-.ind-metric:last-of-type { border-right: none; }
-
-.ind-metric-icon {
-    font-size: 16px;
-    line-height: 1;
-    filter: drop-shadow(0 0 5px var(--glass-accent-1, #00f0ff));
-}
-.ind-metric-info {
-    flex: 1;
+    min-width: 92px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-right: 1px solid rgba(255,255,255,0.08);
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 40%),
+        linear-gradient(225deg, rgba(0,0,0,0.18) 0%, transparent 40%);
+}
+.ind-metric:last-of-type { border-right: none; }
+.ind-metric::before {
+    content: '';
+    position: absolute;
+    top: 4px; left: 6px; right: 6px; bottom: 4px;
+    border: 1px solid rgba(255,255,255,0.05);
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+    pointer-events: none;
+}
+.ind-metric::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 15%; right: 15%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.ind-metric:hover::after { opacity: 0.7; }
+
+.ind-metric-icon {
+    font-size: 18px;
+    line-height: 1;
+    filter: drop-shadow(0 0 4px var(--glass-accent-1, #00f0ff));
+}
+.ind-metric-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
     min-width: 0;
 }
 .ind-metric-top {
     display: flex;
-    justify-content: space-between;
     align-items: baseline;
-    gap: 6px;
+    gap: 3px;
 }
 .ind-metric-label {
     font-size: 9px;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
-    white-space: nowrap;
+    letter-spacing: 0.8px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
 }
 .ind-metric-value {
     font-size: 15px;
     font-weight: 700;
     font-family: var(--neu-font-mono, monospace);
     color: var(--glass-text, rgba(255,255,255,0.96));
-    text-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.55));
+    text-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.45));
 }
 .ind-metric-unit {
     font-size: 9px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
-    margin-left: 1px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
 }
 .ind-metric-bar {
+    width: 72%;
     height: 3px;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.35);
-    border-radius: 2px;
+    background: rgba(0,0,0,0.45);
+    border-radius: 1.5px;
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
 }
 .ind-metric-bar-fill {
     height: 100%;
     width: 0%;
     background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
-    box-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.55));
-    border-radius: 2px;
+    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.45));
     transition: width 0.5s ease;
 }
 
 .ind-settings-btn {
     position: absolute;
-    right: 12px;
+    right: 14px;
     top: 50%;
     transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.20));
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--glass-text, rgba(255,255,255,0.96));
-    font-size: 15px;
-    line-height: 1;
-    cursor: pointer;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.16));
+    color: var(--glass-text, rgba(255,255,255,0.96));
+    font-size: 15px;
+    cursor: pointer;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
     transition: all 0.2s ease;
 }
 .ind-settings-btn:hover {
-    background: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 0 16px var(--glass-glow, rgba(0,240,255,0.55));
+    background: rgba(255,255,255,0.12);
+    box-shadow: 0 0 16px var(--glass-glow, rgba(0,240,255,0.45));
 }
 
 #ind-panel {
     position: fixed;
-    top: 90px;
+    top: 94px;
     right: 20px;
     z-index: 10000;
     width: 360px;
     max-width: calc(100vw - 40px);
     max-height: calc(100vh - 110px);
     overflow-y: auto;
-    border-radius: 20px;
     padding: 18px;
-    color: var(--glass-text, rgba(255,255,255,0.96));
-    background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 18%), var(--glass-bg, rgba(15, 19, 28, 0.92));
-    backdrop-filter: blur(22px) saturate(200%);
-    -webkit-backdrop-filter: blur(22px) saturate(200%);
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.20));
+    background: var(--glass-panel-bg, rgba(16, 19, 27, 0.96));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.16));
+    border-radius: 10px;
+    clip-path: polygon(
+        0 16px, 16px 0,
+        calc(100% - 16px) 0, 100% 16px,
+        100% calc(100% - 16px), calc(100% - 16px) 100%,
+        16px 100%, 0 calc(100% - 16px)
+    );
     box-shadow:
-        inset 0 1px 0 var(--glass-highlight, rgba(255,255,255,0.38)),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
-        var(--glass-shadow, 0 18px 50px rgba(0,0,0,0.55));
+        inset 0 0 0 1px rgba(255,255,255,0.06),
+        inset 0 1px 0 rgba(255,255,255,0.16),
+        0 18px 50px rgba(0,0,0,0.55),
+        0 0 30px rgba(0,0,0,0.35),
+        0 0 3px var(--glass-edge, rgba(0,240,255,0.55));
+    color: var(--glass-text, rgba(255,255,255,0.96));
     font-family: var(--neu-font-ui, 'Inter', sans-serif);
     box-sizing: border-box;
+}
+#ind-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--glass-accent-1, #00f0ff) 25%,
+        var(--glass-accent-2, #ff00aa) 75%,
+        transparent 100%);
+    opacity: 0.9;
 }
 #ind-panel::-webkit-scrollbar { width: 6px; }
 #ind-panel::-webkit-scrollbar-track { background: transparent; }
@@ -5086,18 +5154,18 @@ body.cyber-active {
     align-items: center;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 .ind-brand-text h1 {
     margin: 0;
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
     color: var(--glass-text, rgba(255,255,255,0.96));
 }
 .ind-brand-text span {
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
 }
 .ind-header-actions {
     display: flex;
@@ -5106,21 +5174,20 @@ body.cyber-active {
 .ind-action-btn {
     width: 26px;
     height: 26px;
-    border-radius: 50%;
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.20));
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--glass-text, rgba(255,255,255,0.96));
-    font-size: 14px;
-    line-height: 1;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.16));
+    color: var(--glass-text, rgba(255,255,255,0.96));
+    font-size: 14px;
+    cursor: pointer;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
     transition: all 0.2s ease;
 }
 .ind-action-btn:hover {
-    background: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.55));
+    background: rgba(255,255,255,0.12);
+    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.45));
 }
 
 .ind-metrics-grid {
@@ -5130,38 +5197,45 @@ body.cyber-active {
     margin-bottom: 16px;
 }
 .ind-metric-card {
-    border-radius: 14px;
-    padding: 10px;
-    background: var(--glass-card-bg, rgba(255, 255, 255, 0.07));
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    position: relative;
+    padding: 10px 6px;
+    background: var(--glass-card-bg, rgba(255,255,255,0.045));
+    border: 1px solid rgba(255,255,255,0.08);
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
     text-align: center;
 }
+.ind-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 8px; right: 8px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-accent-1, #00f0ff), transparent);
+    opacity: 0.5;
+}
 .ind-metric-card-label {
-    font-size: 10px;
+    font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
+    letter-spacing: 0.6px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
     margin-bottom: 4px;
 }
 .ind-metric-card-value {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
     font-family: var(--neu-font-mono, monospace);
     color: var(--glass-text, rgba(255,255,255,0.96));
-    text-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.55));
+    text-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.45));
 }
 .ind-metric-card-unit {
-    font-size: 11px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
+    font-size: 10px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
 }
 
 .ind-section {
     margin-bottom: 12px;
-    border-radius: 14px;
-    background: var(--glass-card-bg, rgba(255, 255, 255, 0.07));
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    background: var(--glass-card-bg, rgba(255,255,255,0.045));
+    border: 1px solid rgba(255,255,255,0.08);
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
     overflow: hidden;
 }
 .ind-section-header {
@@ -5173,13 +5247,13 @@ body.cyber-active {
     user-select: none;
     transition: background 0.2s ease;
 }
-.ind-section-header:hover { background: rgba(255, 255, 255, 0.06); }
-.ind-section-header.collapsed { border-radius: 14px; }
+.ind-section-header:hover { background: rgba(255, 255, 255, 0.05); }
+.ind-section-header.collapsed { }
 .ind-section-header.collapsed + .ind-section-content { display: none; }
 .ind-section-title {
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     color: var(--glass-text, rgba(255,255,255,0.96));
     display: flex;
     align-items: center;
@@ -5188,7 +5262,7 @@ body.cyber-active {
 .ind-section-icon { font-size: 12px; }
 .ind-section-toggle {
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
     transition: transform 0.25s ease;
 }
 .ind-section-header.collapsed .ind-section-toggle { transform: rotate(-90deg); }
@@ -5204,7 +5278,7 @@ body.cyber-active {
     margin-bottom: 5px;
 }
 .ind-progress-label {
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
     display: flex;
     align-items: center;
     gap: 6px;
@@ -5212,9 +5286,9 @@ body.cyber-active {
 .ind-progress-dot {
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
     background: var(--glass-accent-1, #00f0ff);
-    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.55));
+    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.45));
 }
 .ind-progress-badge {
     font-weight: 700;
@@ -5222,18 +5296,17 @@ body.cyber-active {
     color: var(--glass-text, rgba(255,255,255,0.96));
 }
 .ind-progress-track {
-    height: 10px;
-    background: rgba(0, 0, 0, 0.35);
-    border-radius: 5px;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 1px;
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.40);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.50);
 }
 .ind-progress-fill {
     height: 100%;
     width: 0%;
     background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
-    border-radius: 5px;
-    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.55));
+    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.45));
     transition: width 0.5s ease;
 }
 
@@ -5248,14 +5321,14 @@ body.cyber-active {
     align-items: center;
     font-size: 11px;
     padding: 6px 8px;
-    border-radius: 8px;
     background: rgba(0, 0, 0, 0.22);
+    border-left: 2px solid var(--glass-accent-1, #00f0ff);
 }
 .ind-detail-left {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
 }
 .ind-detail-right {
     font-family: var(--neu-font-mono, monospace);
@@ -5279,8 +5352,8 @@ body.cyber-active {
     width: 38px;
     height: 20px;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.30);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     position: relative;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -5288,7 +5361,7 @@ body.cyber-active {
 .ind-toggle-switch.active {
     background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
     border-color: transparent;
-    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.55));
+    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.45));
 }
 .ind-toggle-thumb {
     position: absolute;
@@ -5309,25 +5382,26 @@ body.cyber-active {
     padding-top: 6px;
 }
 .ind-radio-btn {
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
-    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    border-radius: 2px;
     padding: 5px 10px;
     font-size: 10px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
+    clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px);
 }
 .ind-radio-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.10);
     color: var(--glass-text, rgba(255,255,255,0.96));
 }
 .ind-radio-btn.active {
     color: #0b0d12;
     background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
     border-color: transparent;
-    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.55));
+    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.45));
 }
 
 .ind-panel-footer {
@@ -5336,17 +5410,17 @@ body.cyber-active {
     align-items: center;
     margin-top: 14px;
     padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.72));
+    color: var(--glass-text-dim, rgba(255,255,255,0.68));
 }
 .ind-status-dot {
     display: inline-block;
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
     background: var(--glass-accent-1, #00f0ff);
-    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.55));
+    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.45));
     margin-right: 6px;
 }
 
@@ -5356,7 +5430,7 @@ body.cyber-active {
         width: calc(100vw - 24px);
         height: auto;
         min-height: 58px;
-        padding: 8px 44px 8px 40px;
+        padding: 6px 44px 6px 40px;
         flex-wrap: wrap;
     }
     .ind-cockpit {
@@ -5366,7 +5440,7 @@ body.cyber-active {
     }
     .ind-metric {
         border-right: none;
-        padding: 4px 8px;
+        padding: 6px 6px;
     }
     .ind-metric-bar { display: none; }
     #ind-panel {
@@ -5382,6 +5456,7 @@ body.cyber-active {
     .ind-metric-bar-fill,
     .ind-progress-fill { transition: none; }
 }
+
 
 
   
@@ -5577,6 +5652,9 @@ body.cyber-active {
             icon.className = 'neu-chip-icon';
             icon.textContent = m.icon;
 
+            const data = document.createElement('div');
+            data.className = 'neu-chip-data';
+
             const label = document.createElement('span');
             label.className = 'neu-chip-label';
             label.textContent = m.label;
@@ -5585,6 +5663,9 @@ body.cyber-active {
             value.className = 'neu-chip-value';
             value.id = 'neu-chip-' + m.type + '-value';
             value.textContent = '--';
+
+            data.appendChild(label);
+            data.appendChild(value);
 
             const track = document.createElement('div');
             track.className = 'neu-chip-progress-track';
@@ -5595,8 +5676,7 @@ body.cyber-active {
             track.appendChild(fill);
 
             chip.appendChild(icon);
-            chip.appendChild(label);
-            chip.appendChild(value);
+            chip.appendChild(data);
             chip.appendChild(track);
             dock.appendChild(chip);
         });
