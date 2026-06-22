@@ -422,7 +422,7 @@
 
     /**
      * 内联注入 Premium UI CSS v19.0 - 5套主题完整样式
-     * Neu(拟物白) / Ind(钛金仪) / Retro(复古终端) / Lux(珠宝柜) / Cyber(量子核)
+     * Neu(拟物白) / Ind(流光玻璃) / Retro(复古终端) / Lux(珠宝柜) / Cyber(量子核)
      */
     function injectPremiumCSS() {
         // 避免重复注入
@@ -730,23 +730,47 @@ body {
         inset 0 -2px 3px rgba(0, 0, 0, 0.04);
 }
 
-/* 左侧 ~1mm 横截面高光 — 模拟陶瓷 plaque 左边缘受光 */
+/* 左侧 ~4px 横截面高光 — 强化陶瓷 plaque 左边缘受光，截图可见 */
 #neu-dock::before {
     content: '';
     position: absolute;
     left: 2px;
-    top: 12%;
-    bottom: 12%;
-    width: 3px;
+    top: 10%;
+    bottom: 10%;
+    width: 4px;
     background: linear-gradient(180deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.65) 15%,
-        rgba(255, 255, 255, 0.90) 50%,
-        rgba(255, 255, 255, 0.65) 85%,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 255, 255, 0.85) 35%,
+        rgba(255, 255, 255, 0.50) 75%,
         transparent 100%);
-    border-radius: 2px;
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.30);
+    border-radius: 3px;
+    box-shadow:
+        inset 1px 0 2px rgba(255, 255, 255, 0.90),
+        0 0 8px rgba(255, 255, 255, 0.55),
+        1px 0 2px rgba(255, 255, 255, 0.45);
     pointer-events: none;
+    z-index: 2;
+}
+
+/* 凹槽底座 — 让 6 个芯片看起来嵌入同一条连续材质带中 */
+#neu-dock::after {
+    content: '';
+    position: absolute;
+    left: 54px;
+    right: 62px;
+    top: 7px;
+    bottom: 7px;
+    border-radius: 20px;
+    background: linear-gradient(180deg,
+        rgba(0, 0, 0, 0.03) 0%,
+        rgba(0, 0, 0, 0.01) 50%,
+        rgba(255, 255, 255, 0.12) 100%);
+    box-shadow:
+        inset 2px 2px 5px rgba(0, 0, 0, 0.08),
+        inset -2px -2px 5px rgba(255, 255, 255, 0.72),
+        0 1px 0 rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* 拖拽手柄 - 6个小凹点组成的圆点组 */
@@ -800,6 +824,7 @@ body {
     user-select: none;
     white-space: nowrap;
     position: relative;
+    z-index: 1;
     flex: 1;
     min-width: 90px;
     max-width: 110px;
@@ -1598,6 +1623,11 @@ body {
         gap: var(--neu-space-sm);
     }
 
+    /* 小屏换行时隐藏凹槽底座 */
+    #neu-dock::after {
+        display: none;
+    }
+
     .neu-metric-chip {
         min-width: calc(33% - 8px);
         max-width: calc(33% - 8px);
@@ -1647,989 +1677,7 @@ body {
 }
 
 
-    /* === ind的全部CSS（从v9-ind-fragment.html的style标签复制）=== */
-
-    /* ============================================
-       航空级钛合金设计系统 (Ind)
-       Aviation-Grade Titanium Alloy Instrument Panel
-       ============================================ */
-
-    :root {
-      /* 钛合金色系 */
-      --ind-titanium-base: #8a9298;
-      --ind-titanium-light: #b8c0c6;
-      --ind-titanium-dark: #5a6268;
-      --ind-titanium-deep: #3a4248;
-      --ind-titanium-shine: #d0d8de;
-
-      /* CNC加工特征 */
-      --ind-bevel-thickness: 4px;
-      --ind-screw-size: 12px;
-      --ind-recess-depth: 3px;
-
-      /* 指示灯颜色 */
-      --ind-amber: #ffaa00;
-      --ind-cyan: #00ddff;
-      --ind-red: #ff3344;
-      --ind-green: #00ff66;
-
-      /* 功能色 */
-      --ind-text-primary: #e8eef2;
-      --ind-text-secondary: #9aa4ac;
-      --ind-glow-amber: rgba(255, 170, 0, 0.6);
-      --ind-glow-cyan: rgba(0, 221, 255, 0.5);
-    }
-
-    body.ind-active {
-      background: linear-gradient(135deg, #1a1f24 0%, #0d1117 50%, #151a20 100%);
-      font-family: 'Courier New', monospace;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    /* 背景网格 - 模拟航空器仪表盘背景 */
-    body.ind-active::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        radial-gradient(circle at 1px 1px, rgba(138, 146, 152, 0.03) 1px, transparent 0);
-      background-size: 20px 20px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ============================================
-       DOCK - 主监测条（顶部居中横排）
-       ============================================ */
-
-    #ind-dock {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 99999;
-      display: flex;
-      align-items: center;
-      gap: 0;
-      flex-wrap: nowrap;
-      overflow: visible;
-
-      /* 钛合金基板 */
-      background: linear-gradient(
-        180deg,
-        var(--ind-titanium-shine) 0%,
-        var(--ind-titanium-base) 15%,
-        var(--ind-titanium-dark) 85%,
-        var(--ind-titanium-deep) 100%
-      );
-
-      /* 拉丝纹理 */
-      background-image:
-        repeating-linear-gradient(
-          90deg,
-          transparent,
-          transparent 1px,
-          rgba(255, 255, 255, 0.02) 1px,
-          rgba(255, 255, 255, 0.02) 2px
-        ),
-        linear-gradient(
-          180deg,
-          var(--ind-titanium-shine) 0%,
-          var(--ind-titanium-base) 15%,
-          var(--ind-titanium-dark) 85%,
-          var(--ind-titanium-deep) 100%
-        );
-
-      border-radius: 8px;
-      padding: 12px 16px;
-
-      /* 真实厚度感 - 7层硬阴影技术 */
-      box-shadow:
-        /* 上边缘高光 */
-        inset 0 1px 0 rgba(255, 255, 255, 0.4),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-        /* 主投影 */
-        0 4px 0 var(--ind-titanium-deep),
-        0 6px 0 #2a3238,
-        0 8px 0 #1a2228,
-        0 10px 12px rgba(0, 0, 0, 0.6),
-        0 14px 20px rgba(0, 0, 0, 0.4);
-
-      /* CNC铣削边框 */
-      border: 1px solid var(--ind-titanium-dark);
-      border-top-color: var(--ind-titanium-light);
-      border-bottom-color: var(--ind-titanium-deep);
-    }
-
-    /* Dock厚度截面（侧边） */
-    #ind-dock::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: -10px;
-      height: 10px;
-      background: linear-gradient(
-        180deg,
-        var(--ind-titanium-deep) 0%,
-        #2a3238 40%,
-        #1a2228 100%
-      );
-      border-radius: 0 0 6px 6px;
-      pointer-events: none;
-      z-index: -1;
-    }
-
-    /* ============================================
-       螺丝固定系统
-       ============================================ */
-
-    .ind-screw {
-      position: absolute;
-      width: var(--ind-screw-size);
-      height: var(--ind-screw-size);
-      background: radial-gradient(
-        circle at 30% 30%,
-        var(--ind-titanium-light) 0%,
-        var(--ind-titanium-base) 50%,
-        var(--ind-titanium-dark) 100%
-      );
-      border-radius: 50%;
-      border: 1px solid var(--ind-titanium-deep);
-      box-shadow:
-        inset 0 1px 2px rgba(255, 255, 255, 0.3),
-        0 1px 2px rgba(0, 0, 0, 0.4);
-    }
-
-    /* 十字槽 */
-    .ind-screw::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 7px;
-      height: 7px;
-      transform: translate(-50%, -50%);
-      background:
-        linear-gradient(45deg, transparent 45%, var(--ind-titanium-deep) 45%, var(--ind-titanium-deep) 55%, transparent 55%),
-        linear-gradient(-45deg, transparent 45%, var(--ind-titanium-deep) 45%, var(--ind-titanium-deep) 55%, transparent 55%);
-    }
-
-    /* Dock螺丝位置 */
-    #ind-dock .ind-screw.tl { top: 6px; left: 6px; }
-    #ind-dock .ind-screw.tr { top: 6px; right: 6px; }
-    #ind-dock .ind-screw.bl { bottom: 6px; left: 6px; }
-    #ind-dock .ind-screw.br { bottom: 6px; right: 6px; }
-
-    /* ============================================
-       拖拽手柄
-       ============================================ */
-
-    .ind-drag-handle {
-      width: 28px;
-      height: 48px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 3px;
-      margin-right: 12px;
-      cursor: grab;
-      position: relative;
-    }
-
-    .ind-drag-handle:active {
-      cursor: grabbing;
-    }
-
-    /* 防滑纹理线条 */
-    .ind-drag-line {
-      width: 18px;
-      height: 2px;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        var(--ind-titanium-dark) 20%,
-        var(--ind-titanium-base) 50%,
-        var(--ind-titanium-dark) 80%,
-        transparent 100%
-      );
-      border-radius: 1px;
-      box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.3);
-    }
-
-    /* ============================================
-       监测指标单元（VU表风格）
-       ============================================ */
-
-    .ind-metric {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 0 10px;
-      position: relative;
-    }
-
-    /* 分隔线 */
-    .ind-metric:not(:last-child)::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 1px;
-      height: 70%;
-      background: linear-gradient(
-        180deg,
-        transparent 0%,
-        var(--ind-titanium-dark) 20%,
-        var(--ind-titanium-base) 50%,
-        var(--ind-titanium-dark) 80%,
-        transparent 100%
-      );
-    }
-
-    .ind-metric-label {
-      font-size: 9px;
-      font-weight: bold;
-      color: var(--ind-text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-
-    .ind-metric-value {
-      font-size: 13px;
-      font-weight: bold;
-      color: var(--ind-text-primary);
-      text-shadow: 0 0 8px var(--ind-glow-cyan);
-      min-width: 42px;
-      text-align: center;
-    }
-
-    /* VU表进度条容器 */
-    .ind-vu-meter {
-      width: 60px;
-      height: 8px;
-      background: #1a1f24;
-      border-radius: 2px;
-      position: relative;
-      overflow: hidden;
-      box-shadow:
-        inset 0 1px 3px rgba(0, 0, 0, 0.8),
-        0 1px 0 rgba(255, 255, 255, 0.1);
-      border: 1px solid var(--ind-titanium-deep);
-    }
-
-    /* VU表LED分段 */
-    .ind-vu-segment {
-      height: 100%;
-      float: left;
-      transition: all 0.15s ease;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    }
-
-    .ind-vu-segment.green {
-      background: linear-gradient(180deg, var(--ind-accent-color, #00ff66) 0%, color-mix(in srgb, var(--ind-accent-color, #00ff66) 80%, #000) 100%);
-      box-shadow: 0 0 4px color-mix(in srgb, var(--ind-accent-color, #00ff66) 40%, transparent);
-    }
-
-    .ind-vu-segment.amber {
-      background: linear-gradient(180deg, #ffaa00 0%, #dd8800 100%);
-      box-shadow: 0 0 4px rgba(255, 170, 0, 0.4);
-    }
-
-    .ind-vu-segment.red {
-      background: linear-gradient(180deg, #ff3344 0%, #dd2233 100%);
-      box-shadow: 0 0 4px rgba(255, 51, 68, 0.4);
-      animation: ind-pulse-red 1s ease-in-out infinite;
-    }
-
-    @keyframes ind-pulse-red {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
-
-    /* ============================================
-       温度显示（特殊样式）
-       ============================================ */
-
-    .ind-temp-display {
-      display: flex;
-      align-items: baseline;
-      gap: 2px;
-    }
-
-    .ind-temp-value {
-      font-size: 16px;
-      font-weight: bold;
-      color: var(--ind-amber);
-      text-shadow: 0 0 10px var(--ind-glow-amber);
-    }
-
-    .ind-temp-unit {
-      font-size: 11px;
-      color: var(--ind-text-secondary);
-    }
-
-    /* 温度指示条 */
-    .ind-temp-bar {
-      width: 40px;
-      height: 4px;
-      background: linear-gradient(
-        90deg,
-        var(--ind-green) 0%,
-        var(--ind-amber) 50%,
-        var(--ind-red) 100%
-      );
-      border-radius: 2px;
-      position: relative;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
-    }
-
-    .ind-temp-indicator {
-      position: absolute;
-      top: -2px;
-      width: 2px;
-      height: 8px;
-      background: white;
-      box-shadow: 0 0 6px white;
-      transition: left 0.3s ease;
-    }
-
-    /* ============================================
-       设置按钮（金属旋钮）
-       ============================================ */
-
-    .ind-settings-btn {
-      width: 32px;
-      height: 32px;
-      margin-left: 12px;
-      background: radial-gradient(
-        circle at 35% 35%,
-        var(--ind-titanium-light) 0%,
-        var(--ind-titanium-base) 40%,
-        var(--ind-titanium-dark) 100%
-      );
-      border-radius: 50%;
-      border: 2px solid var(--ind-titanium-deep);
-      cursor: pointer;
-      position: relative;
-      box-shadow:
-        inset 0 2px 4px rgba(255, 255, 255, 0.3),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.3),
-        0 2px 4px rgba(0, 0, 0, 0.4);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .ind-settings-btn:hover {
-      transform: scale(1.05);
-      box-shadow:
-        inset 0 2px 4px rgba(255, 255, 255, 0.3),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.3),
-        0 2px 6px rgba(0, 0, 0, 0.5),
-        0 0 12px color-mix(in srgb, var(--ind-accent-color, var(--ind-cyan)) 50%, transparent);
-    }
-
-    .ind-settings-btn:active {
-      transform: scale(0.95);
-    }
-
-    /* 齿轮图标 */
-    .ind-settings-btn::before {
-      content: '\\2699';
-      font-size: 16px;
-      color: var(--ind-text-secondary);
-      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
-    }
-
-    /* ============================================
-       PANEL - 控制面板（右侧纵向）
-       ============================================ */
-
-    #ind-panel {
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      width: 320px;
-      z-index: 99999;
-
-      /* 钛合金基板 */
-      background: linear-gradient(
-        135deg,
-        var(--ind-titanium-shine) 0%,
-        var(--ind-titanium-base) 20%,
-        var(--ind-titanium-dark) 80%,
-        var(--ind-titanium-deep) 100%
-      );
-
-      /* 拉丝纹理 */
-      background-image:
-        repeating-linear-gradient(
-          90deg,
-          transparent,
-          transparent 1px,
-          rgba(255, 255, 255, 0.015) 1px,
-          rgba(255, 255, 255, 0.015) 2px
-        ),
-        linear-gradient(
-          135deg,
-          var(--ind-titanium-shine) 0%,
-          var(--ind-titanium-base) 20%,
-          var(--ind-titanium-dark) 80%,
-          var(--ind-titanium-deep) 100%
-        );
-
-      border-radius: 12px;
-      padding: 20px;
-
-      /* 真实厚度感 */
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.35),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.4),
-        0 8px 0 var(--ind-titanium-deep),
-        0 10px 0 #2a3238,
-        0 12px 0 #1a2228,
-        0 16px 24px rgba(0, 0, 0, 0.6),
-        0 20px 32px rgba(0, 0, 0, 0.4);
-
-      border: 1px solid var(--ind-titanium-dark);
-      border-top-color: var(--ind-titanium-light);
-      border-left-color: var(--ind-titanium-light);
-      border-bottom-color: var(--ind-titanium-deep);
-      border-right-color: var(--ind-titanium-deep);
-    }
-
-    /* Panel厚度截面 */
-    #ind-panel::before {
-      content: '';
-      position: absolute;
-      bottom: -16px;
-      left: 4px;
-      right: 4px;
-      height: 16px;
-      background: linear-gradient(
-        180deg,
-        var(--ind-titanium-deep) 0%,
-        #2a3238 50%,
-        #1a2228 100%
-      );
-      border-radius: 0 0 8px 8px;
-      pointer-events: none;
-      z-index: -1;
-    }
-
-    /* Panel螺丝位置 */
-    #ind-panel .ind-screw.tl { top: 10px; left: 10px; }
-    #ind-panel .ind-screw.tr { top: 10px; right: 10px; }
-    #ind-panel .ind-screw.bl { bottom: 10px; left: 10px; }
-    #ind-panel .ind-screw.br { bottom: 10px; right: 10px; }
-
-    /* ============================================
-       CNC下沉窗口（嵌入式显示区域）
-       ============================================ */
-
-    .ind-recess-window {
-      background: linear-gradient(
-        180deg,
-        #0a0d10 0%,
-        #12171c 50%,
-        #0a0d10 100%
-      );
-      border-radius: 6px;
-      padding: 14px;
-      margin-bottom: 14px;
-      position: relative;
-
-      /* 下沉效果 */
-      box-shadow:
-        inset 0 2px 4px rgba(0, 0, 0, 0.8),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-        0 1px 0 rgba(255, 255, 255, 0.1);
-
-      border: 2px solid var(--ind-titanium-deep);
-      border-top-color: #1a2228;
-      border-bottom-color: #0a0d10;
-    }
-
-    /* 窗口标题栏 */
-    .ind-window-title {
-      font-size: 10px;
-      font-weight: bold;
-      color: var(--ind-accent-color, var(--ind-cyan));
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-bottom: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid color-mix(in srgb, var(--ind-accent-color, var(--ind-cyan)) 20%, transparent);
-      text-shadow: 0 0 8px color-mix(in srgb, var(--ind-accent-color, var(--ind-cyan)) 50%, transparent);
-    }
-
-    /* ============================================
-       风格选择按钮组
-       ============================================ */
-
-    .ind-style-buttons {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    .ind-style-btn {
-      padding: 8px 4px;
-      font-size: 9px;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--ind-text-secondary);
-      background: linear-gradient(
-        180deg,
-        var(--ind-titanium-base) 0%,
-        var(--ind-titanium-dark) 100%
-      );
-      border: 1px solid var(--ind-titanium-deep);
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: center;
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.2),
-        0 2px 3px rgba(0, 0, 0, 0.3);
-    }
-
-    .ind-style-btn:hover {
-      background: linear-gradient(
-        180deg,
-        var(--ind-titanium-light) 0%,
-        var(--ind-titanium-base) 100%
-      );
-      color: var(--ind-text-primary);
-      transform: translateY(-1px);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.3),
-        0 3px 5px rgba(0, 0, 0, 0.4);
-    }
-
-    .ind-style-btn.active {
-      background: linear-gradient(
-        180deg,
-        var(--ind-accent-color, var(--ind-cyan)) 0%,
-        color-mix(in srgb, var(--ind-accent-color, var(--ind-cyan)) 60%, #000) 100%
-      );
-      color: #000;
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.4),
-        0 0 12px color-mix(in srgb, var(--ind-accent-color, var(--ind-cyan)) 50%, transparent),
-        0 2px 4px rgba(0, 0, 0, 0.3);
-      text-shadow: none;
-    }
-
-    /* ============================================
-       色彩主题选择
-       ============================================ */
-
-    .ind-theme-swatches {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      margin-bottom: 8px;
-    }
-
-    .ind-swatch {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.25s ease;
-      border: 3px solid var(--ind-titanium-dark);
-      box-shadow:
-        inset 0 2px 4px rgba(255, 255, 255, 0.2),
-        0 2px 4px rgba(0, 0, 0, 0.4);
-    }
-
-    .ind-swatch:hover {
-      transform: scale(1.15);
-      box-shadow:
-        inset 0 2px 4px rgba(255, 255, 255, 0.3),
-        0 2px 8px rgba(0, 0, 0, 0.5),
-        0 0 16px currentColor;
-    }
-
-    .ind-swatch.active {
-      border-color: white;
-      box-shadow:
-        inset 0 2px 4px rgba(255, 255, 255, 0.3),
-        0 0 20px currentColor,
-        0 0 8px var(--ind-accent-color, currentColor),
-        0 2px 6px rgba(0, 0, 0, 0.4);
-      transform: scale(1.15);
-    }
-
-    .ind-swatch.active::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 8px;
-      height: 8px;
-      background: white;
-      border-radius: 50%;
-      box-shadow: 0 0 6px white;
-    }
-
-    /* 主题色定义 */
-    .ind-swatch.cyan { background: linear-gradient(135deg, #00ddff, #0099bb); color: #00ddff; }
-    .ind-swatch.amber { background: linear-gradient(135deg, #ffaa00, #dd8800); color: #ffaa00; }
-    .ind-swatch.red { background: linear-gradient(135deg, #ff3344, #dd2233); color: #ff3344; }
-    .ind-swatch.green { background: linear-gradient(135deg, #00ff66, #00cc52); color: #00ff66; }
-    .ind-swatch.purple { background: linear-gradient(135deg, #aa66ff, #8844dd); color: #aa66ff; }
-
-    /* ============================================
-       详细进度条区域
-       ============================================ */
-
-    .ind-detail-meter {
-      margin-bottom: 10px;
-    }
-
-    .ind-detail-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .ind-detail-label {
-      font-size: 10px;
-      font-weight: bold;
-      color: var(--ind-text-secondary);
-      width: 50px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .ind-detail-bar-container {
-      flex: 1;
-      height: 12px;
-      background: #0a0d10;
-      border-radius: 3px;
-      position: relative;
-      overflow: hidden;
-      box-shadow:
-        inset 0 1px 3px rgba(0, 0, 0, 0.8),
-        0 1px 0 rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--ind-titanium-deep);
-    }
-
-    .ind-detail-bar {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.4s ease;
-      position: relative;
-    }
-
-    .ind-detail-bar.gpu {
-      background: linear-gradient(90deg, var(--ind-accent-color, #00ddff), color-mix(in srgb, var(--ind-accent-color, #00ddff) 50%, transparent));
-      box-shadow: 0 0 10px color-mix(in srgb, var(--ind-accent-color, #00ddff) 50%, transparent);
-    }
-
-    .ind-detail-bar.vram,
-    .ind-detail-bar.cpu,
-    .ind-detail-bar.ram,
-    .ind-detail-bar.swap {
-      background: linear-gradient(90deg, var(--ind-accent-color, #00ddff), color-mix(in srgb, var(--ind-accent-color, #00ddff) 50%, transparent));
-      box-shadow: 0 0 10px color-mix(in srgb, var(--ind-accent-color, #00ddff) 50%, transparent);
-    }
-
-    /* 进度条刻度线 */
-    .ind-detail-bar-container::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        90deg,
-        transparent 0px,
-        transparent 19px,
-        rgba(255, 255, 255, 0.05) 19px,
-        rgba(255, 255, 255, 0.05) 20px
-      );
-      pointer-events: none;
-    }
-
-    .ind-detail-value {
-      font-size: 10px;
-      font-weight: bold;
-      color: var(--ind-text-primary);
-      width: 38px;
-      text-align: right;
-      text-shadow: 0 0 4px currentColor;
-    }
-
-    /* ============================================
-       DISK IO / NETWORK IO
-       ============================================ */
-
-    .ind-io-section {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .ind-io-box {
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 4px;
-      padding: 10px;
-      border: 1px solid var(--ind-titanium-deep);
-    }
-
-    .ind-io-title {
-      font-size: 9px;
-      font-weight: bold;
-      color: var(--ind-amber);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 6px;
-      text-shadow: 0 0 6px var(--ind-glow-amber);
-    }
-
-    .ind-io-stats {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .ind-io-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 10px;
-    }
-
-    .ind-io-direction {
-      color: var(--ind-text-secondary);
-      font-weight: bold;
-    }
-
-    .ind-io-direction.up { color: var(--ind-green); }
-    .ind-io-direction.down { color: var(--ind-cyan); }
-
-    .ind-io-value {
-      color: var(--text-primary);
-      font-family: 'Courier New', monospace;
-      font-weight: bold;
-    }
-
-    /* ============================================
-       Toggle开关（工业金属风格）
-       ============================================ */
-
-    .ind-toggle-section {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .ind-toggle-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .ind-toggle-label {
-      font-size: 11px;
-      font-weight: bold;
-      color: var(--ind-text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .ind-toggle {
-      width: 44px;
-      height: 22px;
-      background: linear-gradient(
-        180deg,
-        var(--ind-titanium-dark) 0%,
-        var(--ind-titanium-deep) 100%
-      );
-      border-radius: 11px;
-      position: relative;
-      cursor: pointer;
-      border: 2px solid var(--ind-titanium-deep);
-      box-shadow:
-        inset 0 2px 4px rgba(0, 0, 0, 0.6),
-        0 1px 2px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-      z-index: 999;
-      pointer-events: auto;
-    }
-
-    .ind-toggle-knob {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 14px;
-      height: 14px;
-      background: radial-gradient(
-        circle at 35% 35%,
-        var(--ind-titanium-light) 0%,
-        var(--ind-titanium-base) 50%,
-        var(--ind-titanium-dark) 100%
-      );
-      border-radius: 50%;
-      transition: all 0.3s cubic-bezier(0.5, -0.2, 0.3, 1.2);
-      box-shadow:
-        inset 0 1px 2px rgba(255, 255, 255, 0.3),
-        0 1px 2px rgba(0, 0, 0, 0.4);
-    }
-
-    .ind-toggle.active {
-      background: linear-gradient(
-        180deg,
-        var(--ind-accent-color, var(--ind-cyan)) 0%,
-        color-mix(in srgb, var(--ind-accent-color, #00ddff) 70%, #000) 100%
-      );
-      border-color: var(--ind-accent-color, #00ddff);
-      box-shadow:
-        inset 0 2px 4px rgba(0, 0, 0, 0.25),
-        0 0 16px color-mix(in srgb, var(--ind-accent-color, #00ddff) 50%, transparent),
-        0 0 4px var(--ind-accent-color, #00ddff);
-    }
-
-    .ind-toggle.active .ind-toggle-knob {
-      left: 24px;
-      background: radial-gradient(
-        circle at 35% 35%,
-        #ffffff 0%,
-        #eeeeee 50%,
-        #cccccc 100%
-      );
-      box-shadow:
-        0 0 12px color-mix(in srgb, var(--ind-accent-color, #00ddff) 60%, transparent),
-        0 0 4px #fff,
-        0 1px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    /* ============================================
-       版本信息 & AMD SMI
-       ============================================ */
-
-    .ind-info-section {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 4px;
-      padding: 10px;
-      border: 1px solid var(--ind-titanium-deep);
-      margin-bottom: 10px;
-    }
-
-    .ind-version {
-      font-size: 9px;
-      color: var(--ind-text-secondary);
-      margin-bottom: 6px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .ind-version-badge {
-      background: linear-gradient(180deg, var(--ind-cyan), #007799);
-      color: #000;
-      padding: 2px 8px;
-      border-radius: 3px;
-      font-weight: bold;
-      font-size: 8px;
-      letter-spacing: 1px;
-      box-shadow: 0 0 8px var(--ind-glow-cyan);
-    }
-
-    .ind-amd-smi {
-      font-size: 9px;
-      color: var(--ind-amber);
-      font-family: 'Courier New', monospace;
-      line-height: 1.5;
-      padding: 8px;
-      background: rgba(0, 0, 0, 0.4);
-      border-radius: 3px;
-      border-left: 3px solid var(--ind-amber);
-      box-shadow: inset 0 0 10px rgba(255, 170, 0, 0.1);
-    }
-
-    /* ============================================
-       LED状态指示灯
-       ============================================ */
-
-    .ind-led {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 4px;
-      animation: ind-led-blink 2s ease-in-out infinite;
-    }
-
-    .ind-led.green {
-      background: var(--ind-accent-color, var(--ind-green));
-      box-shadow: 0 0 6px var(--ind-accent-color, var(--ind-green));
-    }
-
-    .ind-led.amber {
-      background: var(--ind-amber);
-      box-shadow: 0 0 6px var(--ind-amber);
-    }
-
-    .ind-led.red {
-      background: var(--ind-red);
-      box-shadow: 0 0 6px var(--ind-red);
-      animation: ind-led-blink-fast 0.5s ease-in-out infinite;
-    }
-
-    @keyframes ind-led-blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-
-    @keyframes ind-led-blink-fast {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    /* ============================================
-       响应式调整
-       ============================================ */
-
-    @media (max-width: 1400px) {
-      #ind-dock {
-        transform: translateX(-50%) scale(0.9);
-      }
-
-      #ind-panel {
-        transform: scale(0.9);
-        transform-origin: top right;
-      }
-    }
-
-    @media (max-width: 1200px) {
-      #ind-dock {
-        transform: translateX(-50%) scale(0.85);
-        padding: 10px 12px;
-      }
-
-      #ind-panel {
-        width: 280px;
-        transform: scale(0.85);
-        transform-origin: top right;
-      }
-    }
-
+    /* === Ind theme now uses the Glass visual (Task 5) === */
 
     /* === retro的全部CSS（从v9-retro-fragment.html的style标签复制，但删除retro-boot-sequence相关）=== */
 
@@ -2980,7 +2028,7 @@ body {
       border-radius: 1px;
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
       transition: all 0.3s ease;
-      opacity: 0.32;
+      opacity: 0.48;
     }
 
     .retro-led-segment.active {
@@ -3593,7 +2641,7 @@ body {
     --lux-text-gold: var(--lux-gold-light);
 
     /* --- 尺寸令牌 --- */
-    --lux-dock-width: 920px; /* Phase 6 fix: 进一步加宽，确保手柄+6模块+温度+设置按钮完整显示 */
+    --lux-dock-width: 940px; /* Task 4 polish: 再宽 20px，让设置按钮更从容 */
     --lux-dock-height: 70px;
     --lux-panel-width: 360px;
     --lux-panel-height: auto;
@@ -4191,6 +3239,7 @@ body::before {
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
+    margin-bottom: 6px;
     backdrop-filter: blur(8px) saturate(120%);
     -webkit-backdrop-filter: blur(8px) saturate(120%);
     background: rgba(255, 255, 255, 0.05);
@@ -5056,6 +4105,14 @@ body.cyber-active {
 .cyber-pod[data-type="swap"] { --pod-accent: var(--cyber-warning); }
 .cyber-pod[data-type="temp"] { --pod-accent: var(--cyber-danger); }
 
+/* Task 4 polish: GPU/VRAM 作为核心指标，顶部信号条更亮更粗以建立视觉层级 */
+.cyber-pod[data-type="gpu"]::before,
+.cyber-pod[data-type="vram"]::before {
+    height: 3px;
+    opacity: 1;
+    box-shadow: 0 0 5px var(--pod-accent), 0 0 10px var(--pod-accent);
+}
+
 .cyber-pod-icon {
     font-size: 12px;
     line-height: 1;
@@ -5769,6 +4826,551 @@ body.cyber-active {
     .cyber-progress-fill { animation: none; }
 }
 
+/* ============================================
+   6. Ind Theme — Deep-space Glassmorphism
+   ============================================ */
+
+/* Scoped color systems. Applied to #ind-dock / #ind-panel by JS. */
+.ind-theme-aurora {
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-bg-solid: rgba(16, 20, 28, 0.55);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-highlight: rgba(255, 255, 255, 0.25);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    --glass-accent-1: #00f0ff;
+    --glass-accent-2: #ff00aa;
+    --glass-text: rgba(255, 255, 255, 0.92);
+    --glass-text-dim: rgba(255, 255, 255, 0.60);
+    --glass-glow: rgba(0, 240, 255, 0.35);
+}
+.ind-theme-ocean {
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-bg-solid: rgba(12, 24, 36, 0.58);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-highlight: rgba(255, 255, 255, 0.22);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+    --glass-accent-1: #00b8d4;
+    --glass-accent-2: #006064;
+    --glass-text: rgba(255, 255, 255, 0.92);
+    --glass-text-dim: rgba(255, 255, 255, 0.60);
+    --glass-glow: rgba(0, 184, 212, 0.35);
+}
+.ind-theme-sunset {
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-bg-solid: rgba(32, 18, 16, 0.58);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-highlight: rgba(255, 255, 255, 0.22);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+    --glass-accent-1: #ff6b35;
+    --glass-accent-2: #ff9100;
+    --glass-text: rgba(255, 255, 255, 0.92);
+    --glass-text-dim: rgba(255, 255, 255, 0.60);
+    --glass-glow: rgba(255, 107, 53, 0.35);
+}
+.ind-theme-forest {
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-bg-solid: rgba(12, 26, 18, 0.58);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-highlight: rgba(255, 255, 255, 0.22);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+    --glass-accent-1: #00c853;
+    --glass-accent-2: #1b5e20;
+    --glass-text: rgba(255, 255, 255, 0.92);
+    --glass-text-dim: rgba(255, 255, 255, 0.60);
+    --glass-glow: rgba(0, 200, 83, 0.35);
+}
+.ind-theme-midnight {
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-bg-solid: rgba(24, 14, 36, 0.58);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-highlight: rgba(255, 255, 255, 0.22);
+    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+    --glass-accent-1: #d500f9;
+    --glass-accent-2: #311b92;
+    --glass-text: rgba(255, 255, 255, 0.92);
+    --glass-text-dim: rgba(255, 255, 255, 0.60);
+    --glass-glow: rgba(213, 0, 249, 0.35);
+}
+
+#ind-dock {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10001;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-width: 720px;
+    max-width: 94vw;
+    height: 64px;
+    padding: 6px 48px 6px 44px;
+    border-radius: 999px;
+    background: var(--glass-bg-solid, rgba(16, 20, 28, 0.55));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.25)),
+        var(--glass-shadow, 0 12px 40px rgba(0, 0, 0, 0.35));
+    color: var(--glass-text, rgba(255,255,255,0.92));
+    font-family: var(--neu-font-ui, 'Inter', sans-serif);
+    box-sizing: border-box;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.ind-dock-handle {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: grab;
+    opacity: 0.55;
+}
+.ind-dock-handle:active { cursor: grabbing; }
+.ind-handle-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.ind-cockpit {
+    flex: 1;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+.ind-metric {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 90px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+.ind-metric:last-of-type { border-right: none; }
+
+.ind-metric-icon {
+    font-size: 16px;
+    line-height: 1;
+    filter: drop-shadow(0 0 4px var(--glass-accent-1, #00f0ff));
+}
+.ind-metric-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.ind-metric-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6px;
+}
+.ind-metric-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    white-space: nowrap;
+}
+.ind-metric-value {
+    font-size: 15px;
+    font-weight: 700;
+    font-family: var(--neu-font-mono, monospace);
+    color: var(--glass-text, rgba(255,255,255,0.92));
+    text-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+}
+.ind-metric-unit {
+    font-size: 9px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    margin-left: 1px;
+}
+.ind-metric-bar {
+    height: 3px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.ind-metric-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
+    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.35));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+}
+
+.ind-settings-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.14));
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--glass-text, rgba(255,255,255,0.92));
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.ind-settings-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.35));
+}
+
+#ind-panel {
+    position: fixed;
+    top: 88px;
+    right: 20px;
+    z-index: 10000;
+    width: 360px;
+    max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    border-radius: 20px;
+    padding: 18px;
+    color: var(--glass-text, rgba(255,255,255,0.92));
+    background: var(--glass-bg, rgba(255,255,255,0.08));
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.14));
+    box-shadow:
+        inset 0 1px 0 var(--glass-highlight, rgba(255,255,255,0.25)),
+        var(--glass-shadow, 0 12px 40px rgba(0,0,0,0.35));
+    font-family: var(--neu-font-ui, 'Inter', sans-serif);
+    box-sizing: border-box;
+}
+#ind-panel::-webkit-scrollbar { width: 6px; }
+#ind-panel::-webkit-scrollbar-track { background: transparent; }
+#ind-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.ind-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+.ind-brand-text h1 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--glass-text, rgba(255,255,255,0.92));
+}
+.ind-brand-text span {
+    font-size: 10px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+}
+.ind-header-actions {
+    display: flex;
+    gap: 6px;
+}
+.ind-action-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.14));
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--glass-text, rgba(255,255,255,0.92));
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.ind-action-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+}
+
+.ind-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.ind-metric-card {
+    border-radius: 14px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    text-align: center;
+}
+.ind-metric-card-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    margin-bottom: 4px;
+}
+.ind-metric-card-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: var(--neu-font-mono, monospace);
+    color: var(--glass-text, rgba(255,255,255,0.92));
+    text-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+}
+.ind-metric-card-unit {
+    font-size: 11px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+}
+
+.ind-section {
+    margin-bottom: 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+.ind-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+}
+.ind-section-header:hover { background: rgba(255, 255, 255, 0.04); }
+.ind-section-header.collapsed { border-radius: 14px; }
+.ind-section-header.collapsed + .ind-section-content { display: none; }
+.ind-section-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--glass-text, rgba(255,255,255,0.92));
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ind-section-icon { font-size: 12px; }
+.ind-section-toggle {
+    font-size: 10px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    transition: transform 0.25s ease;
+}
+.ind-section-header.collapsed .ind-section-toggle { transform: rotate(-90deg); }
+.ind-section-content { padding: 0 12px 12px; }
+
+.ind-progress-row { margin-bottom: 10px; }
+.ind-progress-row:last-child { margin-bottom: 0; }
+.ind-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    margin-bottom: 5px;
+}
+.ind-progress-label {
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ind-progress-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--glass-accent-1, #00f0ff);
+    box-shadow: 0 0 6px var(--glass-glow, rgba(0,240,255,0.35));
+}
+.ind-progress-badge {
+    font-weight: 700;
+    font-family: var(--neu-font-mono, monospace);
+    color: var(--glass-text, rgba(255,255,255,0.92));
+}
+.ind-progress-track {
+    height: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.30);
+}
+.ind-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
+    border-radius: 5px;
+    box-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+    transition: width 0.5s ease;
+}
+
+.ind-details-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ind-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+}
+.ind-detail-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+}
+.ind-detail-right {
+    font-family: var(--neu-font-mono, monospace);
+    color: var(--glass-text, rgba(255,255,255,0.92));
+}
+
+.ind-settings-section { margin-top: 14px; }
+.ind-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ind-setting-row:last-child { border-bottom: none; }
+.ind-setting-label {
+    font-size: 12px;
+    color: var(--glass-text, rgba(255,255,255,0.92));
+}
+.ind-toggle-switch {
+    width: 38px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.ind-toggle-switch.active {
+    background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
+    border-color: transparent;
+    box-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+}
+.ind-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s ease;
+}
+.ind-toggle-switch.active .ind-toggle-thumb { transform: translateX(18px); }
+
+.ind-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 6px;
+}
+.ind-radio-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.ind-radio-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--glass-text, rgba(255,255,255,0.92));
+}
+.ind-radio-btn.active {
+    color: #0b0d12;
+    background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
+    border-color: transparent;
+    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.35));
+}
+
+.ind-panel-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    font-size: 10px;
+    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+}
+.ind-status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--glass-accent-1, #00f0ff);
+    box-shadow: 0 0 6px var(--glass-glow, rgba(0,240,255,0.35));
+    margin-right: 6px;
+}
+
+@media (max-width: 860px) {
+    #ind-dock {
+        min-width: auto;
+        width: calc(100vw - 24px);
+        height: auto;
+        min-height: 58px;
+        padding: 8px 44px 8px 40px;
+        flex-wrap: wrap;
+    }
+    .ind-cockpit {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        row-gap: 6px;
+    }
+    .ind-metric {
+        border-right: none;
+        padding: 4px 8px;
+    }
+    .ind-metric-bar { display: none; }
+    #ind-panel {
+        top: auto;
+        bottom: 12px;
+        right: 12px;
+        width: calc(100vw - 24px);
+        max-height: calc(100vh - 180px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ind-metric-bar-fill,
+    .ind-progress-fill { transition: none; }
+}
+
   
 `;
 
@@ -5806,7 +5408,7 @@ body.cyber-active {
             sound_alert: '声音提示', drag_mode: '拖拽模式', theme: '主题',
             color: '色彩', settings: '设置', settings_panel: '设置面板', close: '关闭',
             // 风格名称
-            theme_name_neu: '拟物白', theme_name_ind: '钛金仪', theme_name_retro: '复古终端',
+            theme_name_neu: '拟物白', theme_name_ind: '流光玻璃', theme_name_retro: '复古终端',
             theme_name_lux: '珠宝柜', theme_name_cyber: '量子核', theme_name_capsule: '翡翠胶囊',
             // 状态/来源
             source_prefix: '来源: ', detecting: '检测中...',
@@ -5831,7 +5433,7 @@ body.cyber-active {
             net_up: 'Upload', net_down: 'Download',
             sound_alert: 'Sound Alert', drag_mode: 'Drag Mode', theme: 'Theme',
             color: 'Color', settings: 'Settings', settings_panel: 'Settings Panel', close: 'Close',
-            theme_name_neu: 'Neu', theme_name_ind: 'Ind', theme_name_retro: 'Retro',
+            theme_name_neu: 'Neu', theme_name_ind: 'Glass', theme_name_retro: 'Retro',
             theme_name_lux: 'Lux', theme_name_cyber: 'Cyber', theme_name_capsule: 'Capsule',
             source_prefix: 'Source: ', detecting: 'Detecting...',
             plugin_active: 'ComfyUI Plugin Active',
@@ -5865,7 +5467,7 @@ body.cyber-active {
     /** 风格→CSS类名映射 + 显示信息 */
     const THEME_CLASS_MAP = {
         neu:   { dockClass: 'neu-dock', panelClass: 'neu-panel', bodyClass: 'neu-active', name: '拟物白' },
-        ind:   { dockClass: 'ind-dock',  panelClass: 'ind-panel',  bodyClass: 'ind-active',  name: '钛金仪' },
+        ind:   { dockClass: 'ind-dock',  panelClass: 'ind-panel',  bodyClass: 'ind-active',  name: '流光玻璃' },
         retro: { dockClass: 'retro-dock',panelClass: 'retro-panel',bodyClass: 'retro-active',name: '复古终端' },
         lux:   { dockClass: 'lux-dock',  panelClass: 'lux-panel',  bodyClass: 'lux-active',  name: '珠宝柜' },
         cyber: { dockClass: 'cyber-dock',panelClass: 'cyber-panel',bodyClass: 'cyber-active',name: '量子核' }
@@ -5914,7 +5516,7 @@ body.cyber-active {
                     buildNeuDock(dock, metrics);
                     break;
                 case 'ind':
-                    dock.className = 'ind-dock style-hidden';
+                    dock.className = 'ind-dock style-hidden ind-theme-' + currentColor;
                     buildIndDock(dock, metrics);
                     break;
                 case 'retro':
@@ -5929,6 +5531,7 @@ body.cyber-active {
                     dock.className = 'cyber-dock';
                     buildCyberDock(dock, metrics);
                     break;
+
             }
 
             document.body.appendChild(dock);
@@ -5991,101 +5594,6 @@ body.cyber-active {
         btn.id = 'neu-settingsBtn';
         btn.title = t('settings_panel');
         btn.textContent = '\u2699';
-        btn.addEventListener('click', (e) => { e.stopPropagation(); togglePanel(currentStyle); });
-        dock.appendChild(btn);
-    }
-
-    /** Ind Dock 内部构建（钛金仪）*/
-    function buildIndDock(dock, metrics) {
-        // 四角螺丝
-        ['tl','tr','bl','br'].forEach(pos => {
-            const screw = document.createElement('div');
-            screw.className = 'ind-screw ' + pos;
-            dock.appendChild(screw);
-        });
-
-        // 拖拽手柄
-        const handle = document.createElement('div');
-        handle.className = 'ind-drag-handle';
-        handle.title = t('drag_move');
-        for (let i = 0; i < 5; i++) {
-            const line = document.createElement('div');
-            line.className = 'ind-drag-line';
-            handle.appendChild(line);
-        }
-        dock.appendChild(handle);
-
-        // VU仪表指标
-        metrics.forEach(m => {
-            const metric = document.createElement('div');
-            metric.className = 'ind-metric';
-
-            const label = document.createElement('span');
-            label.className = 'ind-metric-label';
-            label.textContent = m.label;
-
-            if (m.type === 'temp') {
-                // 温度特殊显示
-                const tempDisp = document.createElement('div');
-                tempDisp.className = 'ind-temp-display';
-                const tVal = document.createElement('span');
-                tVal.className = 'ind-temp-value';
-                tVal.id = 'ind-temp-value';
-                tVal.textContent = '--';
-                const tUnit = document.createElement('span');
-                tUnit.className = 'ind-temp-unit';
-                tUnit.textContent = '\u00B0C';
-                tempDisp.appendChild(tVal);
-                tempDisp.appendChild(tUnit);
-
-                const tempBar = document.createElement('div');
-                tempBar.className = 'ind-temp-bar';
-                const ind = document.createElement('div');
-                ind.className = 'ind-temp-indicator';
-                ind.id = 'ind-temp-indicator';
-                ind.style.left = '0%';
-                tempBar.appendChild(ind);
-
-                metric.appendChild(label);
-                metric.appendChild(tempDisp);
-                metric.appendChild(tempBar);
-            } else {
-                const value = document.createElement('span');
-                value.className = 'ind-metric-value';
-                value.id = 'ind-' + m.type + '-value';
-                value.textContent = '--';
-
-                const vuMeter = document.createElement('div');
-                vuMeter.className = 'ind-vu-meter';
-                [100, 100, 100, 100, 0, 0].forEach((w, i) => {
-                    const seg = document.createElement('div');
-                    seg.className = 'ind-vu-segment';
-                    if (i < 2) seg.classList.add('green');
-                    else if (i < 3) seg.classList.add('amber');
-                    else if (i < 4) seg.classList.add('red');
-                    seg.style.width = w + '%';
-                    vuMeter.appendChild(seg);
-                });
-                // 用一个fill元素代替多段
-                vuMeter.innerHTML = '';
-                const fillSeg = document.createElement('div');
-                fillSeg.className = 'ind-vu-segment green';
-                fillSeg.id = 'ind-' + m.type + '-vu-fill';
-                fillSeg.style.width = '0%';
-                vuMeter.appendChild(fillSeg);
-
-                metric.appendChild(label);
-                metric.appendChild(value);
-                metric.appendChild(vuMeter);
-            }
-
-            dock.appendChild(metric);
-        });
-
-        // 设置按钮
-        const btn = document.createElement('button');
-        btn.className = 'ind-settings-btn';
-        btn.title = t('settings');
         btn.addEventListener('click', (e) => { e.stopPropagation(); togglePanel(currentStyle); });
         dock.appendChild(btn);
     }
@@ -6340,7 +5848,83 @@ body.cyber-active {
         dock.appendChild(btn);
     }
 
-    // ============================================================
+    
+    /** Ind Dock 内部构建（深空玻璃胶囊） */
+    function buildIndDock(dock, metrics) {
+        const handle = document.createElement('div');
+        handle.className = 'ind-dock-handle';
+        handle.title = t('drag_move');
+        for (let i = 0; i < 3; i++) {
+            const dot = document.createElement('span');
+            dot.className = 'ind-handle-dot';
+            handle.appendChild(dot);
+        }
+        dock.appendChild(handle);
+
+        const cockpit = document.createElement('div');
+        cockpit.className = 'ind-cockpit';
+        metrics.forEach(m => {
+            const metric = document.createElement('div');
+            metric.className = 'ind-metric';
+            metric.setAttribute('data-type', m.type);
+
+            const icon = document.createElement('span');
+            icon.className = 'ind-metric-icon';
+            icon.textContent = m.icon;
+
+            const info = document.createElement('div');
+            info.className = 'ind-metric-info';
+
+            const topRow = document.createElement('div');
+            topRow.className = 'ind-metric-top';
+
+            const label = document.createElement('span');
+            label.className = 'ind-metric-label';
+            label.textContent = m.label;
+
+            const valueWrap = document.createElement('span');
+            valueWrap.style.cssText = 'display:flex;align-items:baseline;';
+            const value = document.createElement('span');
+            value.className = 'ind-metric-value';
+            value.id = 'ind-chip-' + m.type + '-value';
+            value.textContent = '--';
+            const unit = document.createElement('span');
+            unit.className = 'ind-metric-unit';
+            unit.id = 'ind-chip-' + m.type + '-unit';
+            unit.textContent = m.type === 'temp' ? '\u00B0C' : (m.type === 'swap' || m.type === 'vram' ? 'GB' : '%');
+            valueWrap.appendChild(value);
+            valueWrap.appendChild(unit);
+
+            topRow.appendChild(label);
+            topRow.appendChild(valueWrap);
+
+            const bar = document.createElement('div');
+            bar.className = 'ind-metric-bar';
+            const fill = document.createElement('div');
+            fill.className = 'ind-metric-bar-fill';
+            fill.id = 'ind-chip-' + m.type + '-progress';
+            fill.style.width = '0%';
+            bar.appendChild(fill);
+
+            info.appendChild(topRow);
+            info.appendChild(bar);
+
+            metric.appendChild(icon);
+            metric.appendChild(info);
+            cockpit.appendChild(metric);
+        });
+        dock.appendChild(cockpit);
+
+        const btn = document.createElement('button');
+        btn.className = 'ind-settings-btn';
+        btn.id = 'ind-settingsBtn';
+        btn.title = t('settings_panel');
+        btn.textContent = '\u2699';
+        btn.addEventListener('click', (e) => { e.stopPropagation(); togglePanel(currentStyle); });
+        dock.appendChild(btn);
+    }
+
+// ============================================================
     // Panel DOM 创建 — 为全部5种风格创建控制面板
     // ============================================================
 
@@ -6361,7 +5945,7 @@ body.cyber-active {
                     buildNeuPanel(panel);
                     break;
                 case 'ind':
-                    panel.className = 'ind-panel style-hidden';
+                    panel.className = 'ind-panel style-hidden ind-theme-' + currentColor;
                     buildIndPanel(panel);
                     break;
                 case 'retro':
@@ -6376,6 +5960,7 @@ body.cyber-active {
                     panel.className = 'cyber-panel style-hidden';
                     buildCyberPanel(panel);
                     break;
+
             }
 
             document.body.appendChild(panel);
@@ -6387,7 +5972,8 @@ body.cyber-active {
         const headerSelectors = [
             '.neu-section-header',
             '.lux-section-header',
-            '.cyber-section-header'
+            '.cyber-section-header',
+            '.ind-section-header'
         ];
         headerSelectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(header => {
@@ -6608,105 +6194,6 @@ body.cyber-active {
                 const dock = document.getElementById('neu-dock');
                 if (dock) {
                     const handle = dock.querySelector('.neu-dock-handle');
-                    if (handle) handle.style.pointerEvents = isActive ? 'auto' : 'none';
-                    if (!isActive) resetDockPosition(dock); // 关闭 Drag Mode 时 dock 自动归位
-                }
-            });
-            // 防止拖拽系统拦截toggle点击
-            dragToggle.addEventListener('mousedown', e => e.stopPropagation());
-            dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-        }
-    }
-
-    /** 构建Ind Panel内容 */
-    function buildIndPanel(panel) {
-        panel.innerHTML =
-            // 四角螺丝
-            '<div class="ind-screw tl"></div><div class="ind-screw tr"></div><div class="ind-screw bl"></div><div class="ind-screw br"></div>' +
-            // 模块1: 风格选择窗口
-            '<div class="ind-recess-window"><div class="ind-window-title">// ' + t('theme') + '</div><div class="ind-style-buttons">' +
-                VALID_STYLES.map(s => '<button class="ind-style-btn'+(s==='ind'?' active':'')+'" data-target="'+s+'">'+t('theme_name_'+s)+'</button>').join('') +
-            '</div></div>' +
-            // 模块2: 色彩主题色块
-            '<div class="ind-recess-window"><div class="ind-window-title">// ' + t('color') + '</div><div class="ind-theme-swatches">' +
-                '<div class="ind-swatch cyan active" title="' + t('color') + '" data-color="cyan"></div>' +
-                '<div class="ind-swatch amber" title="' + t('color') + '" data-color="amber"></div>' +
-                '<div class="ind-swatch red" title="' + t('color') + '" data-color="red"></div>' +
-                '<div class="ind-swatch green" title="' + t('color') + '" data-color="green"></div>' +
-                '<div class="ind-swatch purple" title="' + t('color') + '" data-color="purple"></div>' +
-            '</div></div>' +
-            // 模块3: 系统负载详情进度条
-            '<div class="ind-recess-window"><div class="ind-window-title">// ' + t('system_resources') + '</div><div class="ind-detail-meter">' +
-                '<div class="ind-detail-row"><span class="ind-detail-label">' + t('gpu') + '</span><div class="ind-detail-bar-container"><div class="ind-detail-bar gpu" id="idp-gpu-bar" style="width:0%"></div></div><span class="ind-detail-value" id="idp-gpu-val" style="color:var(--ind-accent-color, #00ddff);">--%</span></div>' +
-                '<div class="ind-detail-row"><span class="ind-detail-label">' + t('vram') + '</span><div class="ind-detail-bar-container"><div class="ind-detail-bar vram" id="idp-vram-bar" style="width:0%"></div></div><span class="ind-detail-value" id="idp-vram-val" style="color:var(--ind-accent-color, #00ddff);">--%</span></div>' +
-                '<div class="ind-detail-row"><span class="ind-detail-label">' + t('cpu') + '</span><div class="ind-detail-bar-container"><div class="ind-detail-bar cpu" id="idp-cpu-bar" style="width:0%"></div></div><span class="ind-detail-value" id="idp-cpu-val" style="color:var(--ind-accent-color, #00ddff);">--%</span></div>' +
-                '<div class="ind-detail-row"><span class="ind-detail-label">' + t('ram') + '</span><div class="ind-detail-bar-container"><div class="ind-detail-bar ram" id="idp-ram-bar" style="width:0%"></div></div><span class="ind-detail-value" id="idp-ram-val" style="color:var(--ind-accent-color, #00ddff);">--%</span></div>' +
-                '<div class="ind-detail-row"><span class="ind-detail-label">' + t('swap') + '</span><div class="ind-detail-bar-container"><div class="ind-detail-bar swap" id="idp-swap-bar" style="width:0%"></div></div><span class="ind-detail-value" id="idp-swap-val" style="color:var(--ind-accent-color, #00ddff);">-- GB</span></div>' +
-            '</div></div>' +
-            // 模块4: I/O 监控
-            '<div class="ind-recess-window"><div class="ind-window-title">// ' + t('io_network') + '</div><div class="ind-io-section">' +
-                '<div class="ind-io-box"><div class="ind-io-title"><span class="ind-led green"></span>' + t('disks_io') + '</div><div class="ind-io-stats">' +
-                    '<div class="ind-io-row"><span class="ind-io-direction up">' + t('disk_read') + '</span><span class="ind-io-value" id="idp-disk-read">-- MB/s</span></div>' +
-                    '<div class="ind-io-row"><span class="ind-io-direction down">' + t('disk_write') + '</span><span class="ind-io-value" id="idp-disk-write">-- MB/s</span></div>' +
-                '</div></div>' +
-                '<div class="ind-io-box"><div class="ind-io-title"><span class="ind-led amber"></span>' + t('network_io') + '</div><div class="ind-io-stats">' +
-                    '<div class="ind-io-row"><span class="ind-io-direction down">' + t('net_down') + '</span><span class="ind-io-value" id="idp-net-down">-- MB/s</span></div>' +
-                    '<div class="ind-io-row"><span class="ind-io-direction up">' + t('net_up') + '</span><span class="ind-io-value" id="idp-net-up">-- MB/s</span></div>' +
-                '</div></div>' +
-            '</div></div>' +
-            // 模块5: 控制选项 Toggle
-            '<div class="ind-recess-window"><div class="ind-window-title">// ' + t('settings') + '</div><div class="ind-toggle-section">' +
-                '<div class="ind-toggle-row"><span class="ind-toggle-label">' + t('sound_alert') + '</span><button class="ind-toggle active" id="ind-soundToggle" role="switch" aria-checked="true"><div class="ind-toggle-knob"></div></button></div>' +
-                '<div class="ind-toggle-row"><span class="ind-toggle-label">' + t('drag_mode') + '</span><button class="ind-toggle" id="ind-dragToggle" role="switch" aria-checked="false"><div class="ind-toggle-knob"></div></button></div>' +
-            '</div></div>' +
-            // 模块6: 系统信息
-            '<div class="ind-recess-window"><div class="ind-window-title">// ' + t('system') + '</div><div class="ind-info-section">' +
-                '<div class="ind-version"><span><span class="ind-led green"></span>FEIXUE MONITOR v3.25</span><span class="ind-version-badge">STABLE</span></div>' +
-                '<div class="ind-amd-smi" id="ind-amd-smi-info">&gt; amdsmi --info<br/>GPU: ' + t('detecting') + '<br/>Driver: --<br/>VBIOS: --<br/>' + t('temp') + ': --°C | Power: --W<br/>Clock: -- MHz / -- MHz</div>' +
-            '</div></div>';
-
-        // 事件绑定: [data-target] 按钮 → switchStyle()
-        panel.querySelectorAll('[data-target]').forEach(btn => {
-            btn.addEventListener('click', () => switchStyle(btn.dataset.target));
-        });
-
-        // 事件绑定: .ind-swatch → 切换 CSS 变量
-        panel.querySelectorAll('.ind-swatch').forEach(swatch => {
-            swatch.addEventListener('click', function() {
-                switchColor(this.dataset.color);
-            });
-        });
-
-        // 事件绑定: #ind-soundToggle → 绑定音频系统
-        const soundToggle = panel.querySelector('#ind-soundToggle');
-        if (soundToggle) {
-            soundToggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-                const isActive = this.classList.contains('active');
-                this.setAttribute('aria-checked', isActive.toString());
-                console.log('[飞雪监测器] Ind Sound Alert:', isActive);
-                if (typeof window.FxMonitorSound !== 'undefined') {
-                    window.FxMonitorSound.setEnabled(isActive);
-                    syncSoundToggles();
-                }
-            });
-            // 防止拖拽系统拦截toggle点击
-            soundToggle.addEventListener('mousedown', e => e.stopPropagation());
-            soundToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-        }
-
-        // 事件绑定: #ind-dragToggle → 锁定位置语义
-        const dragToggle = panel.querySelector('#ind-dragToggle');
-        if (dragToggle) {
-            dragToggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-                const isActive = this.classList.contains('active');
-                isDragEnabled = isActive;
-                this.setAttribute('aria-checked', isActive.toString());
-                console.log('[飞雪监测器] Ind Drag Mode:', isActive);
-                const dock = document.getElementById('ind-dock');
-                if (dock) {
-                    const handle = dock.querySelector('.ind-drag-handle');
                     if (handle) handle.style.pointerEvents = isActive ? 'auto' : 'none';
                     if (!isActive) resetDockPosition(dock); // 关闭 Drag Mode 时 dock 自动归位
                 }
@@ -7022,7 +6509,118 @@ body.cyber-active {
         }
     }
 
-    // ============================================================
+    
+    /** 构建Ind Panel内容 */
+    function buildIndPanel(panel) {
+        panel.innerHTML =
+            '<div class="ind-panel-header">' +
+                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.25</span></div>' +
+                '<div class="ind-header-actions">' +
+                    '<button class="ind-action-btn" id="ind-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
+                    '<button class="ind-action-btn" id="ind-closeBtn" title="' + t('close') + '">&times;</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="ind-metrics-grid">' +
+                '<div class="ind-metric-card"><div class="ind-metric-card-label">' + t('gpu') + ' ' + t('load') + '</div><div class="ind-metric-card-value"><span id="gp-gpu-val">--</span><span class="ind-metric-card-unit">%</span></div></div>' +
+                '<div class="ind-metric-card"><div class="ind-metric-card-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="ind-metric-card-value"><span id="gp-cpu-val">--</span><span class="ind-metric-card-unit">%</span></div></div>' +
+                '<div class="ind-metric-card"><div class="ind-metric-card-label">' + t('ram') + '</div><div class="ind-metric-card-value"><span id="gp-ram-val">--</span><span class="ind-metric-card-unit">%</span></div></div>' +
+            '</div>' +
+            '<section class="ind-section">' +
+                '<div class="ind-section-header" role="button" tabindex="0" aria-expanded="true"><div class="ind-section-title"><span class="ind-section-icon">&#x1F3AE;</span>' + t('gpu_vram_details') + '</div><span class="ind-section-toggle">&#x25BC;</span></div>' +
+                '<div class="ind-section-content">' +
+                    '<div class="ind-progress-row"><div class="ind-progress-header"><span class="ind-progress-label"><span class="ind-progress-dot"></span>' + t('core_usage') + '</span><span class="ind-progress-badge" id="gp-gpu-badge">--%</span></div><div class="ind-progress-track"><div class="ind-progress-fill" id="gp-gpu-pb" style="width:0%"></div></div></div>' +
+                    '<div class="ind-progress-row"><div class="ind-progress-header"><span class="ind-progress-label"><span class="ind-progress-dot"></span>' + t('vram_usage') + '</span><span class="ind-progress-badge" id="gp-vram-badge">--</span></div><div class="ind-progress-track"><div class="ind-progress-fill" id="gp-vram-pb" style="width:0%"></div></div></div>' +
+                    '<div class="ind-progress-row"><div class="ind-progress-header"><span class="ind-progress-label"><span class="ind-progress-dot"></span>' + t('temperature') + '</span><span class="ind-progress-badge" id="gp-temp-badge">--\u00B0C</span></div><div class="ind-progress-track"><div class="ind-progress-fill" id="gp-temp-pb" style="width:0%"></div></div></div>' +
+                '</div>' +
+            '</section>' +
+            '<section class="ind-section">' +
+                '<div class="ind-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="ind-section-title"><span class="ind-section-icon">&#x26A1;</span>' + t('system_resources') + '</div><span class="ind-section-toggle">&#x25BC;</span></div>' +
+                '<div class="ind-section-content">' +
+                    '<div class="ind-progress-row"><div class="ind-progress-header"><span class="ind-progress-label"><span class="ind-progress-dot"></span>' + t('cpu_usage') + '</span><span class="ind-progress-badge" id="gp-cpu-badge">--%</span></div><div class="ind-progress-track"><div class="ind-progress-fill" id="gp-cpu-pb" style="width:0%"></div></div></div>' +
+                    '<div class="ind-progress-row"><div class="ind-progress-header"><span class="ind-progress-label"><span class="ind-progress-dot"></span>' + t('physical_ram') + '</span><span class="ind-progress-badge" id="gp-ram-badge">--%</span></div><div class="ind-progress-track"><div class="ind-progress-fill" id="gp-ram-pb" style="width:0%"></div></div></div>' +
+                    '<div class="ind-progress-row"><div class="ind-progress-header"><span class="ind-progress-label"><span class="ind-progress-dot"></span>' + t('swap_memory') + '</span><span class="ind-progress-badge" id="gp-swap-badge">-- GB</span></div><div class="ind-progress-track"><div class="ind-progress-fill" id="gp-swap-pb" style="width:0%"></div></div></div>' +
+                '</div>' +
+            '</section>' +
+            '<section class="ind-section">' +
+                '<div class="ind-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="ind-section-title"><span class="ind-section-icon">&#x1F5A5;</span>' + t('io_network') + '</div><span class="ind-section-toggle">&#x25BC;</span></div>' +
+                '<div class="ind-section-content"><div class="ind-details-grid">' +
+                    '<div class="ind-detail-item"><div class="ind-detail-left"><span class="ind-detail-icon">&#x1F4BE;</span><span>' + t('disks_io') + '</span></div><span class="ind-detail-right" id="gp-disk-detail">R: -- / W: -- MB/s</span></div>' +
+                    '<div class="ind-detail-item"><div class="ind-detail-left"><span class="ind-detail-icon">&#x1F310;</span><span>' + t('network_io') + '</span></div><span class="ind-detail-right" id="gp-net-detail">&#x2191; -- / &#x2193; -- MB/s</span></div>' +
+                '</div></div>' +
+            '</section>' +
+            '<div class="ind-section">' +
+                '<div class="ind-section-content" style="padding-top:12px;">' +
+                    '<div class="ind-setting-row"><label class="ind-setting-label" for="ind-soundToggle">' + t('sound_alert') + '</label><button class="ind-toggle-switch active" id="ind-soundToggle" role="switch" aria-checked="true" aria-label="' + t('sound_alert') + '"><span class="ind-toggle-thumb"></span></button></div>' +
+                    '<div class="ind-setting-row"><label class="ind-setting-label" for="ind-dragToggle">' + t('drag_mode') + '</label><button class="ind-toggle-switch" id="ind-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="ind-toggle-thumb"></span></button></div>' +
+                    '<div class="ind-setting-row" style="flex-direction:column;align-items:flex-start;"><label class="ind-setting-label">' + t('theme') + '</label><div class="ind-radio-group">' +
+                        VALID_STYLES.map(s => '<button class="ind-radio-btn'+(s==='ind'?' active':'')+'" data-target="'+s+'">'+s.toUpperCase()+'</button>').join('') +
+                    '</div></div>' +
+                    '<div class="ind-setting-row" style="flex-direction:column;align-items:flex-start;"><label class="ind-setting-label">' + t('color') + '</label><div class="ind-radio-group">' +
+                        COLOR_WHITELIST.map(c => '<button class="ind-radio-btn'+(c==='aurora'?' active':'')+'" data-color="'+c+'">'+c.toUpperCase()+'</button>').join('') +
+                    '</div></div>' +
+                '</div>' +
+            '</div>' +
+            '<footer class="ind-panel-footer">' +
+                '<div><span class="ind-status-dot"></span><span id="gp-source-text">' + t('plugin_active') + '</span></div>' +
+                '<span>v3.25 Build 2026.06.22</span>' +
+            '</footer>';
+
+        const closeBtn = panel.querySelector('#ind-closeBtn');
+        if (closeBtn) closeBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePanel('ind'); });
+
+        const minimizeBtn = panel.querySelector('#ind-minimizeBtn');
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const indPanel = document.getElementById('ind-panel');
+                if (indPanel) indPanel.classList.toggle('style-hidden');
+            });
+        }
+
+        panel.querySelectorAll('[data-target]').forEach(btn => {
+            btn.addEventListener('click', () => switchStyle(btn.dataset.target));
+        });
+        panel.querySelectorAll('[data-color]').forEach(btn => {
+            btn.addEventListener('click', () => switchColor(btn.dataset.color));
+        });
+
+        const soundToggle = panel.querySelector('#ind-soundToggle');
+        if (soundToggle) {
+            soundToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const isActive = this.classList.contains('active');
+                this.setAttribute('aria-checked', isActive.toString());
+                console.log('[飞雪监测器] Ind Sound Alert:', isActive);
+                if (typeof window.FxMonitorSound !== 'undefined') {
+                    window.FxMonitorSound.setEnabled(isActive);
+                    syncSoundToggles();
+                }
+            });
+            soundToggle.addEventListener('mousedown', e => e.stopPropagation());
+            soundToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        const dragToggle = panel.querySelector('#ind-dragToggle');
+        if (dragToggle) {
+            dragToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const isActive = this.classList.contains('active');
+                isDragEnabled = isActive;
+                this.setAttribute('aria-checked', isActive.toString());
+                console.log('[飞雪监测器] Ind Drag Mode:', isActive);
+                const dock = document.getElementById('ind-dock');
+                if (dock) {
+                    const handle = dock.querySelector('.ind-dock-handle');
+                    if (handle) handle.style.pointerEvents = isActive ? 'auto' : 'none';
+                    if (!isActive) resetDockPosition(dock);
+                }
+            });
+            dragToggle.addEventListener('mousedown', e => e.stopPropagation());
+            dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+    }
+
+// ============================================================
     // 风格/颜色切换函数
     // ============================================================
 
@@ -7060,6 +6658,20 @@ body.cyber-active {
         });
 
         currentStyle = target;
+
+        // Ind主题初次显示时同步当前配色类
+        if (target === 'ind') {
+            const indDock = document.getElementById('ind-dock');
+            const indPanel = document.getElementById('ind-panel');
+            ['ind-theme-aurora','ind-theme-ocean','ind-theme-sunset','ind-theme-forest','ind-theme-midnight'].forEach(c => {
+                if (indDock) indDock.classList.remove(c);
+                if (indPanel) indPanel.classList.remove(c);
+            });
+            if (indDock) indDock.classList.add('ind-theme-' + currentColor);
+            if (indPanel) indPanel.classList.add('ind-theme-' + currentColor);
+        }
+
+
 
         // 持久化
         try {
@@ -7106,28 +6718,6 @@ body.cyber-active {
 
         // === Neu主题: data-neu-theme 属性（保持原有逻辑）===
         document.body.setAttribute('data-neu-theme', resolvedColor);
-
-        // === Ind主题: --ind-accent-color 变量 ===
-        const indColorMap = {
-            cyan: '#00ddff', aurora: '#00f2fe',
-            amber: '#ffaa00', sunset: '#ffaa00', red: '#ff3344',
-            green: '#00ff66', forest: '#39d98a',
-            purple: '#aa66ff', midnight: '#a855f7', ocean: '#4facfe', pink: '#ff66cc'
-        };
-        if (currentStyle === 'ind') {
-            const indColor = indColorMap[color] || indColorMap[resolvedColor] || '#00ddff';
-            document.documentElement.style.setProperty('--ind-accent-color', indColor);
-            // 同步更新swatch选中态（优先匹配原始颜色名）
-            document.querySelectorAll('.ind-swatch').forEach(s => s.classList.remove('active'));
-            let activeSwatch = document.querySelector('.ind-swatch[data-color="' + color + '"]');
-            if (!activeSwatch) {
-                // 若白名单颜色无对应swatch，按近似基础色回退
-                const fallbackMap = { aurora: 'cyan', ocean: 'cyan', sunset: 'amber', forest: 'green', midnight: 'purple', pink: 'red' };
-                const fallbackColor = fallbackMap[color];
-                if (fallbackColor) activeSwatch = document.querySelector('.ind-swatch[data-color="' + fallbackColor + '"]');
-            }
-            if (activeSwatch) activeSwatch.classList.add('active');
-        }
 
         // === Retro主题: 磷光色变量组 ===
         const retroPhosphorMap = {
@@ -7179,6 +6769,18 @@ body.cyber-active {
             document.documentElement.style.setProperty('--cyber-primary-rgb', ct.primaryRgb);
             document.documentElement.style.setProperty('--cyber-secondary', ct.secondary);
             document.documentElement.style.setProperty('--cyber-secondary-rgb', ct.secondaryRgb);
+        }
+
+        // === Ind主题: 应用颜色主题类 ===
+        if (currentStyle === 'ind') {
+            const indDock = document.getElementById('ind-dock');
+            const indPanel = document.getElementById('ind-panel');
+            ['ind-theme-aurora','ind-theme-ocean','ind-theme-sunset','ind-theme-forest','ind-theme-midnight'].forEach(c => {
+                if (indDock) indDock.classList.remove(c);
+                if (indPanel) indPanel.classList.remove(c);
+            });
+            if (indDock) indDock.classList.add('ind-theme-' + resolvedColor);
+            if (indPanel) indPanel.classList.add('ind-theme-' + resolvedColor);
         }
 
         // 更新Neu颜色按钮active状态
@@ -7294,9 +6896,9 @@ body.cyber-active {
         setElWidth('neu-chip-ram-progress', ram !== null ? Math.min(ram, 100) : 0);
 
         if (swapGB !== null && swapGB > 0) {
-            setElText('neu-chip-swap-value', swapGB.toFixed(1));
+            setElText('neu-chip-swap-value', swapGB.toFixed(1) + 'GB');
         } else {
-            setElText('neu-chip-swap-value', '0.0');
+            setElText('neu-chip-swap-value', '0.0GB');
         }
         setElWidth('neu-chip-swap-progress', Math.min(swapPct, 100));
 
@@ -7351,87 +6953,6 @@ body.cyber-active {
             if (typeof window.FxMonitorSound !== 'undefined') {
                 window.FxMonitorSound.play();
             }
-        }
-    }
-
-    /** 渲染数据到Ind风格DOM */
-    function renderIndData(data) {
-        const sanitizeValue = (v) => (v === null || v === undefined || isNaN(v)) ? null : v;
-        const gpu = sanitizeValue(data.gpu?.usage);
-        const cpu = sanitizeValue(data.cpu?.usage);
-        const ram = sanitizeValue(data.ram?.percent);
-        const vramPct = sanitizeValue(data.gpu?.vram_percent);
-        const vramMB = sanitizeValue(data.gpu?.vram_used);
-        const vramTotalMB = sanitizeValue(data.gpu?.vram_total);
-        const temp = sanitizeValue(data.gpu?.temperature);
-        const swapGB = sanitizeValue(data.swap?.used_gb);
-        const swapPct = sanitizeValue(data.swap?.percent) || 0;
-
-        // Detail bars
-        setElWidth('idp-gpu-bar', gpu !== null ? Math.min(gpu, 100) : 0);
-        setElText('idp-gpu-val', gpu !== null ? Math.round(gpu) + '%' : '--%');
-        setElWidth('idp-vram-bar', vramPct !== null ? Math.min(vramPct, 100) : 0);
-        if (vramMB !== null && vramTotalMB !== null) {
-            setElText('idp-vram-val', (vramMB / 1024).toFixed(1) + '/' + (vramTotalMB / 1024).toFixed(0) + 'GB');
-        } else if (vramMB !== null) {
-            setElText('idp-vram-val', (vramMB / 1024).toFixed(1) + 'GB');
-        } else {
-            setElText('idp-vram-val', '--');
-        }
-        setElWidth('idp-cpu-bar', cpu !== null ? Math.min(cpu, 100) : 0);
-        setElText('idp-cpu-val', cpu !== null ? Math.round(cpu) + '%' : '--%');
-        setElWidth('idp-ram-bar', ram !== null ? Math.min(ram, 100) : 0);
-        setElText('idp-ram-val', ram !== null ? Math.round(ram) + '%' : '--%');
-        setElWidth('idp-swap-bar', Math.min(swapPct, 100));
-        setElText('idp-swap-val', swapGB !== null && swapGB > 0 ? swapGB.toFixed(1) + ' GB' : '-- GB');
-
-        // Dock VU metrics (ind-gpu-value, ind-gpu-vu-fill, etc.)
-        setElText('ind-swap-value', swapGB !== null && swapGB > 0 ? swapGB.toFixed(1) : '--');
-        setElWidth('ind-swap-vu-fill', Math.min(swapPct, 100));
-
-        setElText('ind-gpu-value', gpu !== null ? Math.round(gpu) + '%' : '--%');
-        setElWidth('ind-gpu-vu-fill', gpu !== null ? Math.min(gpu, 100) : 0);
-        setElText('ind-vram-value', vramMB !== null ? (vramMB / 1024).toFixed(1) + 'GB' : '--');
-        setElWidth('ind-vram-vu-fill', vramPct !== null ? Math.min(vramPct, 100) : 0);
-        setElText('ind-cpu-value', cpu !== null ? Math.round(cpu) + '%' : '--%');
-        setElWidth('ind-cpu-vu-fill', cpu !== null ? Math.min(cpu, 100) : 0);
-        setElText('ind-ram-value', ram !== null ? Math.round(ram) + '%' : '--%');
-        setElWidth('ind-ram-vu-fill', ram !== null ? Math.min(ram, 100) : 0);
-
-        // Dock temperature indicator (uses left, not width)
-        setElText('ind-temp-value', temp !== null ? Math.round(temp) : '--');
-        const tempIndicator = document.getElementById('ind-temp-indicator');
-        if (tempIndicator) {
-            if (temp !== null) {
-                const tempPct = Math.min(Math.max((temp - 20) / 80 * 100, 0), 100);
-                tempIndicator.style.left = tempPct + '%';
-            } else {
-                tempIndicator.style.left = '0%';
-            }
-        }
-
-        // IO stats
-        const disk = data.disk_io;
-        const net = data.network_io;
-        if (disk) {
-            if (disk.read_mbps !== undefined) setElText('idp-disk-read', disk.read_mbps.toFixed(1) + ' MB/s');
-            if (disk.write_mbps !== undefined) setElText('idp-disk-write', disk.write_mbps.toFixed(1) + ' MB/s');
-        }
-        if (net) {
-            if (net.download_mbps !== undefined) setElText('idp-net-down', net.download_mbps.toFixed(1) + ' MB/s');
-            if (net.upload_mbps !== undefined) setElText('idp-net-up', net.upload_mbps.toFixed(1) + ' MB/s');
-        }
-
-        // AMD SMI info
-        const smiInfo = document.getElementById('ind-amd-smi-info');
-        if (smiInfo && data.gpu) {
-            let lines = ['> amdsmi --info'];
-            if (data.gpu.name) lines.push('GPU: ' + data.gpu.name);
-            if (data.gpu.driver_version) lines.push('Driver: ' + data.gpu.driver_version);
-            if (data.gpu.vbios_version) lines.push('VBIOS: ' + data.gpu.vbios_version);
-            if (temp !== null) lines.push('Temp: ' + Math.round(temp) + '°C | Power: ' + (data.gpu.power_draw || '--') + 'W');
-            if (data.gpu.clock_core) lines.push('Clock: ' + data.gpu.clock_core + ' MHz / ' + (data.gpu.clock_mem || '--') + ' MHz');
-            smiInfo.innerHTML = lines.join('<br/>');
         }
     }
 
@@ -7535,7 +7056,7 @@ body.cyber-active {
 
         const luxSwapGB = sanitizeValue(data.swap?.used_gb);
         const luxSwapPct = sanitizeValue(data.swap?.percent) || 0;
-        setElText('lux-chip-swap-value', luxSwapGB !== null && luxSwapGB > 0 ? luxSwapGB.toFixed(1) : '0.0');
+        setElText('lux-chip-swap-value', luxSwapGB !== null && luxSwapGB > 0 ? luxSwapGB.toFixed(1) + 'GB' : '0.0GB');
         setElWidth('lux-chip-swap-progress', Math.min(luxSwapPct, 100));
 
         // 修复 Lux Dock 温度不显示
@@ -7649,7 +7170,90 @@ body.cyber-active {
         updateSourceText('cyber-source-text', data);
     }
 
-    // ============================================================
+    
+    /** 渲染数据到Ind风格DOM */
+    function renderIndData(data) {
+        const gpu = sanitizeValue(data.gpu?.usage);
+        const vramPct = sanitizeValue(data.gpu?.vram_percent);
+        const vramMB = sanitizeValue(data.gpu?.vram_used);
+        const vramTotalMB = sanitizeValue(data.gpu?.vram_total);
+        const cpu = sanitizeValue(data.cpu?.usage);
+        const ram = sanitizeValue(data.ram?.percent);
+        const swapGB = sanitizeValue(data.swap?.used_gb);
+        const swapPct = sanitizeValue(data.swap?.percent) || 0;
+        const temp = sanitizeValue(data.gpu?.temperature);
+        const diskRead = sanitizeValue(data.disk_io?.read_mbps);
+        const diskWrite = sanitizeValue(data.disk_io?.write_mbps);
+        const netUp = sanitizeValue(data.network_io?.upload_mbps);
+        const netDown = sanitizeValue(data.network_io?.download_mbps);
+
+        // Dock 模块: GPU / VRAM / CPU / RAM / SWAP / TEMP
+        setElText('ind-chip-gpu-value', gpu !== null ? Math.round(gpu) : '--');
+        setElWidth('ind-chip-gpu-progress', gpu !== null ? Math.min(gpu, 100) : 0);
+
+        setElText('ind-chip-vram-value', vramMB !== null ? (vramMB / 1024).toFixed(1) : '--');
+        setElWidth('ind-chip-vram-progress', vramPct !== null ? Math.min(vramPct, 100) : 0);
+
+        setElText('ind-chip-cpu-value', cpu !== null ? Math.round(cpu) : '--');
+        setElWidth('ind-chip-cpu-progress', cpu !== null ? Math.min(cpu, 100) : 0);
+
+        setElText('ind-chip-ram-value', ram !== null ? Math.round(ram) : '--');
+        setElWidth('ind-chip-ram-progress', ram !== null ? Math.min(ram, 100) : 0);
+
+        if (swapGB !== null && swapGB > 0) {
+            setElText('ind-chip-swap-value', swapGB.toFixed(1));
+        } else {
+            setElText('ind-chip-swap-value', '0.0');
+        }
+        setElWidth('ind-chip-swap-progress', Math.min(swapPct, 100));
+
+        setElText('ind-chip-temp-value', temp !== null ? Math.round(temp) : '--');
+        setElWidth('ind-chip-temp-progress', temp !== null ? Math.min(Math.max(temp, 0), 100) : 0);
+
+        // Panel 核心指标卡片
+        setElText('gp-gpu-val', gpu !== null ? Math.round(gpu) : '--');
+        setElText('gp-cpu-val', cpu !== null ? Math.round(cpu) : '--');
+        setElText('gp-ram-val', ram !== null ? Math.round(ram) : '--');
+
+        // GPU & VRAM 详情
+        setElWidth('gp-gpu-pb', gpu !== null ? Math.min(gpu, 100) : 0);
+        setElText('gp-gpu-badge', gpu !== null ? Math.round(gpu) + '%' : '--%');
+
+        if (vramMB !== null && vramTotalMB !== null) {
+            setElText('gp-vram-badge', (vramMB / 1024).toFixed(1) + '/' + (vramTotalMB / 1024).toFixed(0) + 'GB');
+        } else if (vramMB !== null) {
+            setElText('gp-vram-badge', (vramMB / 1024).toFixed(1) + 'GB');
+        } else {
+            setElText('gp-vram-badge', '--');
+        }
+        setElWidth('gp-vram-pb', vramPct !== null ? Math.min(vramPct, 100) : 0);
+
+        const tempPct = temp !== null ? Math.min(Math.max((temp - 20) / 80 * 100, 0), 100) : 0;
+        setElWidth('gp-temp-pb', tempPct);
+        setElText('gp-temp-badge', temp !== null ? Math.round(temp) + '\u00B0C' : '--\u00B0C');
+
+        // 系统资源
+        setElWidth('gp-cpu-pb', cpu !== null ? Math.min(cpu, 100) : 0);
+        setElText('gp-cpu-badge', cpu !== null ? Math.round(cpu) + '%' : '--%');
+
+        setElWidth('gp-ram-pb', ram !== null ? Math.min(ram, 100) : 0);
+        setElText('gp-ram-badge', ram !== null ? Math.round(ram) + '%' : '--%');
+
+        setElWidth('gp-swap-pb', Math.min(swapPct, 100));
+        setElText('gp-swap-badge', swapGB !== null && swapGB > 0 ? swapGB.toFixed(1) + ' GB' : '0.0 GB');
+
+        // I/O & 网络
+        if (diskRead !== null && diskWrite !== null) {
+            setElText('gp-disk-detail', 'R: ' + diskRead.toFixed(1) + ' / W: ' + diskWrite.toFixed(1) + ' MB/s');
+        }
+        if (netUp !== null && netDown !== null) {
+            setElText('gp-net-detail', '\u2191 ' + netUp.toFixed(1) + ' / \u2193 ' + netDown.toFixed(1) + ' MB/s');
+        }
+
+        updateSourceText('gp-source-text', data);
+    }
+
+// ============================================================
     // 辅助工具函数
     // ============================================================
 
@@ -7987,7 +7591,7 @@ body.cyber-active {
      */
     function syncSoundToggles() {
         const isEnabled = window.FxMonitorSound ? window.FxMonitorSound._enabled : true;
-        const toggles = document.querySelectorAll('#neu-soundToggle, #ind-soundToggle, #retro-soundToggle, #lux-soundToggle, #cyber-soundToggle');
+        const toggles = document.querySelectorAll('#neu-soundToggle, #retro-soundToggle, #lux-soundToggle, #cyber-soundToggle, #ind-soundToggle');
         toggles.forEach(toggle => {
             toggle.classList.toggle('active', isEnabled);
             toggle.setAttribute('aria-checked', isEnabled.toString());
@@ -8042,8 +7646,8 @@ body.cyber-active {
 
         // 查找手柄
         const handleSelectors = [
-            '.neu-dock-handle', '.ind-drag-handle', '.retro-drag-handle',
-            '.lux-dock-handle', '.cyber-handle'
+            '.neu-dock-handle', '.retro-drag-handle',
+            '.lux-dock-handle', '.cyber-handle', '.ind-dock-handle'
         ];
         let dragHandle = null;
         for (const sel of handleSelectors) {
@@ -8059,7 +7663,7 @@ body.cyber-active {
 
             const tag = e.target.tagName;
             if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'LABEL') return;
-            if (e.target.closest('button, .neu-radio-btn, .ind-style-btn, .retro-style-btn, .lux-style-chip, .cyber-mode-btn, .ind-toggle, .retro-toggle-switch, .lux-toggle-switch, .cyber-toggle-switch, .neu-toggle-switch, [role="switch"]')) return;
+            if (e.target.closest('button, .neu-radio-btn, .retro-style-btn, .lux-style-chip, .cyber-mode-btn, .ind-radio-btn, .retro-toggle-switch, .lux-toggle-switch, .cyber-toggle-switch, .neu-toggle-switch, .ind-toggle-switch, [role="switch"]')) return;
 
             e.preventDefault();
             isDragging = true;
