@@ -524,14 +524,14 @@
         -10px -10px 18px rgba(255, 255, 255, 0.88);
 
     /* 尺寸令牌 (Design Tokens) */
-    --neu-dock-height: 60px;
-    --neu-dock-width: 800px;
+    --neu-dock-height: 72px;
+    --neu-dock-width: 880px;
     --neu-panel-width: 340px;
     --neu-panel-radius: 24px;
     --neu-card-radius: 18px;
     --neu-header-radius: 16px;
     --neu-button-radius: 12px;
-    --neu-chip-radius: 14px;
+    --neu-chip-radius: 18px;
 
     /* 字体系统 */
     --neu-font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -680,7 +680,7 @@ body {
    ============================================ */
 #neu-dock {
     position: fixed;
-    top: 20px;
+    top: 18px;
     left: 50%;
     transform: translateX(-50%);
     width: var(--neu-dock-width);
@@ -689,28 +689,28 @@ body {
     display: flex;
     align-items: center;
     gap: var(--neu-space-md);
-    padding: 0 var(--neu-space-lg);
+    padding: 0 56px 0 52px;
 
-    /* 纯色陶瓷底（无渐变底色！）*/
+    /* 厚实硅胶/陶瓷带：纯色底 + 大圆角 */
     background-color: var(--neu-base-color);
-    border-radius: 30px;
+    border-radius: 36px;
 
-    /* 柔和弥散阴影 + 强横截面倒角：1px 上/左高光 + 下/右暗边，营造厚陶瓷边缘 */
+    /* 更强悬浮感：弥散投影 + 清晰横截面高光/暗边 */
     box-shadow:
         /* 外部悬浮阴影 */
-        0 14px 36px rgba(0, 0, 0, 0.11),
-        0 5px 14px rgba(0, 0, 0, 0.07),
+        0 18px 44px rgba(0, 0, 0, 0.13),
+        0 7px 18px rgba(0, 0, 0, 0.08),
         /* 上沿/左沿高光（横截面亮面）*/
-        inset 0 1px 0 rgba(255, 255, 255, 0.72),
-        inset 1px 0 0 rgba(255, 255, 255, 0.45),
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.78),
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.52),
         /* 下沿/右沿暗边（厚度阴影）*/
-        inset 0 -1px 0 rgba(0, 0, 0, 0.08),
-        inset -1px 0 0 rgba(0, 0, 0, 0.05),
+        inset 0 -1.5px 0 rgba(0, 0, 0, 0.10),
+        inset -1.5px 0 0 rgba(0, 0, 0, 0.07),
         /* 内凹倒角 */
-        inset 0 2px 3px rgba(255, 255, 255, 0.25),
-        inset 0 -2px 3px rgba(0, 0, 0, 0.03);
+        inset 0 3px 5px rgba(255, 255, 255, 0.28),
+        inset 0 -3px 5px rgba(0, 0, 0, 0.04);
 
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.26);
 
     /* 平滑过渡（用于主题切换）*/
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -720,55 +720,55 @@ body {
 
 #neu-dock:hover {
     box-shadow:
-        0 18px 44px rgba(0, 0, 0, 0.13),
-        0 7px 18px rgba(0, 0, 0, 0.09),
-        inset 0 1px 0 rgba(255, 255, 255, 0.78),
-        inset 1px 0 0 rgba(255, 255, 255, 0.50),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.09),
-        inset -1px 0 0 rgba(0, 0, 0, 0.06),
-        inset 0 2px 3px rgba(255, 255, 255, 0.28),
-        inset 0 -2px 3px rgba(0, 0, 0, 0.04);
+        0 22px 52px rgba(0, 0, 0, 0.15),
+        0 9px 22px rgba(0, 0, 0, 0.10),
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.82),
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.55),
+        inset 0 -1.5px 0 rgba(0, 0, 0, 0.11),
+        inset -1.5px 0 0 rgba(0, 0, 0, 0.08),
+        inset 0 3px 5px rgba(255, 255, 255, 0.30),
+        inset 0 -3px 5px rgba(0, 0, 0, 0.05);
 }
 
-/* 左侧 ~4px 横截面高光 — 强化陶瓷 plaque 左边缘受光，截图可见 */
+/* 左侧 ~5px 横截面高光 — 模拟厚硅胶/陶瓷带左边缘受光 */
 #neu-dock::before {
     content: '';
     position: absolute;
-    left: 2px;
-    top: 10%;
-    bottom: 10%;
-    width: 4px;
+    left: 3px;
+    top: 14%;
+    bottom: 14%;
+    width: 5px;
     background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.95) 0%,
-        rgba(255, 255, 255, 0.85) 35%,
-        rgba(255, 255, 255, 0.50) 75%,
+        rgba(255, 255, 255, 0.98) 0%,
+        rgba(255, 255, 255, 0.90) 30%,
+        rgba(255, 255, 255, 0.55) 72%,
         transparent 100%);
-    border-radius: 3px;
+    border-radius: 4px;
     box-shadow:
-        inset 1px 0 2px rgba(255, 255, 255, 0.90),
-        0 0 8px rgba(255, 255, 255, 0.55),
-        1px 0 2px rgba(255, 255, 255, 0.45);
+        inset 1px 0 2px rgba(255, 255, 255, 0.95),
+        0 0 10px rgba(255, 255, 255, 0.60),
+        1.5px 0 3px rgba(255, 255, 255, 0.50);
     pointer-events: none;
     z-index: 2;
 }
 
-/* 凹槽底座 — 让 6 个芯片看起来嵌入同一条连续材质带中 */
+/* 凹槽底座 — 厚实内嵌条带，6 个芯片像是嵌在一条硅胶轨道中 */
 #neu-dock::after {
     content: '';
     position: absolute;
-    left: 54px;
-    right: 62px;
-    top: 7px;
-    bottom: 7px;
-    border-radius: 20px;
+    left: 62px;
+    right: 70px;
+    top: 9px;
+    bottom: 9px;
+    border-radius: 24px;
     background: linear-gradient(180deg,
-        rgba(0, 0, 0, 0.03) 0%,
-        rgba(0, 0, 0, 0.01) 50%,
-        rgba(255, 255, 255, 0.12) 100%);
+        rgba(0, 0, 0, 0.045) 0%,
+        rgba(0, 0, 0, 0.015) 45%,
+        rgba(255, 255, 255, 0.14) 100%);
     box-shadow:
-        inset 2px 2px 5px rgba(0, 0, 0, 0.08),
-        inset -2px -2px 5px rgba(255, 255, 255, 0.72),
-        0 1px 0 rgba(255, 255, 255, 0.35);
+        inset 3px 3px 8px rgba(0, 0, 0, 0.10),
+        inset -3px -3px 8px rgba(255, 255, 255, 0.78),
+        0 1px 0 rgba(255, 255, 255, 0.40);
     pointer-events: none;
     z-index: 0;
 }
@@ -779,9 +779,9 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    width: 28px;
-    height: 40px;
+    gap: 4px;
+    width: 32px;
+    height: 48px;
     cursor: grab;
     flex-shrink: 0;
 }
@@ -791,33 +791,33 @@ body {
 }
 
 .neu-handle-dot {
-    width: 4px;
-    height: 4px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background-color: var(--neu-base-color);
     box-shadow: var(--neu-shadow-concave-mini);
 }
 
-/* 单个指标模块 - 微凸小矩形 */
+/* 单个指标模块 - 厚实硅胶按钮，嵌在底座凹槽中 */
 .neu-metric-chip {
     display: grid;
     grid-template-columns: auto 1fr;
     grid-template-rows: auto auto;
-    gap: 2px 6px;
-    height: 44px;
-    padding: 6px 12px;
+    gap: 3px 8px;
+    height: 52px;
+    padding: 8px 14px;
     background-color: var(--neu-base-color);
     border-radius: var(--neu-chip-radius);
 
-    /* 强微凸立体感：外凸阴影 + 横截面高光/暗边 */
+    /* 强微凸立体感：外凸阴影 + 清晰横截面高光/暗边 */
     box-shadow:
         var(--neu-shadow-convex-medium),
         /* 上/左高光边 */
-        inset 0 1px 0 rgba(255, 255, 255, 0.65),
-        inset 1px 0 0 rgba(255, 255, 255, 0.40),
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.70),
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.42),
         /* 下/右暗边 */
-        inset 0 -1px 0 rgba(0, 0, 0, 0.06),
-        inset -1px 0 0 rgba(0, 0, 0, 0.04);
+        inset 0 -1.5px 0 rgba(0, 0, 0, 0.07),
+        inset -1.5px 0 0 rgba(0, 0, 0, 0.05);
 
     cursor: default;
     transition: all 0.25s ease;
@@ -826,18 +826,18 @@ body {
     position: relative;
     z-index: 1;
     flex: 1;
-    min-width: 90px;
-    max-width: 110px;
+    min-width: 100px;
+    max-width: 128px;
 }
 
 .neu-metric-chip:hover {
-    transform: translateY(-3px) scale(1.02);
+    transform: translateY(-4px) scale(1.03);
     box-shadow:
         var(--neu-shadow-hover-medium),
-        inset 0 1px 0 rgba(255, 255, 255, 0.72),
-        inset 1px 0 0 rgba(255, 255, 255, 0.45),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.07),
-        inset -1px 0 0 rgba(0, 0, 0, 0.05);
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.76),
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.48),
+        inset 0 -1.5px 0 rgba(0, 0, 0, 0.08),
+        inset -1.5px 0 0 rgba(0, 0, 0, 0.06);
 }
 
 .neu-metric-chip:active,
@@ -845,26 +845,26 @@ body {
     transform: translateY(0) scale(0.98);
     box-shadow:
         var(--neu-shadow-concave),
-        inset 0 1px 0 rgba(0, 0, 0, 0.04),
-        inset 1px 0 0 rgba(0, 0, 0, 0.03),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.35),
-        inset -1px 0 0 rgba(255, 255, 255, 0.22);
+        inset 0 1.5px 0 rgba(0, 0, 0, 0.05),
+        inset 1.5px 0 0 rgba(0, 0, 0, 0.04),
+        inset 0 -1.5px 0 rgba(255, 255, 255, 0.38),
+        inset -1.5px 0 0 rgba(255, 255, 255, 0.24);
 }
 
 /* 芯片图标 */
 .neu-chip-icon {
-    font-size: 14px;
+    font-size: 18px;
     line-height: 1;
     grid-row: 1 / 3;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.85;
+    opacity: 0.88;
 }
 
 /* 芯片标签 */
 .neu-chip-label {
-    font-size: var(--neu-font-size-xs);
+    font-size: 11px;
     font-weight: 600;
     color: var(--neu-text-secondary);
     text-transform: uppercase;
@@ -874,7 +874,7 @@ body {
 
 /* 芯片数值 - JetBrains Mono等宽字体 */
 .neu-chip-value {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     font-family: var(--neu-font-mono);
     color: var(--neu-text-primary);
@@ -891,12 +891,12 @@ body {
 .neu-metric-chip[data-type="swap"] .neu-chip-value { color: #dd6b20; }
 .neu-metric-chip[data-type="temp"] .neu-chip-value { color: #c53030; }
 
-/* 迷你进度条 - 内凹槽(mini inset) + 渐变填充(4px高) */
+/* 迷你进度条 - 内凹槽 + 渐变填充(6px高) */
 .neu-chip-progress-track {
     grid-column: 1 / -1;
-    height: 4px;
+    height: 6px;
     background-color: var(--neu-base-color);
-    border-radius: 2px;
+    border-radius: 3px;
 
     /* 微凹槽体 - 让进度条有"嵌入"感*/
     box-shadow:
@@ -913,7 +913,7 @@ body {
     height: 100%;
     background: var(--neu-gradient-primary);
     background-size: 200% 100%;
-    border-radius: 2px;
+    border-radius: 3px;
     transition: width 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     position: relative;
 }
@@ -931,8 +931,8 @@ body {
 
 /* 设置按钮 - 与Dock同材质 */
 .neu-settings-btn {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     flex-shrink: 0;
     background-color: var(--neu-base-color);
@@ -942,16 +942,16 @@ body {
     box-shadow:
         var(--neu-shadow-convex-small),
         /* 横截面高光 */
-        inset 0 1px 0 rgba(255, 255, 255, 0.65),
-        inset 1px 0 0 rgba(255, 255, 255, 0.40),
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.70),
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.42),
         /* 横截面暗边 */
-        inset 0 -1px 0 rgba(0, 0, 0, 0.06),
-        inset -1px 0 0 rgba(0, 0, 0, 0.04);
+        inset 0 -1.5px 0 rgba(0, 0, 0, 0.07),
+        inset -1.5px 0 0 rgba(0, 0, 0, 0.05);
     cursor: pointer;
     transition: all 0.25s ease;
     border: none;
     outline: none;
-    font-size: 16px;
+    font-size: 18px;
     color: var(--neu-text-secondary);
 }
 
@@ -959,10 +959,10 @@ body {
     transform: scale(1.08) rotate(45deg);
     box-shadow:
         var(--neu-shadow-hover-medium),
-        inset 0 1px 0 rgba(255, 255, 255, 0.72),
-        inset 1px 0 0 rgba(255, 255, 255, 0.45),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.07),
-        inset -1px 0 0 rgba(0, 0, 0, 0.05);
+        inset 0 1.5px 0 rgba(255, 255, 255, 0.76),
+        inset 1.5px 0 0 rgba(255, 255, 255, 0.48),
+        inset 0 -1.5px 0 rgba(0, 0, 0, 0.08),
+        inset -1.5px 0 0 rgba(0, 0, 0, 0.06);
     color: var(--neu-text-primary);
 }
 
@@ -970,10 +970,10 @@ body {
     transform: scale(0.96) rotate(45deg);
     box-shadow:
         var(--neu-shadow-concave),
-        inset 0 1px 0 rgba(0, 0, 0, 0.04),
-        inset 1px 0 0 rgba(0, 0, 0, 0.03),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.35),
-        inset -1px 0 0 rgba(255, 255, 255, 0.22);
+        inset 0 1.5px 0 rgba(0, 0, 0, 0.05),
+        inset 1.5px 0 0 rgba(0, 0, 0, 0.04),
+        inset 0 -1.5px 0 rgba(255, 255, 255, 0.38),
+        inset -1.5px 0 0 rgba(255, 255, 255, 0.24);
 }
 
 /* ============================================
@@ -1621,6 +1621,7 @@ body {
         min-height: var(--neu-dock-height);
         padding: var(--neu-space-md);
         gap: var(--neu-space-sm);
+        border-radius: 28px;
     }
 
     /* 小屏换行时隐藏凹槽底座 */
@@ -1631,6 +1632,7 @@ body {
     .neu-metric-chip {
         min-width: calc(33% - 8px);
         max-width: calc(33% - 8px);
+        height: 48px;
     }
 
     #neu-panel {
@@ -1936,15 +1938,15 @@ body {
       left: 50%;
       transform: translateX(-50%);
       z-index: 99999;
-      min-width: 900px;
-      max-width: 1400px;
+      min-width: 760px;
+      max-width: 1200px;
     }
 
     .retro-dock-inner {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 12px;
+      padding: 10px 14px;
       white-space: nowrap;
     }
 
@@ -1982,11 +1984,11 @@ body {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 8px;
+      padding: 6px 10px;
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: 4px;
-      min-width: 120px;
+      min-width: 108px;
     }
 
     .retro-metric-label {
@@ -1997,7 +1999,7 @@ body {
       text-shadow:
         0 0 6px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 12px rgba(0, 0, 0, 0.9);
-      min-width: 42px;
+      min-width: 40px;
     }
 
     .retro-metric-value {
@@ -2007,7 +2009,7 @@ body {
       text-shadow:
         0 0 4px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 10px rgba(0, 0, 0, 0.9);
-      min-width: 38px;
+      min-width: 36px;
       text-align: right;
     }
 
@@ -4832,64 +4834,69 @@ body.cyber-active {
 
 /* Scoped color systems. Applied to #ind-dock / #ind-panel by JS. */
 .ind-theme-aurora {
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-bg-solid: rgba(16, 20, 28, 0.55);
-    --glass-border: rgba(255, 255, 255, 0.14);
-    --glass-highlight: rgba(255, 255, 255, 0.25);
-    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    --glass-bg: rgba(15, 19, 28, 0.92);
+    --glass-bg-solid: rgba(15, 19, 28, 0.92);
+    --glass-card-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.20);
+    --glass-highlight: rgba(255, 255, 255, 0.38);
+    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
     --glass-accent-1: #00f0ff;
     --glass-accent-2: #ff00aa;
-    --glass-text: rgba(255, 255, 255, 0.92);
-    --glass-text-dim: rgba(255, 255, 255, 0.60);
-    --glass-glow: rgba(0, 240, 255, 0.35);
+    --glass-text: rgba(255, 255, 255, 0.96);
+    --glass-text-dim: rgba(255, 255, 255, 0.72);
+    --glass-glow: rgba(0, 240, 255, 0.55);
 }
 .ind-theme-ocean {
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-bg-solid: rgba(12, 24, 36, 0.58);
-    --glass-border: rgba(255, 255, 255, 0.14);
-    --glass-highlight: rgba(255, 255, 255, 0.22);
-    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
-    --glass-accent-1: #00b8d4;
-    --glass-accent-2: #006064;
-    --glass-text: rgba(255, 255, 255, 0.92);
-    --glass-text-dim: rgba(255, 255, 255, 0.60);
-    --glass-glow: rgba(0, 184, 212, 0.35);
+    --glass-bg: rgba(15, 19, 28, 0.92);
+    --glass-bg-solid: rgba(15, 19, 28, 0.92);
+    --glass-card-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.20);
+    --glass-highlight: rgba(255, 255, 255, 0.38);
+    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --glass-accent-1: #00e5ff;
+    --glass-accent-2: #448aff;
+    --glass-text: rgba(255, 255, 255, 0.96);
+    --glass-text-dim: rgba(255, 255, 255, 0.72);
+    --glass-glow: rgba(0, 229, 255, 0.55);
 }
 .ind-theme-sunset {
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-bg-solid: rgba(32, 18, 16, 0.58);
-    --glass-border: rgba(255, 255, 255, 0.14);
-    --glass-highlight: rgba(255, 255, 255, 0.22);
-    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+    --glass-bg: rgba(15, 19, 28, 0.92);
+    --glass-bg-solid: rgba(15, 19, 28, 0.92);
+    --glass-card-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.20);
+    --glass-highlight: rgba(255, 255, 255, 0.38);
+    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
     --glass-accent-1: #ff6b35;
-    --glass-accent-2: #ff9100;
-    --glass-text: rgba(255, 255, 255, 0.92);
-    --glass-text-dim: rgba(255, 255, 255, 0.60);
-    --glass-glow: rgba(255, 107, 53, 0.35);
+    --glass-accent-2: #ffca28;
+    --glass-text: rgba(255, 255, 255, 0.96);
+    --glass-text-dim: rgba(255, 255, 255, 0.72);
+    --glass-glow: rgba(255, 107, 53, 0.55);
 }
 .ind-theme-forest {
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-bg-solid: rgba(12, 26, 18, 0.58);
-    --glass-border: rgba(255, 255, 255, 0.14);
-    --glass-highlight: rgba(255, 255, 255, 0.22);
-    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
-    --glass-accent-1: #00c853;
-    --glass-accent-2: #1b5e20;
-    --glass-text: rgba(255, 255, 255, 0.92);
-    --glass-text-dim: rgba(255, 255, 255, 0.60);
-    --glass-glow: rgba(0, 200, 83, 0.35);
+    --glass-bg: rgba(15, 19, 28, 0.92);
+    --glass-bg-solid: rgba(15, 19, 28, 0.92);
+    --glass-card-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.20);
+    --glass-highlight: rgba(255, 255, 255, 0.38);
+    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --glass-accent-1: #00e676;
+    --glass-accent-2: #76ff03;
+    --glass-text: rgba(255, 255, 255, 0.96);
+    --glass-text-dim: rgba(255, 255, 255, 0.72);
+    --glass-glow: rgba(0, 230, 118, 0.55);
 }
 .ind-theme-midnight {
-    --glass-bg: rgba(255, 255, 255, 0.08);
-    --glass-bg-solid: rgba(24, 14, 36, 0.58);
-    --glass-border: rgba(255, 255, 255, 0.14);
-    --glass-highlight: rgba(255, 255, 255, 0.22);
-    --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
-    --glass-accent-1: #d500f9;
-    --glass-accent-2: #311b92;
-    --glass-text: rgba(255, 255, 255, 0.92);
-    --glass-text-dim: rgba(255, 255, 255, 0.60);
-    --glass-glow: rgba(213, 0, 249, 0.35);
+    --glass-bg: rgba(15, 19, 28, 0.92);
+    --glass-bg-solid: rgba(15, 19, 28, 0.92);
+    --glass-card-bg: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.20);
+    --glass-highlight: rgba(255, 255, 255, 0.38);
+    --glass-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --glass-accent-1: #e040fb;
+    --glass-accent-2: #536dfe;
+    --glass-text: rgba(255, 255, 255, 0.96);
+    --glass-text-dim: rgba(255, 255, 255, 0.72);
+    --glass-glow: rgba(224, 64, 251, 0.55);
 }
 
 #ind-dock {
@@ -4903,17 +4910,19 @@ body.cyber-active {
     gap: 0;
     min-width: 720px;
     max-width: 94vw;
-    height: 64px;
-    padding: 6px 48px 6px 44px;
+    height: 66px;
+    padding: 5px 48px 5px 44px;
     border-radius: 999px;
-    background: var(--glass-bg-solid, rgba(16, 20, 28, 0.55));
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+    background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 22%), var(--glass-bg-solid, rgba(15, 19, 28, 0.92));
+    backdrop-filter: blur(20px) saturate(200%);
+    -webkit-backdrop-filter: blur(20px) saturate(200%);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.20));
     box-shadow:
-        inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.25)),
-        var(--glass-shadow, 0 12px 40px rgba(0, 0, 0, 0.35));
-    color: var(--glass-text, rgba(255,255,255,0.92));
+        inset 0 1px 0 var(--glass-highlight, rgba(255, 255, 255, 0.38)),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+        0 12px 40px rgba(0, 0, 0, 0.45),
+        0 8px 24px var(--glass-glow, rgba(0, 240, 255, 0.18));
+    color: var(--glass-text, rgba(255,255,255,0.96));
     font-family: var(--neu-font-ui, 'Inter', sans-serif);
     box-sizing: border-box;
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -4932,14 +4941,15 @@ body.cyber-active {
     justify-content: center;
     gap: 3px;
     cursor: grab;
-    opacity: 0.55;
+    opacity: 0.65;
 }
 .ind-dock-handle:active { cursor: grabbing; }
 .ind-handle-dot {
     width: 3px;
     height: 3px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.70);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.35);
 }
 
 .ind-cockpit {
@@ -4957,14 +4967,14 @@ body.cyber-active {
     align-items: center;
     gap: 8px;
     padding: 0 12px;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.10);
 }
 .ind-metric:last-of-type { border-right: none; }
 
 .ind-metric-icon {
     font-size: 16px;
     line-height: 1;
-    filter: drop-shadow(0 0 4px var(--glass-accent-1, #00f0ff));
+    filter: drop-shadow(0 0 5px var(--glass-accent-1, #00f0ff));
 }
 .ind-metric-info {
     flex: 1;
@@ -4984,33 +4994,34 @@ body.cyber-active {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
     white-space: nowrap;
 }
 .ind-metric-value {
     font-size: 15px;
     font-weight: 700;
     font-family: var(--neu-font-mono, monospace);
-    color: var(--glass-text, rgba(255,255,255,0.92));
-    text-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+    color: var(--glass-text, rgba(255,255,255,0.96));
+    text-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.55));
 }
 .ind-metric-unit {
     font-size: 9px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
     margin-left: 1px;
 }
 .ind-metric-bar {
     height: 3px;
     width: 100%;
-    background: rgba(255, 255, 255, 0.10);
+    background: rgba(0, 0, 0, 0.35);
     border-radius: 2px;
     overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 .ind-metric-bar-fill {
     height: 100%;
     width: 0%;
     background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
-    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.35));
+    box-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.55));
     border-radius: 2px;
     transition: width 0.5s ease;
 }
@@ -5023,9 +5034,9 @@ body.cyber-active {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.14));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.20));
     background: rgba(255, 255, 255, 0.08);
-    color: var(--glass-text, rgba(255,255,255,0.92));
+    color: var(--glass-text, rgba(255,255,255,0.96));
     font-size: 15px;
     line-height: 1;
     cursor: pointer;
@@ -5036,12 +5047,12 @@ body.cyber-active {
 }
 .ind-settings-btn:hover {
     background: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.35));
+    box-shadow: 0 0 16px var(--glass-glow, rgba(0,240,255,0.55));
 }
 
 #ind-panel {
     position: fixed;
-    top: 88px;
+    top: 90px;
     right: 20px;
     z-index: 10000;
     width: 360px;
@@ -5050,21 +5061,22 @@ body.cyber-active {
     overflow-y: auto;
     border-radius: 20px;
     padding: 18px;
-    color: var(--glass-text, rgba(255,255,255,0.92));
-    background: var(--glass-bg, rgba(255,255,255,0.08));
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.14));
+    color: var(--glass-text, rgba(255,255,255,0.96));
+    background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 18%), var(--glass-bg, rgba(15, 19, 28, 0.92));
+    backdrop-filter: blur(22px) saturate(200%);
+    -webkit-backdrop-filter: blur(22px) saturate(200%);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.20));
     box-shadow:
-        inset 0 1px 0 var(--glass-highlight, rgba(255,255,255,0.25)),
-        var(--glass-shadow, 0 12px 40px rgba(0,0,0,0.35));
+        inset 0 1px 0 var(--glass-highlight, rgba(255,255,255,0.38)),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+        var(--glass-shadow, 0 18px 50px rgba(0,0,0,0.55));
     font-family: var(--neu-font-ui, 'Inter', sans-serif);
     box-sizing: border-box;
 }
 #ind-panel::-webkit-scrollbar { width: 6px; }
 #ind-panel::-webkit-scrollbar-track { background: transparent; }
 #ind-panel::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.18);
     border-radius: 3px;
 }
 
@@ -5074,18 +5086,18 @@ body.cyber-active {
     align-items: center;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 .ind-brand-text h1 {
     margin: 0;
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 1px;
-    color: var(--glass-text, rgba(255,255,255,0.92));
+    color: var(--glass-text, rgba(255,255,255,0.96));
 }
 .ind-brand-text span {
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
 }
 .ind-header-actions {
     display: flex;
@@ -5095,9 +5107,9 @@ body.cyber-active {
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.14));
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.20));
     background: rgba(255, 255, 255, 0.08);
-    color: var(--glass-text, rgba(255,255,255,0.92));
+    color: var(--glass-text, rgba(255,255,255,0.96));
     font-size: 14px;
     line-height: 1;
     cursor: pointer;
@@ -5108,7 +5120,7 @@ body.cyber-active {
 }
 .ind-action-btn:hover {
     background: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.55));
 }
 
 .ind-metrics-grid {
@@ -5120,36 +5132,36 @@ body.cyber-active {
 .ind-metric-card {
     border-radius: 14px;
     padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    background: var(--glass-card-bg, rgba(255, 255, 255, 0.07));
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
     text-align: center;
 }
 .ind-metric-card-label {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
     margin-bottom: 4px;
 }
 .ind-metric-card-value {
     font-size: 18px;
     font-weight: 700;
     font-family: var(--neu-font-mono, monospace);
-    color: var(--glass-text, rgba(255,255,255,0.92));
-    text-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+    color: var(--glass-text, rgba(255,255,255,0.96));
+    text-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.55));
 }
 .ind-metric-card-unit {
     font-size: 11px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
 }
 
 .ind-section {
     margin-bottom: 12px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    background: var(--glass-card-bg, rgba(255, 255, 255, 0.07));
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
     overflow: hidden;
 }
 .ind-section-header {
@@ -5161,14 +5173,14 @@ body.cyber-active {
     user-select: none;
     transition: background 0.2s ease;
 }
-.ind-section-header:hover { background: rgba(255, 255, 255, 0.04); }
+.ind-section-header:hover { background: rgba(255, 255, 255, 0.06); }
 .ind-section-header.collapsed { border-radius: 14px; }
 .ind-section-header.collapsed + .ind-section-content { display: none; }
 .ind-section-title {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.5px;
-    color: var(--glass-text, rgba(255,255,255,0.92));
+    color: var(--glass-text, rgba(255,255,255,0.96));
     display: flex;
     align-items: center;
     gap: 6px;
@@ -5176,7 +5188,7 @@ body.cyber-active {
 .ind-section-icon { font-size: 12px; }
 .ind-section-toggle {
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
     transition: transform 0.25s ease;
 }
 .ind-section-header.collapsed .ind-section-toggle { transform: rotate(-90deg); }
@@ -5192,7 +5204,7 @@ body.cyber-active {
     margin-bottom: 5px;
 }
 .ind-progress-label {
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
     display: flex;
     align-items: center;
     gap: 6px;
@@ -5202,26 +5214,26 @@ body.cyber-active {
     height: 6px;
     border-radius: 50%;
     background: var(--glass-accent-1, #00f0ff);
-    box-shadow: 0 0 6px var(--glass-glow, rgba(0,240,255,0.35));
+    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.55));
 }
 .ind-progress-badge {
     font-weight: 700;
     font-family: var(--neu-font-mono, monospace);
-    color: var(--glass-text, rgba(255,255,255,0.92));
+    color: var(--glass-text, rgba(255,255,255,0.96));
 }
 .ind-progress-track {
     height: 10px;
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.35);
     border-radius: 5px;
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.30);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.40);
 }
 .ind-progress-fill {
     height: 100%;
     width: 0%;
     background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
     border-radius: 5px;
-    box-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.55));
     transition: width 0.5s ease;
 }
 
@@ -5237,17 +5249,17 @@ body.cyber-active {
     font-size: 11px;
     padding: 6px 8px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(0, 0, 0, 0.22);
 }
 .ind-detail-left {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
 }
 .ind-detail-right {
     font-family: var(--neu-font-mono, monospace);
-    color: var(--glass-text, rgba(255,255,255,0.92));
+    color: var(--glass-text, rgba(255,255,255,0.96));
 }
 
 .ind-settings-section { margin-top: 14px; }
@@ -5256,18 +5268,18 @@ body.cyber-active {
     align-items: center;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .ind-setting-row:last-child { border-bottom: none; }
 .ind-setting-label {
     font-size: 12px;
-    color: var(--glass-text, rgba(255,255,255,0.92));
+    color: var(--glass-text, rgba(255,255,255,0.96));
 }
 .ind-toggle-switch {
     width: 38px;
     height: 20px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.10);
+    background: rgba(0, 0, 0, 0.30);
     border: 1px solid rgba(255, 255, 255, 0.18);
     position: relative;
     cursor: pointer;
@@ -5276,7 +5288,7 @@ body.cyber-active {
 .ind-toggle-switch.active {
     background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
     border-color: transparent;
-    box-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.35));
+    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.55));
 }
 .ind-toggle-thumb {
     position: absolute;
@@ -5297,9 +5309,9 @@ body.cyber-active {
     padding-top: 6px;
 }
 .ind-radio-btn {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.07);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
     border-radius: 999px;
     padding: 5px 10px;
     font-size: 10px;
@@ -5309,13 +5321,13 @@ body.cyber-active {
 }
 .ind-radio-btn:hover {
     background: rgba(255, 255, 255, 0.14);
-    color: var(--glass-text, rgba(255,255,255,0.92));
+    color: var(--glass-text, rgba(255,255,255,0.96));
 }
 .ind-radio-btn.active {
     color: #0b0d12;
     background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
     border-color: transparent;
-    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.35));
+    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.55));
 }
 
 .ind-panel-footer {
@@ -5324,9 +5336,9 @@ body.cyber-active {
     align-items: center;
     margin-top: 14px;
     padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.6));
+    color: var(--glass-text-dim, rgba(255,255,255,0.72));
 }
 .ind-status-dot {
     display: inline-block;
@@ -5334,7 +5346,7 @@ body.cyber-active {
     height: 6px;
     border-radius: 50%;
     background: var(--glass-accent-1, #00f0ff);
-    box-shadow: 0 0 6px var(--glass-glow, rgba(0,240,255,0.35));
+    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.55));
     margin-right: 6px;
 }
 
@@ -5370,6 +5382,7 @@ body.cyber-active {
     .ind-metric-bar-fill,
     .ind-progress-fill { transition: none; }
 }
+
 
   
 `;
