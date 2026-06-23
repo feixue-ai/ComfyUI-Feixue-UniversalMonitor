@@ -2019,7 +2019,7 @@ body.neu-active {
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: 4px;
-      min-width: 112px;
+      min-width: 152px;
     }
 
     .retro-metric-label {
@@ -2030,7 +2030,8 @@ body.neu-active {
       text-shadow:
         0 0 6px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 12px rgba(0, 0, 0, 0.9);
-      min-width: 44px;
+      width: 44px;
+      flex: 0 0 auto;
     }
 
     .retro-metric-value {
@@ -2040,7 +2041,8 @@ body.neu-active {
       text-shadow:
         0 0 4px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 10px rgba(0, 0, 0, 0.9);
-      min-width: 38px;
+      width: 38px;
+      flex: 0 0 auto;
       text-align: right;
     }
 
@@ -2051,6 +2053,7 @@ body.neu-active {
       align-items: flex-end;
       height: 18px;
       width: 48px;
+      flex: 0 0 auto;
     }
 
     .retro-led-segment {
@@ -6900,10 +6903,10 @@ body.cyber-active {
                     '<div class="ind-setting-row"><label class="ind-setting-label" for="ind-soundToggle">' + t('sound_alert') + '</label><button class="ind-toggle-switch active" id="ind-soundToggle" role="switch" aria-checked="true" aria-label="' + t('sound_alert') + '"><span class="ind-toggle-thumb"></span></button></div>' +
                     '<div class="ind-setting-row"><label class="ind-setting-label" for="ind-dragToggle">' + t('drag_mode') + '</label><button class="ind-toggle-switch" id="ind-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="ind-toggle-thumb"></span></button></div>' +
                     '<div class="ind-setting-row" style="flex-direction:column;align-items:flex-start;"><label class="ind-setting-label">' + t('theme') + '</label><div class="ind-radio-group">' +
-                        VALID_STYLES.map(s => '<button class="ind-radio-btn'+(s==='ind'?' active':'')+'" data-target="'+s+'">'+(THEME_CLASS_MAP[s]?.name || s.toUpperCase())+'</button>').join('') +
+                        VALID_STYLES.map(s => '<button class="ind-radio-btn'+(s==='ind'?' active':'')+'" data-target="'+s+'">'+t('theme_name_' + s)+'</button>').join('') +
                     '</div></div>' +
                     '<div class="ind-setting-row" style="flex-direction:column;align-items:flex-start;"><label class="ind-setting-label">' + t('color') + '</label><div class="ind-radio-group">' +
-                        COLOR_WHITELIST.map(c => '<button class="ind-radio-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'">'+c.toUpperCase()+'</button>').join('') +
+                        COLOR_WHITELIST.map(c => '<button class="ind-radio-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'">'+t('color_name_' + c)+'</button>').join('') +
                     '</div></div>' +
                 '</div>' +
             '</div>' +
