@@ -9,10 +9,10 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 - WebSocket / HTTP 双通道实时数据推送
 
 作者: Feixue Team
-版本: 3.27 (5 Colors × 5 Styles Real-time Hardware Monitor)
+版本: 3.28 (5 Colors × 5 Styles Real-time Hardware Monitor)
 """
 
-__version__ = "3.27"
+__version__ = "3.28"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -20,7 +20,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.27 5色×5风格实时硬件监测)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.28 5色×5风格实时硬件监测)")
 
 # ============================================================================
 # 获取插件根目录（用于导入 core 模块）
@@ -124,6 +124,12 @@ import math
 from aiohttp import web
 from server import PromptServer
 import time as _time
+
+try:
+    from core.memory_cleaner import free_memory
+except Exception as _memory_cleaner_err:
+    print(f"[飞雪监测器] ⚠️ 内存清理模块导入失败: {_memory_cleaner_err}")
+    free_memory = None
 
 
 @PromptServer.instance.routes.get('/feixue_monitor/snapshot')
@@ -286,9 +292,105 @@ async def handle_status(request):
         }, status=500)
 
 
+@PromptServer.instance.routes.post('/feixue_monitor/free_memory')
+async def handle_free_memory(request):
+    """
+    处理 /feixue_monitor/free_memory 请求
+
+    支持两种清理模式：
+    - 'ram': 仅整理 RAM（gc.collect + Linux malloc_trim），不触碰 ComfyUI 模型/缓存。
+    - 'deep': 深度清理，通过 ComfyUI PromptServer 设置队列标志，让 ComfyUI 在安全时机卸载模型并释放显存，再 gc.collect。
+
+    请求体 JSON 示例：{"mode": "ram"}
+
+    Args:
+        request: aiohttp 请求对象
+
+    Returns:
+        JSON Response: 清理结果字典
+    """
+    try:
+        if free_memory is None:
+            return web.json_response({
+                "success": False,
+                "error": "Memory cleaner not available",
+                "message": "Memory cleaner module failed to load",
+            }, status=503)
+
+        # 读取请求体，解析 mode（默认 'ram'）
+        mode = "ram"
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                mode = str(body.get("mode", "ram")).strip().lower()
+        except Exception:
+            mode = "ram"
+
+        if mode not in ("ram", "deep"):
+            return web.json_response({
+                "success": False,
+                "error": "Invalid mode",
+                "message": f"mode 必须是 'ram' 或 'deep'，收到: {mode}",
+            }, status=400)
+
+        result = free_memory(mode=mode)
+        status = 200 if result.get("success") else 500
+        return web.json_response(result, status=status)
+
+    except Exception as e:
+        print(f"[飞雪监测器] ⚠️ free_memory API 未捕获异常: {e}")
+        import traceback
+        print(f"[飞雪监测器]    详细错误: {traceback.format_exc()}")
+
+        return web.json_response({
+            "success": False,
+            "error": str(e),
+            "message": "Unexpected error during memory cleanup",
+        }, status=500)
+
+
+@PromptServer.instance.routes.get('/feixue_monitor/queue_status')
+async def handle_queue_status(request):
+    """
+    处理 /feixue_monitor/queue_status 请求
+
+    返回 ComfyUI 当前队列状态，便于前端判断是否可以安全触发自动清理。
+
+    Args:
+        request: aiohttp 请求对象
+
+    Returns:
+        JSON Response: { "exec_info": { "queue_remaining": int } }
+    """
+    try:
+        prompt_server = PromptServer.instance
+        queue_info = prompt_server.get_queue_info()
+
+        return web.json_response({
+            "status": "ok",
+            "queue_remaining": queue_info.get("exec_info", {}).get("queue_remaining", 0),
+            "exec_info": queue_info.get("exec_info", {}),
+            "timestamp": _time.time(),
+        })
+
+    except Exception as e:
+        print(f"[飞雪监测器] ⚠️ queue_status API 错误: {e}")
+        import traceback
+        print(f"[飞雪监测器]    详细错误: {traceback.format_exc()}")
+
+        return web.json_response({
+            "status": "error",
+            "error": str(e),
+            "queue_remaining": None,
+            "message": "Failed to get queue status",
+        }, status=500)
+
+
 print("[飞雪监测器] ✅ HTTP API 路由已注册 (ComfyUI 标准装饰器方式):")
-print("    GET /feixue_monitor/snapshot - 获取监控数据")
-print("    GET /feixue_monitor/status   - 获取服务状态")
+print("    GET  /feixue_monitor/snapshot    - 获取监控数据")
+print("    GET  /feixue_monitor/status      - 获取服务状态")
+print("    GET  /feixue_monitor/queue_status- 获取队列状态")
+print("    POST /feixue_monitor/free_memory - 执行内存清理")
 
 
 # ============================================================================
@@ -512,10 +614,12 @@ else:
     print("    ⚠️ WebSocket服务未启用（将使用HTTP降级模式）")
 
 print("\n[飞雪监测器] 📡 完整API列表:")
-print("    GET /feixue_monitor/snapshot   - 获取监控数据（HTTP降级）")
-print("    GET /feixue_monitor/status     - 获取后端服务状态")
+print("    GET  /feixue_monitor/snapshot    - 获取监控数据（HTTP降级）")
+print("    GET  /feixue_monitor/status      - 获取后端服务状态")
+print("    GET  /feixue_monitor/queue_status- 获取队列状态")
+print("    POST /feixue_monitor/free_memory - 执行内存清理")
 if _monitor_service:
-    print("    GET /feixue_monitor/rate       - 获取/设置刷新率")
-    print("    GET /feixue_monitor/ws_status  - WebSocket服务状态")
+    print("    GET /feixue_monitor/rate         - 获取/设置刷新率")
+    print("    GET /feixue_monitor/ws_status    - WebSocket服务状态")
 print("    🌐 WebSocket: feixue.monitor 事件（实时推送）")
 

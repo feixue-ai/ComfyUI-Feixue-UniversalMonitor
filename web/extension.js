@@ -1,20 +1,20 @@
 /**
- * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.27
+ * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.28
  *
  * 设计原则：不透明实底背景 + 发光边框灯条 + 药丸/胶囊形状 + 3D圆柱横截面效果 + CSS芯片图标 + 渐变状态条 + 5色主题系统
- * @version 3.27
+ * @version 3.28
  */
 
 (function() {
     'use strict';
 
-    console.log('[飞雪监测器] 🚀 Premium UI v3.27 启动...');
+    console.log('[飞雪监测器] 🚀 Premium UI v3.28 启动...');
 
     // ============================================================
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.27',
+        version: '3.28',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -399,7 +399,7 @@
     }
 
     // ============================================================
-    // Premium UI v3.27 — 5 主题系统
+    // Premium UI v3.28 — 5 主题系统
     // ============================================================
 
     // ============================================================
@@ -428,7 +428,7 @@
     let currentStyle = 'neu';
 
     // ============================================================
-    // CSS 注入 — Premium UI v3.27 内联样式
+    // CSS 注入 — Premium UI v3.28 内联样式
     // ============================================================
 
     /**
@@ -5589,10 +5589,779 @@ body.cyber-active {
     .ind-progress-fill { transition: none; }
 }
 
+/* ============================================
+   Smart Memory Cleanup Controls (Task 3)
+   为 5 种主题提供统一的智能清理控件样式
+   ============================================ */
+
+/* 公共结构 */
+.fxm-cleanup-section { margin-top: 12px; }
+.fxm-cleanup-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+}
+.fxm-cleanup-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.fxm-cleanup-section-header.collapsed + .fxm-cleanup-content { display: none; }
+.fxm-cleanup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.fxm-cleanup-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+.fxm-cleanup-slider {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+    transition: opacity 0.25s ease;
+}
+.fxm-cleanup-slider.fxm-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.fxm-threshold-value {
+    font-family: var(--neu-font-mono, monospace);
+    font-variant-numeric: tabular-nums;
+    min-width: 34px;
+    text-align: right;
+    transition: opacity 0.25s ease;
+}
+.fxm-threshold-value.fxm-disabled { opacity: 0.5; }
+.fxm-delay-value {
+    min-width: 110px;
+    white-space: nowrap;
+}
+.fxm-delay-value.fxm-disabled { opacity: 0.5; }
+.fxm-cleanup-btn {
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.fxm-cleanup-btn.fxm-disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* Segmented mode selector */
+.fxm-segmented-control {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    gap: 2px;
+}
+.fxm-segmented-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 4px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.2s ease;
+}
+.fxm-segmented-btn:disabled,
+.fxm-segmented-btn.fxm-disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+/* Neu 主题 */
+#neu-panel .fxm-cleanup-section {
+    border-top: 1px solid rgba(163, 177, 198, 0.25);
+    padding-top: 14px;
+}
+#neu-panel .fxm-cleanup-section-header {
+    padding: 8px 2px;
+    border-radius: 10px;
+    transition: background 0.2s ease;
+}
+#neu-panel .fxm-cleanup-section-header:hover {
+    background: rgba(163, 177, 198, 0.12);
+}
+#neu-panel .fxm-cleanup-title {
+    font-size: var(--neu-font-size-sm);
+    font-weight: 700;
+    color: var(--neu-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#neu-panel .fxm-cleanup-toggle-icon {
+    font-size: 10px;
+    color: var(--neu-text-secondary);
+    transition: transform 0.25s ease;
+}
+#neu-panel .fxm-cleanup-section-header.collapsed .fxm-cleanup-toggle-icon {
+    transform: rotate(-90deg);
+}
+#neu-panel .fxm-cleanup-content {
+    padding-top: 12px;
+}
+#neu-panel .fxm-cleanup-row {
+    padding: 10px 14px;
+    background-color: var(--neu-base-color);
+    border-radius: 10px;
+    box-shadow: var(--neu-shadow-convex-medium);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#neu-panel .fxm-cleanup-label {
+    font-size: var(--neu-font-size-sm);
+    font-weight: 600;
+    color: var(--neu-text-primary);
+}
+#neu-panel .fxm-cleanup-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--neu-base-color);
+    box-shadow: var(--neu-shadow-concave-mini);
+    outline: none;
+}
+#neu-panel .fxm-cleanup-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--neu-base-color);
+    box-shadow: var(--neu-shadow-convex-small);
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+#neu-panel .fxm-cleanup-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--neu-base-color);
+    box-shadow: var(--neu-shadow-convex-small);
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+#neu-panel .fxm-threshold-value {
+    font-size: var(--neu-font-size-xs);
+    color: var(--neu-text-secondary);
+    font-weight: 700;
+}
+#neu-panel .fxm-cleanup-btn {
+    padding: 10px 14px;
+    border-radius: var(--neu-button-radius);
+    background: var(--neu-base-color);
+    color: var(--neu-text-primary);
+    font-size: var(--neu-font-size-sm);
+    font-weight: 700;
+    box-shadow: var(--neu-shadow-convex-medium);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#neu-panel .fxm-cleanup-btn:hover:not(.fxm-disabled) {
+    box-shadow: var(--neu-shadow-hover-medium);
+    color: var(--neu-text-accent);
+}
+#neu-panel .fxm-cleanup-btn:active:not(.fxm-disabled) {
+    box-shadow: var(--neu-shadow-concave);
+}
+#neu-panel .fxm-segmented-control {
+    gap: 4px;
+}
+#neu-panel .fxm-segmented-btn {
+    padding: 7px 4px;
+    border-radius: 8px;
+    background: var(--neu-base-color);
+    color: var(--neu-text-secondary);
+    font-size: var(--neu-font-size-xs);
+    font-weight: 700;
+    box-shadow: var(--neu-shadow-convex-small);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#neu-panel .fxm-segmented-btn.active {
+    color: var(--neu-text-accent);
+    box-shadow: var(--neu-shadow-concave-mini);
+    background: rgba(163, 177, 198, 0.15);
+}
+#neu-panel .fxm-segmented-btn:hover:not(.active):not(:disabled):not(.fxm-disabled) {
+    color: var(--neu-text-primary);
+}
+
+/* Retro 主题 */
+#retro-panel .fxm-cleanup-section {
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+    padding-bottom: 10px;
+}
+#retro-panel .fxm-cleanup-section-header {
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 3px;
+    margin-bottom: 6px;
+}
+#retro-panel .fxm-cleanup-title {
+    font-family: var(--mono-display);
+    font-size: 12px;
+    color: var(--retro-phosphor-primary, var(--retro-primary));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#retro-panel .fxm-cleanup-toggle-icon {
+    font-size: 10px;
+    color: var(--retro-phosphor-dim, var(--retro-dim));
+    transition: transform 0.25s ease;
+}
+#retro-panel .fxm-cleanup-section-header.collapsed .fxm-cleanup-toggle-icon {
+    transform: rotate(-90deg);
+}
+#retro-panel .fxm-cleanup-row {
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 3px;
+    margin-bottom: 5px;
+}
+#retro-panel .fxm-cleanup-label {
+    font-family: var(--mono-display);
+    font-size: 11px;
+    color: var(--retro-phosphor-dim, var(--retro-dim));
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+#retro-panel .fxm-cleanup-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.55);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    outline: none;
+}
+#retro-panel .fxm-cleanup-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--retro-phosphor-primary, var(--retro-primary));
+    box-shadow: 0 0 8px var(--retro-phosphor-glow, var(--retro-glow));
+    cursor: pointer;
+}
+#retro-panel .fxm-cleanup-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--retro-phosphor-primary, var(--retro-primary));
+    box-shadow: 0 0 8px var(--retro-phosphor-glow, var(--retro-glow));
+    cursor: pointer;
+}
+#retro-panel .fxm-threshold-value {
+    font-family: var(--mono-display);
+    font-size: 12px;
+    color: var(--retro-phosphor-primary, var(--retro-primary));
+    text-shadow: 0 0 4px var(--retro-phosphor-glow, var(--retro-glow));
+}
+#retro-panel .fxm-cleanup-btn {
+    padding: 8px 12px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--retro-phosphor-dim, var(--retro-dim));
+    font-family: var(--mono-display);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+#retro-panel .fxm-cleanup-btn:hover:not(.fxm-disabled) {
+    color: var(--retro-phosphor-primary, var(--retro-primary));
+    border-color: var(--retro-phosphor-dim, var(--retro-dim));
+    box-shadow: 0 0 8px var(--retro-phosphor-glow, var(--retro-glow));
+}
+#retro-panel .fxm-segmented-control {
+    gap: 2px;
+}
+#retro-panel .fxm-segmented-btn {
+    padding: 6px 3px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--retro-phosphor-dim, var(--retro-dim));
+    font-family: var(--mono-display);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+#retro-panel .fxm-segmented-btn.active {
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--retro-phosphor-primary, var(--retro-primary));
+    border-color: var(--retro-phosphor-primary, var(--retro-primary));
+    box-shadow: 0 0 8px var(--retro-phosphor-glow, var(--retro-glow));
+    text-shadow: 0 0 4px var(--retro-phosphor-glow, var(--retro-glow));
+}
+#retro-panel .fxm-segmented-btn:hover:not(.active):not(:disabled):not(.fxm-disabled) {
+    color: var(--retro-phosphor-primary, var(--retro-primary));
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Lux 主题 */
+#lux-panel .fxm-cleanup-section {
+    margin-top: 8px;
+    position: relative;
+    z-index: 1;
+}
+#lux-panel .fxm-cleanup-section-header {
+    padding: 8px 12px;
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+#lux-panel .fxm-cleanup-title {
+    font-size: var(--lux-font-size-sm);
+    font-weight: 700;
+    color: var(--lux-text-primary);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#lux-panel .fxm-cleanup-toggle-icon {
+    font-size: 10px;
+    color: var(--lux-text-secondary);
+    transition: transform 0.25s ease;
+}
+#lux-panel .fxm-cleanup-section-header.collapsed .fxm-cleanup-toggle-icon {
+    transform: rotate(-90deg);
+}
+#lux-panel .fxm-cleanup-content {
+    padding: 10px 12px;
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    margin-top: 6px;
+}
+#lux-panel .fxm-cleanup-row {
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+}
+#lux-panel .fxm-cleanup-label {
+    font-size: var(--lux-font-size-sm);
+    font-weight: 600;
+    color: var(--lux-text-primary);
+}
+#lux-panel .fxm-cleanup-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    outline: none;
+}
+#lux-panel .fxm-cleanup-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, var(--lux-titanium-light), var(--lux-titanium));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+}
+#lux-panel .fxm-cleanup-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, var(--lux-titanium-light), var(--lux-titanium));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+}
+#lux-panel .fxm-threshold-value {
+    font-size: var(--lux-font-size-xs);
+    color: var(--lux-gold);
+    font-weight: 700;
+}
+#lux-panel .fxm-cleanup-btn {
+    padding: 10px 14px;
+    border-radius: var(--lux-radius-button);
+    background: linear-gradient(145deg, var(--lux-gold-light), var(--lux-gold-mid));
+    color: var(--lux-titanium-dark);
+    font-size: var(--lux-font-size-sm);
+    font-weight: 700;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+#lux-panel .fxm-cleanup-btn:hover:not(.fxm-disabled) {
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.5), 0 0 16px color-mix(in srgb, var(--lux-gold) 30%, transparent);
+    transform: translateY(-1px);
+}
+#lux-panel .fxm-segmented-control {
+    gap: 3px;
+}
+#lux-panel .fxm-segmented-btn {
+    padding: 7px 3px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--lux-text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+#lux-panel .fxm-segmented-btn.active {
+    background: linear-gradient(145deg, var(--lux-gold-light), var(--lux-gold-mid));
+    color: var(--lux-titanium-dark);
+    border-color: transparent;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+#lux-panel .fxm-segmented-btn:hover:not(.active):not(:disabled):not(.fxm-disabled) {
+    color: var(--lux-text-primary);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Cyber 主题 */
+#cyber-panel .fxm-cleanup-section {
+    margin-top: 12px;
+}
+#cyber-panel .fxm-cleanup-section-header {
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.12);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+}
+#cyber-panel .fxm-cleanup-title {
+    font-family: var(--cyber-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--cyber-text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#cyber-panel .fxm-cleanup-toggle-icon {
+    font-size: 10px;
+    color: var(--cyber-text-dim);
+    transition: transform 0.25s ease;
+}
+#cyber-panel .fxm-cleanup-section-header.collapsed .fxm-cleanup-toggle-icon {
+    transform: rotate(-90deg);
+}
+#cyber-panel .fxm-cleanup-content {
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.12);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    margin-top: 6px;
+}
+#cyber-panel .fxm-cleanup-row {
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.12);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+}
+#cyber-panel .fxm-cleanup-label {
+    font-family: var(--cyber-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--cyber-text);
+}
+#cyber-panel .fxm-cleanup-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #0d0e12;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.7);
+    outline: none;
+}
+#cyber-panel .fxm-cleanup-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #5a6075 0%, #2d3040 100%);
+    border: 1px solid #6a7085;
+    cursor: pointer;
+}
+#cyber-panel .fxm-cleanup-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #5a6075 0%, #2d3040 100%);
+    border: 1px solid #6a7085;
+    cursor: pointer;
+}
+#cyber-panel .fxm-cleanup-slider:not(.fxm-disabled)::-webkit-slider-thumb {
+    background: radial-gradient(circle at 30% 30%, var(--cyber-primary) 0%, #006a75 100%);
+    border-color: var(--cyber-primary);
+}
+#cyber-panel .fxm-cleanup-slider:not(.fxm-disabled)::-moz-range-thumb {
+    background: radial-gradient(circle at 30% 30%, var(--cyber-primary) 0%, #006a75 100%);
+    border-color: var(--cyber-primary);
+}
+#cyber-panel .fxm-threshold-value {
+    font-family: var(--cyber-font-mono);
+    font-size: 10px;
+    color: var(--cyber-primary);
+    font-weight: 700;
+}
+#cyber-panel .fxm-cleanup-btn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #2c2f3a 0%, #1a1c24 100%);
+    border: 1px solid #464a5a;
+    color: var(--cyber-text-dim);
+    font-family: var(--cyber-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+#cyber-panel .fxm-cleanup-btn:hover:not(.fxm-disabled) {
+    color: var(--cyber-text);
+    border-color: var(--cyber-primary);
+    box-shadow: 0 0 4px rgba(var(--cyber-primary-rgb), 0.25);
+}
+#cyber-panel .fxm-segmented-control {
+    gap: 2px;
+}
+#cyber-panel .fxm-segmented-btn {
+    padding: 6px 3px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.2);
+    color: var(--cyber-text-dim);
+    font-family: var(--cyber-font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+#cyber-panel .fxm-segmented-btn.active {
+    background: rgba(0,0,0,0.45);
+    color: var(--cyber-primary);
+    border-color: var(--cyber-primary);
+    box-shadow: 0 0 6px rgba(var(--cyber-primary-rgb), 0.25);
+}
+#cyber-panel .fxm-segmented-btn:hover:not(.active):not(:disabled):not(.fxm-disabled) {
+    color: var(--cyber-text);
+    border-color: rgba(255,255,255,0.12);
+}
+
+/* Ind / 玉竹 主题 */
+#ind-panel .fxm-cleanup-section {
+    margin-top: 12px;
+}
+#ind-panel .fxm-cleanup-section-header {
+    padding: 10px 12px;
+    background: rgba(60,100,65,0.45);
+    border: 1px solid rgba(160,220,170,0.15);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.2);
+}
+#ind-panel .fxm-cleanup-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    color: var(--jade-light, #e8f5e9);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#ind-panel .fxm-cleanup-toggle-icon {
+    font-size: 10px;
+    color: rgba(200,230,205,0.65);
+    transition: transform 0.25s ease;
+}
+#ind-panel .fxm-cleanup-section-header.collapsed .fxm-cleanup-toggle-icon {
+    transform: rotate(-90deg);
+}
+#ind-panel .fxm-cleanup-content {
+    padding: 10px 12px;
+    background: rgba(60,100,65,0.45);
+    border: 1px solid rgba(160,220,170,0.15);
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.2);
+    margin-top: 6px;
+}
+#ind-panel .fxm-cleanup-row {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(160,220,170,0.1);
+}
+#ind-panel .fxm-cleanup-row:last-child { border-bottom: none; }
+#ind-panel .fxm-cleanup-label {
+    font-size: 12px;
+    color: rgba(230,245,232,0.85);
+}
+#ind-panel .fxm-cleanup-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.22);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+    outline: none;
+}
+#ind-panel .fxm-cleanup-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, #d0e8d3);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+#ind-panel .fxm-cleanup-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, #d0e8d3);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+#ind-panel .fxm-threshold-value {
+    font-size: 11px;
+    color: var(--jade-light, #e8f5e9);
+    font-weight: 700;
+}
+#ind-panel .fxm-cleanup-btn {
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, rgba(60,100,65,0.5), rgba(40,75,45,0.6));
+    border: 1px solid rgba(160,220,170,0.18);
+    color: rgba(200,230,205,0.75);
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 2px rgba(0,0,0,0.15);
+}
+#ind-panel .fxm-cleanup-btn:hover:not(.fxm-disabled) {
+    background: linear-gradient(180deg, rgba(70,115,75,0.6), rgba(50,90,55,0.7));
+    color: var(--jade-light, #e8f5e9);
+}
+#ind-panel .fxm-segmented-control {
+    gap: 3px;
+}
+#ind-panel .fxm-segmented-btn {
+    padding: 6px 3px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.18);
+    color: rgba(200,230,205,0.65);
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid rgba(160,220,170,0.12);
+}
+#ind-panel .fxm-segmented-btn.active {
+    background: linear-gradient(180deg, rgba(60,100,65,0.6), rgba(40,75,45,0.7));
+    color: var(--jade-light, #e8f5e9);
+    border-color: rgba(160,220,170,0.35);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 2px rgba(0,0,0,0.15);
+}
+#ind-panel .fxm-segmented-btn:hover:not(.active):not(:disabled):not(.fxm-disabled) {
+    color: rgba(230,245,232,0.9);
+    border-color: rgba(160,220,170,0.22);
+}
 
 
+/* ============================================================
+   智能内存清理 Toast 提示
+   ============================================================ */
+#fxm-cleanup-toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 2147483647;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    font-family: var(--neu-font-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+}
+.fxm-cleanup-toast {
+    min-width: 240px;
+    max-width: 360px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #fff;
+    background: rgba(30, 35, 45, 0.92);
+    border-left: 4px solid #38a169;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: auto;
+}
+.fxm-cleanup-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+.fxm-cleanup-toast.error {
+    border-left-color: #e53e3e;
+}
+.fxm-cleanup-toast.info {
+    border-left-color: #3182ce;
+}
+.fxm-cleanup-toast.neu {
+    background: rgba(45, 55, 72, 0.92);
+    color: #fff;
+}
+.fxm-cleanup-toast.retro {
+    background: rgba(10, 16, 10, 0.95);
+    color: var(--retro-phosphor-primary, #00ff41);
+    border-left-width: 2px;
+    text-shadow: 0 0 6px var(--retro-phosphor-glow, rgba(0,255,65,0.4));
+    font-family: var(--mono-body, monospace);
+}
+.fxm-cleanup-toast.lux {
+    background: linear-gradient(135deg, rgba(25,20,15,0.95), rgba(40,30,20,0.95));
+    border-left-color: var(--lux-gold, #d4af37);
+    color: var(--lux-gold-light, #f4e4bc);
+}
+.fxm-cleanup-toast.cyber {
+    background: rgba(5, 10, 18, 0.95);
+    color: var(--cyber-primary, #00e5ff);
+    border-left-color: var(--cyber-primary, #00e5ff);
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+}
+.fxm-cleanup-toast.ind {
+    background: rgba(250, 248, 245, 0.96);
+    color: #2c2c2c;
+    border-left-color: var(--jade-dark, #2d6a4f);
+}
 
-  
 `;
 
         document.head.appendChild(style);
@@ -5600,7 +6369,7 @@ body.cyber-active {
     }
 
     // ============================================================
-    // 5主题系统常量定义 — Premium UI v3.27
+    // 5主题系统常量定义 — Premium UI v3.28
     // ============================================================
 
     /** 有效风格列表 */
@@ -5628,6 +6397,14 @@ body.cyber-active {
             // 设置项
             sound_alert: '声音提示', drag_mode: '拖拽模式', theme: '主题',
             color: '色彩', settings: '设置', settings_panel: '设置面板', close: '关闭',
+            smart_memory_cleanup: '智能内存清理',
+            auto_smart_cleanup: '清理模式',
+            cleanup_mode_off: '关闭',
+            cleanup_mode_ram: 'RAM 整理',
+            cleanup_mode_deep: '深度清理',
+            trigger_threshold: '触发阈值',
+            idle_confirm_delay: '空闲确认延时',
+            free_memory_now: '立即深度释放',
             // 风格名称
             theme_name_neu: '拟物白', theme_name_ind: '玉竹', theme_name_retro: '复古终端',
             theme_name_lux: '珠宝柜', theme_name_cyber: '量子核',
@@ -5657,6 +6434,14 @@ body.cyber-active {
             net_up: 'Upload', net_down: 'Download',
             sound_alert: 'Sound Alert', drag_mode: 'Drag Mode', theme: 'Theme',
             color: 'Color', settings: 'Settings', settings_panel: 'Settings Panel', close: 'Close',
+            smart_memory_cleanup: 'Smart Memory Cleanup',
+            auto_smart_cleanup: 'Cleanup Mode',
+            cleanup_mode_off: 'Off',
+            cleanup_mode_ram: 'RAM',
+            cleanup_mode_deep: 'Deep',
+            trigger_threshold: 'Trigger Threshold',
+            idle_confirm_delay: 'Idle Confirm Delay',
+            free_memory_now: 'Deep Free Now',
             theme_name_neu: 'Neu', theme_name_ind: 'Jade Bamboo', theme_name_retro: 'Retro',
             theme_name_lux: 'Lux', theme_name_cyber: 'Cyber',
             color_name_forest: 'Forest', color_name_ocean: 'Ocean', color_name_sunset: 'Sunset',
@@ -6047,7 +6832,7 @@ body.cyber-active {
 
             const unit = document.createElement('span');
             unit.className = 'cyber-pod-unit';
-            unit.textContent = m.type === 'temp' ? '\u00B0C' : (m.type === 'swap' ? 'GB' : '%');
+            unit.textContent = m.type === 'temp' ? '\u00B0C' : (m.type === 'swap' || m.type === 'vram' ? 'GB' : '%');
 
             valueWrap.appendChild(value);
             valueWrap.appendChild(unit);
@@ -6347,13 +7132,45 @@ body.cyber-active {
         });
     }
 
+    /**
+     * 生成智能内存清理三档分段选择器 HTML
+     * @param {string} id - 容器元素 id
+     */
+    function getCleanupModeSelectorHTML(id) {
+        return '<div class="fxm-segmented-control" id="' + id + '" role="radiogroup" aria-label="' + t('auto_smart_cleanup') + '">' +
+            '<button class="fxm-segmented-btn" type="button" data-mode="off" role="radio" aria-checked="false" tabindex="0">' + t('cleanup_mode_off') + '</button>' +
+            '<button class="fxm-segmented-btn" type="button" data-mode="ram" role="radio" aria-checked="false" tabindex="-1">' + t('cleanup_mode_ram') + '</button>' +
+            '<button class="fxm-segmented-btn" type="button" data-mode="deep" role="radio" aria-checked="false" tabindex="-1">' + t('cleanup_mode_deep') + '</button>' +
+        '</div>';
+    }
+
+    /**
+     * 绑定分段选择器点击事件
+     * @param {HTMLElement} panel - 当前面板
+     * @param {string} id - 分段选择器容器 id
+     */
+    function bindCleanupModeSelector(panel, id) {
+        const group = panel.querySelector('#' + id);
+        if (!group) return;
+        group.querySelectorAll('.fxm-segmented-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const mode = this.dataset.mode;
+                if (mode && window.FxMonitorMemoryCleanup) {
+                    window.FxMonitorMemoryCleanup.setMode(mode);
+                }
+            });
+            btn.addEventListener('mousedown', e => e.stopPropagation());
+            btn.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        });
+    }
+
     /** 构建Neu Panel内容 */
     function buildNeuPanel(panel) {
         panel.innerHTML =
             '<div class="neu-panel-header">' +
                 '<div class="neu-header-brand">' +
                     '<div class="neu-brand-icon">\u2744</div>' +
-                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.27</span></div>' +
+                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.28</span></div>' +
                 '</div>' +
                 '<div class="neu-header-actions">' +
                     '<button class="neu-action-btn" id="neu-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
@@ -6483,10 +7300,38 @@ body.cyber-active {
                     '</div>' +
                 '</div>' +
             '</div>' +
+            // Smart Memory Cleanup Section
+            '<section class="fxm-cleanup-section">' +
+                '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
+                    '<div class="fxm-cleanup-title"><span class="neu-section-icon">&#x1F9F9;</span>' + t('smart_memory_cleanup') + '</div>' +
+                    '<span class="fxm-cleanup-toggle-icon">&#x25BC;</span>' +
+                '</div>' +
+                '<div class="fxm-cleanup-content">' +
+                    '<div class="fxm-cleanup-row">' +
+                        '<label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' +
+                        getCleanupModeSelectorHTML('neu-cleanupMode') +
+                    '</div>' +
+                    '<div class="fxm-cleanup-row">' +
+                        '<label class="fxm-cleanup-label" for="neu-cleanupThreshold">' + t('trigger_threshold') + '</label>' +
+                        '<div class="fxm-cleanup-slider-wrap">' +
+                            '<input type="range" class="fxm-cleanup-slider" id="neu-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '">' +
+                            '<span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="fxm-cleanup-row">' +
+                        '<label class="fxm-cleanup-label" for="neu-cleanupDelay">' + t('idle_confirm_delay') + '</label>' +
+                        '<div class="fxm-cleanup-slider-wrap">' +
+                            '<input type="range" class="fxm-cleanup-slider" id="neu-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '">' +
+                            '<span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<button class="fxm-cleanup-btn" id="neu-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
+                '</div>' +
+            '</section>' +
             // Footer
             '<footer class="neu-panel-footer">' +
                 '<div class="neu-footer-left"><span class="neu-status-dot"></span><span id="np-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.27 Build 2026.06.23</span>' +
+                '<span>v3.28 Build 2026.06.23</span>' +
             '</footer>';
 
         // 绑定关闭按钮
@@ -6553,6 +7398,58 @@ body.cyber-active {
             dragToggle.addEventListener('mousedown', e => e.stopPropagation());
             dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
+
+        // Smart Memory Cleanup section toggle
+        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
+        if (cleanupHeader) {
+            cleanupHeader.addEventListener('click', function() {
+                this.classList.toggle('collapsed');
+                const expanded = !this.classList.contains('collapsed');
+                this.setAttribute('aria-expanded', expanded.toString());
+            });
+            cleanupHeader.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+            cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // Smart Memory Cleanup mode selector
+        bindCleanupModeSelector(panel, 'neu-cleanupMode');
+
+        // Smart Memory Cleanup threshold slider
+        const cleanupThreshold = panel.querySelector('#neu-cleanupThreshold');
+        if (cleanupThreshold) {
+            cleanupThreshold.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setThreshold(this.value);
+            });
+            cleanupThreshold.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupThreshold.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup delay slider
+        const cleanupDelay = panel.querySelector('#neu-cleanupDelay');
+        if (cleanupDelay) {
+            cleanupDelay.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setDelay(this.value);
+            });
+            cleanupDelay.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupDelay.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup manual button
+        const cleanupBtn = panel.querySelector('#neu-cleanupBtn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', function() {
+                triggerManualMemoryCleanup();
+            });
+            cleanupBtn.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // 同步智能清理控件初始状态
+        syncCleanupControls();
     }
 
     /** 构建Retro Panel内容 - 完整6模块版 */
@@ -6591,8 +7488,21 @@ body.cyber-active {
             '</div></div>' +
             // 模块5: Control Toggles
             '<div class="retro-section"><div class="retro-control-row" style="display:flex;align-items:center;justify-content:center;gap:24px;"><label class="retro-control-label">' + t('sound_alert') + '</label><button class="retro-toggle-switch active" id="retro-soundToggle" role="switch" aria-checked="true"><span class="retro-toggle-thumb"></span></button><label class="retro-control-label">' + t('drag_mode') + '</label><button class="retro-toggle-switch" id="retro-dragToggle" role="switch" aria-checked="false"><span class="retro-toggle-thumb"></span></button></div></div>' +
+            // 模块6: Smart Memory Cleanup
+            '<div class="retro-section fxm-cleanup-section">' +
+                '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
+                    '<div class="fxm-cleanup-title"><span style="margin-right:4px;">&#x1F9F9;</span>' + t('smart_memory_cleanup') + '</div>' +
+                    '<span class="fxm-cleanup-toggle-icon">&#x25BC;</span>' +
+                '</div>' +
+                '<div class="fxm-cleanup-content">' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' + getCleanupModeSelectorHTML('retro-cleanupMode') + '</div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="retro-cleanupThreshold">' + t('trigger_threshold') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="retro-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '"><span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span></div></div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="retro-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="retro-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span></div></div>' +
+                    '<button class="fxm-cleanup-btn" id="retro-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
+                '</div>' +
+            '</div>' +
             // V19 Footer
-            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.27</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.23</div></div>' +
+            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.28</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.23</div></div>' +
             '<div class="retro-source-text" id="retro-source-text">[ AMD SMI ]</div>' +
             '</div></div>';
 
@@ -6644,12 +7554,64 @@ body.cyber-active {
             dt.addEventListener('mousedown', e => e.stopPropagation());
             dt.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
+
+        // Smart Memory Cleanup section toggle
+        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
+        if (cleanupHeader) {
+            cleanupHeader.addEventListener('click', function() {
+                this.classList.toggle('collapsed');
+                const expanded = !this.classList.contains('collapsed');
+                this.setAttribute('aria-expanded', expanded.toString());
+            });
+            cleanupHeader.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+            cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // Smart Memory Cleanup mode selector
+        bindCleanupModeSelector(panel, 'retro-cleanupMode');
+
+        // Smart Memory Cleanup threshold slider
+        const cleanupThreshold = panel.querySelector('#retro-cleanupThreshold');
+        if (cleanupThreshold) {
+            cleanupThreshold.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setThreshold(this.value);
+            });
+            cleanupThreshold.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupThreshold.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup delay slider
+        const cleanupDelay = panel.querySelector('#retro-cleanupDelay');
+        if (cleanupDelay) {
+            cleanupDelay.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setDelay(this.value);
+            });
+            cleanupDelay.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupDelay.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup manual button
+        const cleanupBtn = panel.querySelector('#retro-cleanupBtn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', function() {
+                triggerManualMemoryCleanup();
+            });
+            cleanupBtn.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // 同步智能清理控件初始状态
+        syncCleanupControls();
     }
 
     /** 构建Lux Panel内容 */
     function buildLuxPanel(panel) {
         panel.innerHTML =
-            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.27</span></div>' +
+            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.28</span></div>' +
                 '<div class="lux-header-actions"><button class="lux-action-btn lux-close-btn" title="' + t('close') + '">&times;</button></div></div>' +
             '<div class="lux-metrics-grid"><div class="lux-metric-card"><div class="lux-metric-label">' + t('gpu') + ' ' + t('load') + '</div><div class="lux-metric-value"><span id="lp-gpu-val">--</span>%</div></div>' +
                 '<div class="lux-metric-card"><div class="lux-metric-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="lux-metric-value"><span id="lp-cpu-val">--</span>%</div></div>' +
@@ -6686,7 +7648,20 @@ body.cyber-active {
                     '<button class="lux-toggle-switch" id="lux-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="lux-toggle-thumb"></span></button>' +
                 '</div>' +
             '</div></div>' +
-            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.27 Build 2026.06.23</span></footer>';
+            // Smart Memory Cleanup Section
+            '<div class="fxm-cleanup-section">' +
+                '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
+                    '<div class="fxm-cleanup-title"><span style="margin-right:4px;">&#x1F9F9;</span>' + t('smart_memory_cleanup') + '</div>' +
+                    '<span class="fxm-cleanup-toggle-icon">&#x25BC;</span>' +
+                '</div>' +
+                '<div class="fxm-cleanup-content">' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' + getCleanupModeSelectorHTML('lux-cleanupMode') + '</div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="lux-cleanupThreshold">' + t('trigger_threshold') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="lux-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '"><span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span></div></div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="lux-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="lux-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span></div></div>' +
+                    '<button class="fxm-cleanup-btn" id="lux-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
+                '</div>' +
+            '</div>' +
+            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.28 Build 2026.06.23</span></footer>';
 
         panel.querySelector('.lux-close-btn').addEventListener('click', () => togglePanel('lux'));
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -6734,6 +7709,58 @@ body.cyber-active {
             dragToggle.addEventListener('mousedown', e => e.stopPropagation());
             dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
+
+        // Smart Memory Cleanup section toggle
+        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
+        if (cleanupHeader) {
+            cleanupHeader.addEventListener('click', function() {
+                this.classList.toggle('collapsed');
+                const expanded = !this.classList.contains('collapsed');
+                this.setAttribute('aria-expanded', expanded.toString());
+            });
+            cleanupHeader.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+            cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // Smart Memory Cleanup mode selector
+        bindCleanupModeSelector(panel, 'lux-cleanupMode');
+
+        // Smart Memory Cleanup threshold slider
+        const cleanupThreshold = panel.querySelector('#lux-cleanupThreshold');
+        if (cleanupThreshold) {
+            cleanupThreshold.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setThreshold(this.value);
+            });
+            cleanupThreshold.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupThreshold.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup delay slider
+        const cleanupDelay = panel.querySelector('#lux-cleanupDelay');
+        if (cleanupDelay) {
+            cleanupDelay.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setDelay(this.value);
+            });
+            cleanupDelay.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupDelay.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup manual button
+        const cleanupBtn = panel.querySelector('#lux-cleanupBtn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', function() {
+                triggerManualMemoryCleanup();
+            });
+            cleanupBtn.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // 同步智能清理控件初始状态
+        syncCleanupControls();
     }
 
     /** 构建Cyber Panel内容（Orbital Command 轨道指挥中心） */
@@ -6796,7 +7823,20 @@ body.cyber-active {
                     '<button class="cyber-toggle-switch" id="cyber-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="cyber-toggle-thumb"></span></button>' +
                 '</div>' +
             '</div></div>' +
-            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.27 Build 2026.06.23</span></div>';
+            // Smart Memory Cleanup Section
+            '<div class="fxm-cleanup-section">' +
+                '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
+                    '<div class="fxm-cleanup-title"><span style="margin-right:4px;">&#x1F9F9;</span>' + t('smart_memory_cleanup') + '</div>' +
+                    '<span class="fxm-cleanup-toggle-icon">&#x25BC;</span>' +
+                '</div>' +
+                '<div class="fxm-cleanup-content">' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' + getCleanupModeSelectorHTML('cyber-cleanupMode') + '</div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="cyber-cleanupThreshold">' + t('trigger_threshold') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="cyber-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '"><span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span></div></div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="cyber-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="cyber-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span></div></div>' +
+                    '<button class="fxm-cleanup-btn" id="cyber-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.28 Build 2026.06.23</span></div>';
 
         // 主题切换按钮
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -6858,6 +7898,58 @@ body.cyber-active {
             dragToggle.addEventListener('mousedown', e => e.stopPropagation());
             dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
+
+        // Smart Memory Cleanup section toggle
+        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
+        if (cleanupHeader) {
+            cleanupHeader.addEventListener('click', function() {
+                this.classList.toggle('collapsed');
+                const expanded = !this.classList.contains('collapsed');
+                this.setAttribute('aria-expanded', expanded.toString());
+            });
+            cleanupHeader.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+            cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // Smart Memory Cleanup mode selector
+        bindCleanupModeSelector(panel, 'cyber-cleanupMode');
+
+        // Smart Memory Cleanup threshold slider
+        const cleanupThreshold = panel.querySelector('#cyber-cleanupThreshold');
+        if (cleanupThreshold) {
+            cleanupThreshold.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setThreshold(this.value);
+            });
+            cleanupThreshold.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupThreshold.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup delay slider
+        const cleanupDelay = panel.querySelector('#cyber-cleanupDelay');
+        if (cleanupDelay) {
+            cleanupDelay.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setDelay(this.value);
+            });
+            cleanupDelay.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupDelay.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup manual button
+        const cleanupBtn = panel.querySelector('#cyber-cleanupBtn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', function() {
+                triggerManualMemoryCleanup();
+            });
+            cleanupBtn.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // 同步智能清理控件初始状态
+        syncCleanupControls();
     }
 
     
@@ -6865,7 +7957,7 @@ body.cyber-active {
     function buildIndPanel(panel) {
         panel.innerHTML =
             '<div class="ind-panel-header">' +
-                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.27</span></div>' +
+                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.28</span></div>' +
                 '<div class="ind-header-actions">' +
                     '<button class="ind-action-btn" id="ind-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="ind-action-btn" id="ind-closeBtn" title="' + t('close') + '">&times;</button>' +
@@ -6911,9 +8003,22 @@ body.cyber-active {
                     '</div></div>' +
                 '</div>' +
             '</div>' +
+            // Smart Memory Cleanup Section
+            '<div class="ind-section fxm-cleanup-section">' +
+                '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
+                    '<div class="fxm-cleanup-title"><span style="margin-right:4px;">&#x1F9F9;</span>' + t('smart_memory_cleanup') + '</div>' +
+                    '<span class="fxm-cleanup-toggle-icon">&#x25BC;</span>' +
+                '</div>' +
+                '<div class="fxm-cleanup-content">' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' + getCleanupModeSelectorHTML('ind-cleanupMode') + '</div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="ind-cleanupThreshold">' + t('trigger_threshold') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="ind-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '"><span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span></div></div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="ind-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="ind-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span></div></div>' +
+                    '<button class="fxm-cleanup-btn" id="ind-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
+                '</div>' +
+            '</div>' +
             '<footer class="ind-panel-footer">' +
                 '<div><span class="ind-status-dot"></span><span id="gp-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.27 Build 2026.06.23</span>' +
+                '<span>v3.28 Build 2026.06.23</span>' +
             '</footer>';
 
         const closeBtn = panel.querySelector('#ind-closeBtn');
@@ -6969,6 +8074,58 @@ body.cyber-active {
             dragToggle.addEventListener('mousedown', e => e.stopPropagation());
             dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
+
+        // Smart Memory Cleanup section toggle
+        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
+        if (cleanupHeader) {
+            cleanupHeader.addEventListener('click', function() {
+                this.classList.toggle('collapsed');
+                const expanded = !this.classList.contains('collapsed');
+                this.setAttribute('aria-expanded', expanded.toString());
+            });
+            cleanupHeader.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+            cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // Smart Memory Cleanup mode selector
+        bindCleanupModeSelector(panel, 'ind-cleanupMode');
+
+        // Smart Memory Cleanup threshold slider
+        const cleanupThreshold = panel.querySelector('#ind-cleanupThreshold');
+        if (cleanupThreshold) {
+            cleanupThreshold.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setThreshold(this.value);
+            });
+            cleanupThreshold.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupThreshold.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup delay slider
+        const cleanupDelay = panel.querySelector('#ind-cleanupDelay');
+        if (cleanupDelay) {
+            cleanupDelay.addEventListener('input', function() {
+                if (window.FxMonitorMemoryCleanup) window.FxMonitorMemoryCleanup.setDelay(this.value);
+            });
+            cleanupDelay.addEventListener('mousedown', e => e.stopPropagation());
+            cleanupDelay.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        // Smart Memory Cleanup manual button
+        const cleanupBtn = panel.querySelector('#ind-cleanupBtn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', function() {
+                triggerManualMemoryCleanup();
+            });
+            cleanupBtn.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // 同步智能清理控件初始状态
+        syncCleanupControls();
     }
 
 // ============================================================
@@ -7733,7 +8890,7 @@ body.cyber-active {
     let updateTimer = null;
 
     /**
-     * 主更新循环 — Premium UI v3.27
+     * 主更新循环 — Premium UI v3.28
      * 使用 renderToCurrentTheme(data) 替代旧的 updateAllCapsules(data)
      */
     async function mainUpdateLoop() {
@@ -7743,6 +8900,12 @@ body.cyber-active {
 
             // 2. 渲染到当前激活风格的DOM（核心改动点！）
             renderToCurrentTheme(data);
+
+            // 3. 记录 RAM 占用，用于智能内存清理自动触发判定
+            if (data && typeof data.ram?.percent === 'number') {
+                recordCleanupRamSample(data.ram.percent);
+            }
+            maybeTriggerAutoCleanup();
 
         } catch (e) {
             console.error('[飞雪监测器] ❌ 更新循环异常:', e);
@@ -7761,11 +8924,11 @@ body.cyber-active {
     }
 
     // ============================================================
-    // 初始化 — Premium UI v3.27 启动流程
+    // 初始化 — Premium UI v3.28 启动流程
     // ============================================================
 
     /**
-     * 初始化并启动监测器（Premium UI v3.27）
+     * 初始化并启动监测器（Premium UI v3.28）
      *
      * 启动流程：
      * 1. 注入CSS
@@ -7777,7 +8940,7 @@ body.cyber-active {
      * 7. 初始化拖拽
      */
     async function init() {
-        console.log('[飞雪监测器] 🚀 Premium UI v3.27 启动...');
+        console.log('[飞雪监测器] 🚀 Premium UI v3.28 启动...');
         try {
             // 1. 注入新CSS
             injectPremiumCSS();
@@ -7810,6 +8973,9 @@ body.cyber-active {
             // 7. 启动数据更新循环
             startDataLoop();
 
+            // 7.1 启动队列监控（智能内存清理自动触发依赖）
+            startQueueMonitoring();
+
             // 8. 初始化拖拽
             initDrag();
 
@@ -7822,10 +8988,654 @@ body.cyber-active {
                 }).observe(document.body, { childList: true, subtree: true });
             }
 
-            console.log('[飞雪监测器] ✅ Premium UI v3.27 initialized successfully!');
+            console.log('[飞雪监测器] ✅ Premium UI v3.28 initialized successfully!');
         } catch(e) {
             console.error('[飞雪监测器] ❌ Init failed:', e);
         }
+    }
+
+    // ============================================================
+    // 智能内存清理状态管理
+    // ============================================================
+
+    const CLEANUP_MODE_KEY = 'fx-memory-cleanup-enabled';
+    const CLEANUP_MODE_LEGACY_KEY = 'fxm_smart_cleanup_enabled';
+    const CLEANUP_THRESHOLD_KEY = 'fxm_smart_cleanup_threshold';
+    const CLEANUP_DELAY_KEY = 'fxm_smart_cleanup_delay';
+    const CLEANUP_MODES = ['off', 'ram', 'deep'];
+    const CLEANUP_DEFAULT_MODE = 'off';
+    const CLEANUP_DEFAULT_THRESHOLD = 85;
+    const CLEANUP_DEFAULT_DELAY = -1; // -1 表示自动，否则 0-15 秒
+
+    function getInitialCleanupMode() {
+        try {
+            let saved = localStorage.getItem(CLEANUP_MODE_KEY);
+            // 兼容旧版布尔开关：true -> deep, false -> off
+            if (saved === null) {
+                saved = localStorage.getItem(CLEANUP_MODE_LEGACY_KEY);
+                if (saved === 'true') return 'deep';
+                if (saved === 'false') return 'off';
+            }
+            if (saved === 'true') return 'deep';
+            if (saved === 'false') return 'off';
+            if (CLEANUP_MODES.includes(saved)) return saved;
+            return CLEANUP_DEFAULT_MODE;
+        } catch(e) {
+            return CLEANUP_DEFAULT_MODE;
+        }
+    }
+
+    function getInitialCleanupThreshold() {
+        try {
+            const saved = localStorage.getItem(CLEANUP_THRESHOLD_KEY);
+            const value = saved === null ? CLEANUP_DEFAULT_THRESHOLD : parseInt(saved, 10);
+            if (isNaN(value)) return CLEANUP_DEFAULT_THRESHOLD;
+            return Math.max(60, Math.min(95, value));
+        } catch(e) {
+            return CLEANUP_DEFAULT_THRESHOLD;
+        }
+    }
+
+    function getInitialCleanupDelay() {
+        try {
+            const saved = localStorage.getItem(CLEANUP_DELAY_KEY);
+            if (saved === null) return CLEANUP_DEFAULT_DELAY;
+            const value = parseInt(saved, 10);
+            if (isNaN(value)) return CLEANUP_DEFAULT_DELAY;
+            if (value === -1) return -1;
+            return Math.max(0, Math.min(15, value));
+        } catch(e) {
+            return CLEANUP_DEFAULT_DELAY;
+        }
+    }
+
+    /**
+     * 全局智能内存清理状态对象
+     * 三档模式：off / ram / deep
+     */
+    window.FxMonitorMemoryCleanup = {
+        _mode: getInitialCleanupMode(),
+        _threshold: getInitialCleanupThreshold(),
+        _delay: getInitialCleanupDelay(),
+        _adaptiveDelaySeconds: 2,
+        _cleaning: false,
+
+        get mode() { return this._mode; },
+        get enabled() { return this._mode !== 'off'; },
+        get threshold() { return this._threshold; },
+        get delay() { return this._delay; },
+        get cleaning() { return this._cleaning; },
+        get isAdaptiveDelay() { return this._delay === -1; },
+
+        getEffectiveDelay: function() {
+            if (this._delay !== -1) return this._delay;
+            return this._adaptiveDelaySeconds;
+        },
+
+        setMode: function(mode) {
+            const normalized = CLEANUP_MODES.includes(mode) ? mode : CLEANUP_DEFAULT_MODE;
+            this._mode = normalized;
+            try { localStorage.setItem(CLEANUP_MODE_KEY, this._mode); } catch(e) {}
+            console.log('[飞雪监测器] Smart Memory Cleanup Mode:', this._mode);
+            syncCleanupControls();
+            return this._mode;
+        },
+
+        setThreshold: function(value) {
+            let num = parseInt(value, 10);
+            if (isNaN(num)) num = CLEANUP_DEFAULT_THRESHOLD;
+            this._threshold = Math.max(60, Math.min(95, num));
+            try { localStorage.setItem(CLEANUP_THRESHOLD_KEY, this._threshold.toString()); } catch(e) {}
+            console.log('[飞雪监测器] Cleanup Threshold:', this._threshold + '%');
+            syncCleanupControls();
+            return this._threshold;
+        },
+
+        setDelay: function(value) {
+            let num = parseInt(value, 10);
+            if (isNaN(num)) num = CLEANUP_DEFAULT_DELAY;
+            if (num !== -1) num = Math.max(0, Math.min(15, num));
+            this._delay = num;
+            try { localStorage.setItem(CLEANUP_DELAY_KEY, this._delay.toString()); } catch(e) {}
+            if (this._delay === -1) {
+                console.log('[飞雪监测器] Cleanup Delay: AUTO (' + this.getEffectiveDelay() + 's)');
+            } else {
+                console.log('[飞雪监测器] Cleanup Delay: MANUAL ' + this._delay + 's');
+            }
+            syncCleanupControls();
+            return this._delay;
+        },
+
+        setCleaning: function(cleaning) {
+            this._cleaning = !!cleaning;
+            syncCleanupControls();
+            return this._cleaning;
+        }
+    };
+
+    /**
+     * 同步所有主题面板中的智能内存清理控件到全局状态
+     */
+    function syncCleanupControls() {
+        const state = window.FxMonitorMemoryCleanup;
+        if (!state) return;
+        const mode = state.mode;
+        const enabled = state.enabled;
+        const threshold = state.threshold;
+        const cleaning = state.cleaning;
+        const isOff = mode === 'off';
+
+        // Segmented mode selectors
+        document.querySelectorAll('#neu-cleanupMode, #retro-cleanupMode, #lux-cleanupMode, #cyber-cleanupMode, #ind-cleanupMode').forEach(group => {
+            group.querySelectorAll('.fxm-segmented-btn').forEach(btn => {
+                const active = btn.dataset.mode === mode;
+                btn.classList.toggle('active', active);
+                btn.setAttribute('aria-checked', active.toString());
+                btn.setAttribute('tabindex', active ? '0' : '-1');
+                btn.disabled = cleaning;
+            });
+        });
+
+        // Threshold sliders
+        document.querySelectorAll('#neu-cleanupThreshold, #retro-cleanupThreshold, #lux-cleanupThreshold, #cyber-cleanupThreshold, #ind-cleanupThreshold').forEach(slider => {
+            if (document.activeElement !== slider) {
+                slider.value = threshold;
+            }
+            slider.disabled = isOff || cleaning;
+            slider.classList.toggle('fxm-disabled', isOff || cleaning);
+        });
+
+        // Threshold value labels
+        document.querySelectorAll('.fxm-threshold-value').forEach(label => {
+            label.textContent = threshold + '%';
+            label.classList.toggle('fxm-disabled', isOff || cleaning);
+        });
+
+        // Delay sliders
+        document.querySelectorAll('#neu-cleanupDelay, #retro-cleanupDelay, #lux-cleanupDelay, #cyber-cleanupDelay, #ind-cleanupDelay').forEach(slider => {
+            if (document.activeElement !== slider) {
+                slider.value = state.delay;
+            }
+            slider.disabled = isOff || cleaning;
+            slider.classList.toggle('fxm-disabled', isOff || cleaning);
+        });
+
+        // Delay value labels
+        const effectiveDelay = state.getEffectiveDelay();
+        document.querySelectorAll('.fxm-delay-value').forEach(label => {
+            if (state.isAdaptiveDelay) {
+                label.textContent = FXM_LANG === 'zh'
+                    ? '自动（当前 ' + effectiveDelay + ' 秒）'
+                    : 'Auto (Current ' + effectiveDelay + 's)';
+            } else {
+                label.textContent = effectiveDelay + (FXM_LANG === 'zh' ? ' 秒' : 's');
+            }
+            label.classList.toggle('fxm-disabled', isOff || cleaning);
+        });
+
+        // Free Memory Now buttons（手动按钮始终可用，与自动档位无关）
+        document.querySelectorAll('#neu-cleanupBtn, #retro-cleanupBtn, #lux-cleanupBtn, #cyber-cleanupBtn, #ind-cleanupBtn').forEach(btn => {
+            btn.disabled = cleaning;
+            btn.classList.toggle('fxm-disabled', cleaning);
+            if (cleaning) {
+                btn.textContent = FXM_LANG === 'zh' ? '清理中…' : 'Cleaning…';
+            } else {
+                btn.textContent = t('free_memory_now');
+            }
+        });
+    }
+
+    // ============================================================
+    // 智能内存清理队列监听、自动触发、后端调用与 Toast 提示
+    // ============================================================
+
+    const CLEANUP_BASE_DELAY_MS = 2000;
+    const CLEANUP_SEGMENTED_DELAY_MS = 8000;
+    const CLEANUP_COOLDOWN_MS = 30000;
+    const QUEUE_POLL_INTERVAL_MS = 2000;
+    const CLEANUP_PATTERN_WINDOW_MS = 5 * 60 * 1000;
+    const CLEANUP_PATTERN_FALLBACK_MS = 10 * 60 * 1000;
+
+    const cleanupTracker = {
+        queueRemaining: 0,
+        queueZeroSince: 0,
+        lastRamPercent: null,
+        prevRamPercent: null,
+        lastAutoCleanupTime: 0,
+        lastManualCleanupTime: 0,
+        wsAvailable: false,
+        queuePollTimer: null,
+        wsHookInstalled: false,
+        patternTimestamps: [],
+        lastPatternTime: 0,
+        isSegmented: false,
+        executingNode: null,
+        executingSince: 0
+    };
+
+    /**
+     * 获取当前有效冷却时间：普通模式 5 秒（防止条件持续满足时无限循环），分段/连续队列模式 30 秒
+     */
+    function getEffectiveCooldownMs() {
+        return cleanupTracker.isSegmented ? CLEANUP_COOLDOWN_MS : 5000;
+    }
+
+    /**
+     * 判断队列是否处于“真正空闲”状态（queue_remaining 持续为 0 超过稳定期且当前无节点执行）
+     */
+    function isQueueTrulyIdle() {
+        if (cleanupTracker.queueRemaining > 0) return false;
+        if (cleanupTracker.queueZeroSince === 0) return false;
+        if (cleanupTracker.executingNode !== null) return false;
+        const state = window.FxMonitorMemoryCleanup;
+        const delayMs = (state ? state.getEffectiveDelay() : 2) * 1000;
+        return (Date.now() - cleanupTracker.queueZeroSince) >= delayMs;
+    }
+
+    /**
+     * 获取当前生效的空闲稳定期（毫秒）
+     */
+    function getEffectiveIdleDelayMs() {
+        const state = window.FxMonitorMemoryCleanup;
+        return (state ? state.getEffectiveDelay() : 2) * 1000;
+    }
+
+    /**
+     * 更新队列剩余数量，并记录首次变为 0 的时间戳；检测到 0->>0 分段模式时记录
+     */
+    function updateQueueRemaining(value) {
+        const prev = cleanupTracker.queueRemaining;
+        const next = typeof value === 'number' && !isNaN(value) ? Math.max(0, value) : 0;
+        if (prev !== next) {
+            cleanupTracker.queueRemaining = next;
+            if (next === 0) {
+                if (cleanupTracker.queueZeroSince === 0) {
+                    cleanupTracker.queueZeroSince = Date.now();
+                }
+            } else {
+                if (prev === 0 && cleanupTracker.queueZeroSince > 0) {
+                    recordQueuePattern();
+                }
+                cleanupTracker.queueZeroSince = 0;
+            }
+        }
+    }
+
+    /**
+     * 记录一次“队列归零后迅速恢复 >0”的分段/续跑模式，并触发自适应延时判断
+     */
+    function recordQueuePattern() {
+        const now = Date.now();
+        cleanupTracker.patternTimestamps.push(now);
+        cleanupTracker.lastPatternTime = now;
+        const cutoff = now - CLEANUP_PATTERN_WINDOW_MS;
+        cleanupTracker.patternTimestamps = cleanupTracker.patternTimestamps.filter(t => t >= cutoff);
+        checkAdaptiveDelayPattern();
+    }
+
+    /**
+     * 自适应延时：最近 5 分钟内出现 2 次及以上分段模式时切换到 8 秒保守策略
+     */
+    function checkAdaptiveDelayPattern() {
+        const state = window.FxMonitorMemoryCleanup;
+        if (!state || !state.isAdaptiveDelay) return;
+        const now = Date.now();
+        const cutoff = now - CLEANUP_PATTERN_WINDOW_MS;
+        const recent = cleanupTracker.patternTimestamps.filter(t => t >= cutoff);
+        if (recent.length >= 2 && !cleanupTracker.isSegmented) {
+            cleanupTracker.isSegmented = true;
+            state._adaptiveDelaySeconds = 8;
+            syncCleanupControls();
+            const msg = FXM_LANG === 'zh'
+                ? '飞雪智能清理：检测到连续工作流，已启用保守策略（8秒/30秒冷却）'
+                : 'Smart cleanup: continuous workflow detected, conservative strategy enabled (8s / 30s cooldown)';
+            showCleanupToast(true, msg);
+        }
+    }
+
+    /**
+     * 自适应延时回落：10 分钟无新模式后恢复到 2 秒快速策略
+     */
+    function checkAdaptiveDelayFallback() {
+        const state = window.FxMonitorMemoryCleanup;
+        if (!state || !state.isAdaptiveDelay) return;
+        if (!cleanupTracker.isSegmented) return;
+        const now = Date.now();
+        if (now - cleanupTracker.lastPatternTime > CLEANUP_PATTERN_FALLBACK_MS) {
+            cleanupTracker.isSegmented = false;
+            cleanupTracker.patternTimestamps = [];
+            state._adaptiveDelaySeconds = 2;
+            syncCleanupControls();
+            const msg = FXM_LANG === 'zh'
+                ? '飞雪智能清理：恢复快速清理策略（2秒/5秒冷却）'
+                : 'Smart cleanup: fast cleanup restored (2s / 5s cooldown)';
+            showCleanupToast(true, msg);
+        }
+    }
+
+    /**
+     * 解析 ComfyUI WebSocket status 消息
+     */
+    function handleCleanupStatusMessage(msg) {
+        try {
+            if (!msg || msg.type !== 'status') return;
+            const remaining = msg.data?.status?.exec_info?.queue_remaining;
+            if (typeof remaining === 'number') {
+                cleanupTracker.wsAvailable = true;
+                updateQueueRemaining(remaining);
+            }
+        } catch(e) {}
+    }
+
+    /**
+     * 解析 ComfyUI WebSocket executing 消息；data.node 非空表示有节点正在执行
+     */
+    function handleCleanupExecutingMessage(msg) {
+        try {
+            if (!msg || msg.type !== 'executing') return;
+            const node = msg.data?.node;
+            if (node !== null && node !== undefined) {
+                if (cleanupTracker.executingNode === null) {
+                    cleanupTracker.executingSince = Date.now();
+                }
+                cleanupTracker.executingNode = node;
+            } else {
+                cleanupTracker.executingNode = null;
+                cleanupTracker.executingSince = 0;
+            }
+        } catch(e) {}
+    }
+
+    /**
+     * 尝试Hook ComfyUI 的 WebSocket 以监听 status / executing 消息；同时兜底轮询
+     */
+    function startQueueMonitoring() {
+        // 1. 尝试Hook现有或未来的 ComfyUI WebSocket
+        if (!cleanupTracker.wsHookInstalled) {
+            cleanupTracker.wsHookInstalled = true;
+
+            const attachToSocket = (socket) => {
+                if (!socket || socket._fxmCleanupHooked) return;
+                socket._fxmCleanupHooked = true;
+                socket.addEventListener('message', (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        handleCleanupStatusMessage(msg);
+                        handleCleanupExecutingMessage(msg);
+                    } catch(e) {}
+                });
+            };
+
+            if (window.app && window.app.api && window.app.api.socket) {
+                attachToSocket(window.app.api.socket);
+            }
+            if (window.comfyAPI && window.comfyAPI.api && window.comfyAPI.api.socket) {
+                attachToSocket(window.comfyAPI.api.socket);
+            }
+
+            // 兜底：patch WebSocket 构造函数以捕获后续创建的 ComfyUI socket
+            if (!window.WebSocket._fxmPatched) {
+                const OriginalWebSocket = window.WebSocket;
+                window.WebSocket = function(...args) {
+                    const socket = new OriginalWebSocket(...args);
+                    try {
+                        const url = args[0] || '';
+                        if (typeof url === 'string' && (url.includes('/ws') || url.includes('comfy'))) {
+                            attachToSocket(socket);
+                        }
+                    } catch(e) {}
+                    return socket;
+                };
+                window.WebSocket._fxmPatched = true;
+                Object.setPrototypeOf(window.WebSocket, OriginalWebSocket);
+                window.WebSocket.prototype = OriginalWebSocket.prototype;
+            }
+        }
+
+        // 2. 启动轮询作为 fallback / 补充
+        if (!cleanupTracker.queuePollTimer) {
+            fetchQueueStatusOnce();
+            cleanupTracker.queuePollTimer = setInterval(fetchQueueStatusOnce, QUEUE_POLL_INTERVAL_MS);
+        }
+    }
+
+    /**
+     * 单次轮询队列状态（优先 /feixue_monitor/queue_status，失败则回退 /queue）
+     */
+    async function fetchQueueStatusOnce() {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            let response = null;
+            try {
+                response = await fetch('/feixue_monitor/queue_status', {
+                    signal: controller.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+            } catch(e) {
+                response = null;
+            }
+            if (!response || !response.ok) {
+                try {
+                    response = await fetch('/queue', {
+                        signal: controller.signal,
+                        headers: { 'Accept': 'application/json' }
+                    });
+                } catch(e) {
+                    response = null;
+                }
+            }
+            clearTimeout(timeoutId);
+            if (!response || !response.ok) return;
+            const data = await response.json();
+            if (data && typeof data.queue_remaining === 'number') {
+                updateQueueRemaining(data.queue_remaining);
+            } else if (data && typeof data.queue_running === 'number') {
+                updateQueueRemaining(data.queue_running);
+            } else if (Array.isArray(data.queue_running) && Array.isArray(data.queue_pending)) {
+                updateQueueRemaining(data.queue_running.length + data.queue_pending.length);
+            }
+        } catch(e) {}
+    }
+
+    /**
+     * 记录一次 RAM 占用采样，用于连续两次超阈值判定
+     */
+    function recordCleanupRamSample(ramPercent) {
+        const val = sanitizeValue(ramPercent);
+        if (val === null) return;
+        cleanupTracker.prevRamPercent = cleanupTracker.lastRamPercent;
+        cleanupTracker.lastRamPercent = val;
+    }
+
+    /**
+     * 检查并触发自动内存清理
+     */
+    function maybeTriggerAutoCleanup() {
+        const state = window.FxMonitorMemoryCleanup;
+        if (!state || !state.enabled || state.cleaning) return;
+
+        checkAdaptiveDelayFallback();
+
+        const now = Date.now();
+        const idleMs = cleanupTracker.queueZeroSince ? now - cleanupTracker.queueZeroSince : 0;
+        const cooldownRemaining = now - cleanupTracker.lastAutoCleanupTime;
+        const effectiveDelay = state.getEffectiveDelay();
+        const effectiveCooldown = getEffectiveCooldownMs();
+
+        // 关键条件日志，便于排查误触发
+        console.log('[飞雪监测器] 自动清理条件检查:', {
+            enabled: state.enabled,
+            queueRemaining: cleanupTracker.queueRemaining,
+            idleMs: idleMs,
+            effectiveDelayS: effectiveDelay,
+            executingNode: cleanupTracker.executingNode,
+            ramPrev: cleanupTracker.prevRamPercent,
+            ramLast: cleanupTracker.lastRamPercent,
+            threshold: state.threshold,
+            cooldownRemainingMs: cooldownRemaining,
+            effectiveCooldownMs: effectiveCooldown,
+            wsAvailable: cleanupTracker.wsAvailable
+        });
+
+        if (cooldownRemaining < effectiveCooldown) return;
+        if (!isQueueTrulyIdle()) return;
+
+        const threshold = state.threshold;
+        const prev = cleanupTracker.prevRamPercent;
+        const last = cleanupTracker.lastRamPercent;
+        if (prev === null || last === null) return;
+        if (prev < threshold || last < threshold) return;
+
+        console.log('[飞雪监测器] 自动清理条件满足，开始释放内存');
+        cleanupTracker.lastAutoCleanupTime = now;
+        performMemoryCleanup(state.mode);
+    }
+
+    /**
+     * 调用后端 /feixue_monitor/free_memory 接口
+     * @param {string} mode - 'ram' | 'deep'
+     */
+    async function callFreeMemoryApi(mode) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        try {
+            const response = await fetch('/feixue_monitor/free_memory', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                signal: controller.signal,
+                body: JSON.stringify({ mode: mode })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                const err = new Error(data && data.message ? data.message : `HTTP ${response.status}`);
+                err.data = data;
+                throw err;
+            }
+            return data;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    /**
+     * 执行内存清理（手动或自动），并统一处理结果提示
+     * @param {string} mode - 'ram' | 'deep' | 'auto'（auto 会使用当前设置档位）
+     */
+    async function performMemoryCleanup(mode) {
+        const state = window.FxMonitorMemoryCleanup;
+        if (!state || state.cleaning) return;
+        state.setCleaning(true);
+
+        const apiMode = mode === 'auto' ? state.mode : mode;
+        const isZh = FXM_LANG === 'zh';
+        console.log(`[飞雪监测器] ${mode === 'auto' ? '自动' : '手动'}清理触发，模式: ${apiMode}`);
+        try {
+            const result = await callFreeMemoryApi(apiMode);
+            if (result && result.success) {
+                const ram = Math.round(result.ram_released_mb || 0);
+                const vram = Math.round(result.vram_released_mb || 0);
+                let msg = '';
+                if (apiMode === 'ram') {
+                    msg = isZh
+                        ? `RAM 整理完成：释放 ${ram} MB`
+                        : `RAM cleanup complete: freed ${ram} MB`;
+                } else {
+                    msg = isZh
+                        ? `深度释放完成：释放 RAM ${ram} MB`
+                        : `Deep cleanup complete: freed RAM ${ram} MB`;
+                    if (vram > 0) {
+                        msg += isZh ? ` / VRAM ${vram} MB` : ` / VRAM ${vram} MB`;
+                    }
+                }
+                showCleanupToast(true, msg);
+                console.log('[飞雪监测器] 清理成功:', result);
+            } else {
+                const errMsg = result && result.message ? result.message : (isZh ? '未知错误' : 'Unknown error');
+                showCleanupToast(false, errMsg);
+                console.warn('[飞雪监测器] 清理返回失败:', result);
+            }
+        } catch(e) {
+            const errMsg = e && e.message ? e.message : String(e);
+            showCleanupToast(false, errMsg);
+            console.error('[飞雪监测器] 清理异常:', e);
+        } finally {
+            state.setCleaning(false);
+        }
+    }
+
+    /**
+     * 手动触发内存清理（始终使用 deep 模式）
+     */
+    function triggerManualMemoryCleanup() {
+        const state = window.FxMonitorMemoryCleanup;
+        if (!state || state.cleaning) return;
+
+        // 防止按钮被快速连点或事件误触发导致重复请求
+        const now = Date.now();
+        if (now - cleanupTracker.lastManualCleanupTime < 2000) return;
+        cleanupTracker.lastManualCleanupTime = now;
+
+        if (!isQueueTrulyIdle()) {
+            // 深度模式通过 ComfyUI 队列标志安全触发，不会中断当前工作流
+            showCleanupToast(
+                true,
+                FXM_LANG === 'zh'
+                    ? '工作流运行中，深度释放将在执行间隙安全完成'
+                    : 'Workflow running. Deep cleanup will complete during the next safe gap.',
+                'info'
+            );
+        }
+
+        performMemoryCleanup('deep');
+    }
+
+    /**
+     * 获取或创建 Toast 容器
+     */
+    function getOrCreateCleanupToastContainer() {
+        let container = document.getElementById('fxm-cleanup-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'fxm-cleanup-toast-container';
+            document.body.appendChild(container);
+        }
+        return container;
+    }
+
+    /**
+     * 显示清理结果 Toast，3 秒后自动消失
+     * @param {boolean} success - 是否成功（true=成功，false=失败）
+     * @param {string} message - 显示文本
+     * @param {string} [type] - 可选类型：'success' | 'error' | 'info'，默认由 success 推断
+     */
+    function showCleanupToast(success, message, type) {
+        const container = getOrCreateCleanupToastContainer();
+        const toast = document.createElement('div');
+        let typeClass = '';
+        if (type === 'error' || success === false) typeClass = 'error ';
+        else if (type === 'info') typeClass = 'info ';
+        toast.className = 'fxm-cleanup-toast ' + typeClass + (currentStyle || 'neu');
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+            const remove = () => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            };
+            toast.addEventListener('transitionend', remove);
+            setTimeout(remove, 400);
+        }, 3000);
     }
 
     // ============================================================
@@ -8029,7 +9839,7 @@ body.cyber-active {
 
             const tag = e.target.tagName;
             if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'LABEL') return;
-            if (e.target.closest('button, .neu-radio-btn, .retro-style-btn, .lux-style-chip, .cyber-mode-btn, .ind-radio-btn, .retro-toggle-switch, .lux-toggle-switch, .cyber-toggle-switch, .neu-toggle-switch, .ind-toggle-switch, [role="switch"]')) return;
+            if (e.target.closest('button, .neu-radio-btn, .retro-style-btn, .lux-style-chip, .cyber-mode-btn, .ind-radio-btn, .retro-toggle-switch, .lux-toggle-switch, .cyber-toggle-switch, .neu-toggle-switch, .ind-toggle-switch, .fxm-segmented-btn, [role="switch"], [role="radio"]')) return;
 
             e.preventDefault();
             isDragging = true;
@@ -8121,7 +9931,7 @@ body.cyber-active {
         getSnapshot: () => fetchFromBackend()
     };
 
-    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.27)');
+    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.28)');
 
     // ============================================================
     // ComfyUI 工作流完成/出错声音提示

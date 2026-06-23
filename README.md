@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.27-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-3.28-red" alt="Version" />
   <img src="https://img.shields.io/badge/Styles-5_Colors_%C3%97_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
@@ -20,7 +20,7 @@
 
 ## Preview
 
-![Feixue Universal Monitor Premium UI v3.27](screenshot.png)
+![Feixue Universal Monitor Premium UI v3.28](screenshot.png)
 
 > The screenshot above shows the Premium UI **Neu** style monitor bar — a white neumorphic design with medical-instrument-style recessed windows, precise groove bases, and soft embossed shadows. It displays six real-time metrics: GPU / VRAM / CPU / RAM / SWAP / TEMP.
 >
@@ -113,7 +113,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # Configuration management
 ├── utils/                   # Platform detection, thread safety, performance optimization
 ├── web/
-│   └── extension.js         # Frontend UI (Premium UI v3.27)
+│   └── extension.js         # Frontend UI (Premium UI v3.28)
 ├── docs/
 │   └── index.html           # Online appearance demo (GitHub Pages)
 └── tests/                   # Unit tests
@@ -146,16 +146,16 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.27 — UI Polish + Stability Hardening (Current)
+### v3.28 — Smart Memory Cleanup + Stability Hardening (Current)
 
-- **Neu style overhaul**: Thicker continuous outer chassis with inset glass instrument windows for a more premium hardware-bar look
-- **Jade Bamboo refinement**: Fixed phantom shadow on dark backgrounds; reworked Aurora theme to celadon jade tones for a more solid texture
-- **Retro dock resizing**: Tightened metric layout to prevent overlap while keeping all modules visible
-- **Sound alert fix**: Removed accidental GPU/temperature alarm; workflow completion sound now uses the correct `execution_success` event and deduplicates by prompt ID
-- **Localization completion**: Theme and color buttons in the Jade Bamboo panel now fully follow system language (Chinese/English)
-- **Live demo refresh**: GitHub Pages demo updated to v3.26 Neu / Jade Bamboo / Cyber previews with simulated data
-- **Screenshot update**: README preview image replaced with the latest Neu theme screenshot
-- **Version unification**: All code, panel, and package metadata unified to v3.27
+- **Smart memory cleanup**: Added a 3-mode switch in the settings panel (**Off / RAM Defrag / Deep Clean**) with user-controllable RAM threshold and idle confirmation delay
+- **Safe deep clean**: Deep clean uses ComfyUI's native `/free` queue flags instead of direct `unload_all_models()`, preventing mosaic/corruption artifacts during workflow execution
+- **RAM-only mode**: RAM defrag only runs `gc.collect()` + Linux `malloc_trim(0)` without touching models or VRAM, eliminating the risk of interrupting generation
+- **Adaptive idle delay**: Auto-detects segmented/continuous workflows and extends the idle delay from 2s to 8s; falls back after 10 minutes of normal usage
+- **Dynamic cooldown**: Normal single-image users get a 5s minimum cooldown; segmented/continuous workflows get a 30s cooldown to avoid repeated cleanups
+- **Manual cleanup always available**: The "Deep Free Now" button works regardless of the auto-cleanup mode switch and shows a non-blocking toast instead of a blocking confirm dialog
+- **Cyber style VRAM fix**: VRAM unit now correctly displays "GB" in the Quantum Core style
+- **Version unification**: All code, panel, and package metadata unified to v3.28
 
 ### v3.26 — Premium UI 5 Colors × 5 Styles Refactor + Stability Fixes
 
