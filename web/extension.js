@@ -4974,7 +4974,7 @@ body.cyber-active {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* SVG 玉竹本体：单一路径实体，无 clip-path，无透明间隙 */
+/* SVG 玉竹本体：单一路径实体，overflow hidden 防止 filter/drop-shadow 产生矩形虚影 */
 .ind-bamboo-svg {
     position: absolute;
     top: 0;
@@ -4982,9 +4982,8 @@ body.cyber-active {
     width: 100%;
     height: 100%;
     z-index: 0;
-    overflow: visible;
+    overflow: hidden;
     pointer-events: none;
-    filter: drop-shadow(0 0 18px var(--glow));
 }
 
 /* 左侧拖拽热区 */
@@ -5048,7 +5047,7 @@ body.cyber-active {
 .ind-metric::before {
     content: '';
     position: absolute;
-    inset: -10%;
+    inset: 0;
     pointer-events: none;
     background: radial-gradient(ellipse at center, rgba(0,0,0,0.28) 0%, transparent 72%);
     z-index: -1;
@@ -6150,7 +6149,7 @@ body.cyber-active {
                     <stop offset="100%" stop-color="rgba(255,255,255,0.16)" />
                 </linearGradient>
 
-                <!-- 玉质云絮：多层噪声叠加，模拟天然棉絮/色根 -->
+                <!-- 玉质云絮：多层噪声叠加，模拟天然棉絮/色根，最后裁剪到竹身路径内防止溢出 -->
                 <filter id="ind-jade-texture" x="-10%" y="-10%" width="120%" height="120%">
                     <!-- 大面积云雾 -->
                     <feTurbulence type="fractalNoise" baseFrequency="0.018 0.008" numOctaves="4" seed="5" result="cloudNoise" />
@@ -6160,9 +6159,10 @@ body.cyber-active {
                     <feTurbulence type="fractalNoise" baseFrequency="0.09 0.03" numOctaves="3" seed="11" result="grainNoise" />
                     <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.05 0" in="grainNoise" result="grain" />
                     <feGaussianBlur in="grain" stdDeviation="0.4" result="grainBlur" />
-                    <!-- 混合 -->
+                    <!-- 混合并裁剪到源图形轮廓，避免暗背景下的矩形噪点溢出 -->
                     <feBlend mode="screen" in="cloudBlur" in2="grainBlur" result="jadeTexture" />
-                    <feBlend mode="overlay" in="jadeTexture" in2="SourceGraphic" />
+                    <feComposite in="jadeTexture" in2="SourceGraphic" operator="in" result="clippedTexture" />
+                    <feBlend mode="overlay" in="clippedTexture" in2="SourceGraphic" />
                 </filter>
             </defs>
 
