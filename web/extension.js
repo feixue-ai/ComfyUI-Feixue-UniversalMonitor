@@ -1969,15 +1969,15 @@ body.neu-active {
       left: 50%;
       transform: translateX(-50%);
       z-index: 99999;
-      min-width: 760px;
-      max-width: 1200px;
+      min-width: 620px;
+      max-width: 760px;
     }
 
     .retro-dock-inner {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
+      gap: 6px;
+      padding: 8px 12px;
       white-space: nowrap;
     }
 
@@ -2014,33 +2014,33 @@ body.neu-active {
     .retro-metric {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
+      gap: 5px;
+      padding: 4px 8px;
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: 4px;
-      min-width: 108px;
+      min-width: 92px;
     }
 
     .retro-metric-label {
       font-family: var(--mono-display);
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
       color: var(--retro-phosphor-primary, var(--retro-primary));
       text-shadow:
         0 0 6px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 12px rgba(0, 0, 0, 0.9);
-      min-width: 40px;
+      min-width: 36px;
     }
 
     .retro-metric-value {
       font-family: var(--mono-display);
-      font-size: 14px;
+      font-size: 13px;
       color: var(--retro-phosphor-primary, var(--retro-primary));
       text-shadow:
         0 0 4px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 10px rgba(0, 0, 0, 0.9);
-      min-width: 36px;
+      min-width: 32px;
       text-align: right;
     }
 
@@ -2049,12 +2049,12 @@ body.neu-active {
       display: flex;
       gap: 2px;
       align-items: flex-end;
-      height: 18px;
-      width: 48px;
+      height: 16px;
+      width: 42px;
     }
 
     .retro-led-segment {
-      width: 4px;
+      width: 3px;
       height: 100%;
       /* 使用当前磷光色的暗色版本作为未激活段背景，随颜色主题变化 */
       background: var(--retro-phosphor-dim, var(--retro-dim));
