@@ -421,8 +421,8 @@
     let boundDragHandle = null;
     let boundDragDock = null;
 
-    // 声音警报状态标记，避免阈值持续满足时连续触发
-    let alarmActive = false;
+    // 工作流提示音去重：同一 prompt 完成/出错只响一次
+    let lastWorkflowSoundPromptId = null;
 
     /** 当前风格（与 switchStyle 共用） */
     let currentStyle = 'neu';
@@ -854,7 +854,7 @@ body.neu-active {
 }
 
 .neu-metric-chip:hover {
-    transform: translateY(-2px) scale(1.02);
+    transform: translateY(-2px);
     box-shadow:
         inset 3px 3px 8px rgba(0, 0, 0, 0.10),
         inset -2px -2px 6px rgba(255, 255, 255, 0.85),
@@ -865,11 +865,10 @@ body.neu-active {
 
 .neu-metric-chip:active,
 .neu-metric-chip.pressed {
-    transform: translateY(0) scale(0.99);
     box-shadow:
-        inset 4px 4px 10px rgba(0, 0, 0, 0.14),
-        inset -3px -3px 8px rgba(255, 255, 255, 0.78),
-        inset 0 1px 0 rgba(255, 255, 255, 0.50);
+        inset 3px 3px 9px rgba(0, 0, 0, 0.16),
+        inset -2px -2px 7px rgba(255, 255, 255, 0.80),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 /* 左侧数据区 */
@@ -7296,14 +7295,6 @@ body.cyber-active {
         // Source text
         updateSourceText('np-source-text', data);
 
-        // 声音警报：GPU>90% 或 温度>85°C 时播放警告音（仅在从非报警状态进入时触发一次）
-        const shouldAlarm = (gpu !== null && gpu > 90) || (temp !== null && temp > 85);
-        if (shouldAlarm && !alarmActive) {
-            if (typeof window.FxMonitorSound !== 'undefined') {
-                window.FxMonitorSound.play();
-            }
-        }
-        alarmActive = shouldAlarm;
     }
 
     /** 渲染数据到Retro风格DOM */
@@ -8147,14 +8138,20 @@ body.cyber-active {
             return;
         }
 
-        api.addEventListener('execution_complete', function() {
+        api.addEventListener('execution_success', function(e) {
+            const promptId = e?.detail?.prompt_id || e?.detail;
+            if (promptId && lastWorkflowSoundPromptId === promptId) return;
+            lastWorkflowSoundPromptId = promptId || null;
             console.log('[飞雪监测器] 工作流完成，播放提示音');
             if (window.FxMonitorSound && window.FxMonitorSound._enabled) {
                 window.FxMonitorSound.play();
             }
         });
 
-        api.addEventListener('execution_error', function() {
+        api.addEventListener('execution_error', function(e) {
+            const promptId = e?.detail?.prompt_id || e?.detail;
+            if (promptId && lastWorkflowSoundPromptId === promptId) return;
+            lastWorkflowSoundPromptId = promptId || null;
             console.log('[飞雪监测器] 工作流出错，播放提示音');
             if (window.FxMonitorSound && window.FxMonitorSound._enabled) {
                 window.FxMonitorSound.play();
