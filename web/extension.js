@@ -1,20 +1,20 @@
 /**
- * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.26
+ * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.27
  *
  * 设计原则：不透明实底背景 + 发光边框灯条 + 药丸/胶囊形状 + 3D圆柱横截面效果 + CSS芯片图标 + 渐变状态条 + 5色主题系统
- * @version 3.26
+ * @version 3.27
  */
 
 (function() {
     'use strict';
 
-    console.log('[飞雪监测器] 🚀 Premium UI v3.26 启动...');
+    console.log('[飞雪监测器] 🚀 Premium UI v3.27 启动...');
 
     // ============================================================
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.26',
+        version: '3.27',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -399,7 +399,7 @@
     }
 
     // ============================================================
-    // Premium UI v3.26 — 5 主题系统
+    // Premium UI v3.27 — 5 主题系统
     // ============================================================
 
     // ============================================================
@@ -428,7 +428,7 @@
     let currentStyle = 'neu';
 
     // ============================================================
-    // CSS 注入 — Premium UI v3.26 内联样式
+    // CSS 注入 — Premium UI v3.27 内联样式
     // ============================================================
 
     /**
@@ -5600,7 +5600,7 @@ body.cyber-active {
     }
 
     // ============================================================
-    // 5主题系统常量定义 — Premium UI v3.26
+    // 5主题系统常量定义 — Premium UI v3.27
     // ============================================================
 
     /** 有效风格列表 */
@@ -6353,7 +6353,7 @@ body.cyber-active {
             '<div class="neu-panel-header">' +
                 '<div class="neu-header-brand">' +
                     '<div class="neu-brand-icon">\u2744</div>' +
-                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.26</span></div>' +
+                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.27</span></div>' +
                 '</div>' +
                 '<div class="neu-header-actions">' +
                     '<button class="neu-action-btn" id="neu-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
@@ -6486,7 +6486,7 @@ body.cyber-active {
             // Footer
             '<footer class="neu-panel-footer">' +
                 '<div class="neu-footer-left"><span class="neu-status-dot"></span><span id="np-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.26 Build 2026.06.23</span>' +
+                '<span>v3.27 Build 2026.06.23</span>' +
             '</footer>';
 
         // 绑定关闭按钮
@@ -6592,7 +6592,7 @@ body.cyber-active {
             // 模块5: Control Toggles
             '<div class="retro-section"><div class="retro-control-row" style="display:flex;align-items:center;justify-content:center;gap:24px;"><label class="retro-control-label">' + t('sound_alert') + '</label><button class="retro-toggle-switch active" id="retro-soundToggle" role="switch" aria-checked="true"><span class="retro-toggle-thumb"></span></button><label class="retro-control-label">' + t('drag_mode') + '</label><button class="retro-toggle-switch" id="retro-dragToggle" role="switch" aria-checked="false"><span class="retro-toggle-thumb"></span></button></div></div>' +
             // V19 Footer
-            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.26</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.23</div></div>' +
+            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.27</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.23</div></div>' +
             '<div class="retro-source-text" id="retro-source-text">[ AMD SMI ]</div>' +
             '</div></div>';
 
@@ -6649,7 +6649,7 @@ body.cyber-active {
     /** 构建Lux Panel内容 */
     function buildLuxPanel(panel) {
         panel.innerHTML =
-            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.26</span></div>' +
+            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.27</span></div>' +
                 '<div class="lux-header-actions"><button class="lux-action-btn lux-close-btn" title="' + t('close') + '">&times;</button></div></div>' +
             '<div class="lux-metrics-grid"><div class="lux-metric-card"><div class="lux-metric-label">' + t('gpu') + ' ' + t('load') + '</div><div class="lux-metric-value"><span id="lp-gpu-val">--</span>%</div></div>' +
                 '<div class="lux-metric-card"><div class="lux-metric-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="lux-metric-value"><span id="lp-cpu-val">--</span>%</div></div>' +
@@ -6686,7 +6686,7 @@ body.cyber-active {
                     '<button class="lux-toggle-switch" id="lux-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="lux-toggle-thumb"></span></button>' +
                 '</div>' +
             '</div></div>' +
-            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.26 Build 2026.06.23</span></footer>';
+            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.27 Build 2026.06.23</span></footer>';
 
         panel.querySelector('.lux-close-btn').addEventListener('click', () => togglePanel('lux'));
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -6796,7 +6796,7 @@ body.cyber-active {
                     '<button class="cyber-toggle-switch" id="cyber-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="cyber-toggle-thumb"></span></button>' +
                 '</div>' +
             '</div></div>' +
-            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.26 Build 2026.06.23</span></div>';
+            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.27 Build 2026.06.23</span></div>';
 
         // 主题切换按钮
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -6865,7 +6865,7 @@ body.cyber-active {
     function buildIndPanel(panel) {
         panel.innerHTML =
             '<div class="ind-panel-header">' +
-                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.26</span></div>' +
+                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.27</span></div>' +
                 '<div class="ind-header-actions">' +
                     '<button class="ind-action-btn" id="ind-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="ind-action-btn" id="ind-closeBtn" title="' + t('close') + '">&times;</button>' +
@@ -6913,7 +6913,7 @@ body.cyber-active {
             '</div>' +
             '<footer class="ind-panel-footer">' +
                 '<div><span class="ind-status-dot"></span><span id="gp-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.26 Build 2026.06.23</span>' +
+                '<span>v3.27 Build 2026.06.23</span>' +
             '</footer>';
 
         const closeBtn = panel.querySelector('#ind-closeBtn');
@@ -7733,7 +7733,7 @@ body.cyber-active {
     let updateTimer = null;
 
     /**
-     * 主更新循环 — Premium UI v3.26
+     * 主更新循环 — Premium UI v3.27
      * 使用 renderToCurrentTheme(data) 替代旧的 updateAllCapsules(data)
      */
     async function mainUpdateLoop() {
@@ -7761,11 +7761,11 @@ body.cyber-active {
     }
 
     // ============================================================
-    // 初始化 — Premium UI v3.26 启动流程
+    // 初始化 — Premium UI v3.27 启动流程
     // ============================================================
 
     /**
-     * 初始化并启动监测器（Premium UI v3.26）
+     * 初始化并启动监测器（Premium UI v3.27）
      *
      * 启动流程：
      * 1. 注入CSS
@@ -7777,7 +7777,7 @@ body.cyber-active {
      * 7. 初始化拖拽
      */
     async function init() {
-        console.log('[飞雪监测器] 🚀 Premium UI v3.26 启动...');
+        console.log('[飞雪监测器] 🚀 Premium UI v3.27 启动...');
         try {
             // 1. 注入新CSS
             injectPremiumCSS();
@@ -7822,7 +7822,7 @@ body.cyber-active {
                 }).observe(document.body, { childList: true, subtree: true });
             }
 
-            console.log('[飞雪监测器] ✅ Premium UI v3.26 initialized successfully!');
+            console.log('[飞雪监测器] ✅ Premium UI v3.27 initialized successfully!');
         } catch(e) {
             console.error('[飞雪监测器] ❌ Init failed:', e);
         }
@@ -8121,7 +8121,7 @@ body.cyber-active {
         getSnapshot: () => fetchFromBackend()
     };
 
-    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.26)');
+    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.27)');
 
     // ============================================================
     // ComfyUI 工作流完成/出错声音提示

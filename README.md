@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.26-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-3.27-red" alt="Version" />
   <img src="https://img.shields.io/badge/Styles-5_Colors_%C3%97_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
@@ -20,7 +20,7 @@
 
 ## Preview
 
-![Feixue Universal Monitor Premium UI v3.26](screenshot.png)
+![Feixue Universal Monitor Premium UI v3.27](screenshot.png)
 
 > The screenshot above shows the Premium UI **Neu** style monitor bar — a white neumorphic design with medical-instrument-style recessed windows, precise groove bases, and soft embossed shadows. It displays six real-time metrics: GPU / VRAM / CPU / RAM / SWAP / TEMP.
 >
@@ -113,7 +113,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # Configuration management
 ├── utils/                   # Platform detection, thread safety, performance optimization
 ├── web/
-│   └── extension.js         # Frontend UI (Premium UI v3.26)
+│   └── extension.js         # Frontend UI (Premium UI v3.27)
 ├── docs/
 │   └── index.html           # Online appearance demo (GitHub Pages)
 └── tests/                   # Unit tests
@@ -146,7 +146,18 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.26 — Premium UI 5 Colors × 5 Styles Refactor + Stability Fixes (Current)
+### v3.27 — UI Polish + Stability Hardening (Current)
+
+- **Neu style overhaul**: Thicker continuous outer chassis with inset glass instrument windows for a more premium hardware-bar look
+- **Jade Bamboo refinement**: Fixed phantom shadow on dark backgrounds; reworked Aurora theme to celadon jade tones for a more solid texture
+- **Retro dock resizing**: Tightened metric layout to prevent overlap while keeping all modules visible
+- **Sound alert fix**: Removed accidental GPU/temperature alarm; workflow completion sound now uses the correct `execution_success` event and deduplicates by prompt ID
+- **Localization completion**: Theme and color buttons in the Jade Bamboo panel now fully follow system language (Chinese/English)
+- **Live demo refresh**: GitHub Pages demo updated to v3.26 Neu / Jade Bamboo / Cyber previews with simulated data
+- **Screenshot update**: README preview image replaced with the latest Neu theme screenshot
+- **Version unification**: All code, panel, and package metadata unified to v3.27
+
+### v3.26 — Premium UI 5 Colors × 5 Styles Refactor + Stability Fixes
 
 - **5 new visual styles**: Neu, Jade Bamboo, Retro, Lux, Cyber
 - **5 independently switchable color schemes**: Aurora Ceramic / Deep Sea Blue / Sunset Warm / Forest Green / Midnight Black

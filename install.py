@@ -101,7 +101,7 @@ def install_darwin():
 
 def main():
     print("=" * 55)
-    print("  飞雪监测器 (Feixue Universal Monitor) v3.26")
+    print("  飞雪监测器 (Feixue Universal Monitor) v3.27")
     print("  依赖安装脚本")
     print("=" * 55)
 
