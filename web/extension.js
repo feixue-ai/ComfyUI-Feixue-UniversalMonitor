@@ -5628,6 +5628,9 @@ body.cyber-active {
             // 风格名称
             theme_name_neu: '拟物白', theme_name_ind: '玉竹', theme_name_retro: '复古终端',
             theme_name_lux: '珠宝柜', theme_name_cyber: '量子核',
+            // 颜色名称
+            color_name_forest: '森林绿', color_name_ocean: '深海蓝', color_name_sunset: '落日暖',
+            color_name_midnight: '午夜黑', color_name_aurora: '极光陶瓷',
             // 状态/来源
             source_prefix: '来源: ', detecting: '检测中...',
             plugin_active: 'ComfyUI 插件运行中',
@@ -5653,6 +5656,8 @@ body.cyber-active {
             color: 'Color', settings: 'Settings', settings_panel: 'Settings Panel', close: 'Close',
             theme_name_neu: 'Neu', theme_name_ind: 'Jade Bamboo', theme_name_retro: 'Retro',
             theme_name_lux: 'Lux', theme_name_cyber: 'Cyber',
+            color_name_forest: 'Forest', color_name_ocean: 'Ocean', color_name_sunset: 'Sunset',
+            color_name_midnight: 'Midnight', color_name_aurora: 'Aurora',
             source_prefix: 'Source: ', detecting: 'Detecting...',
             plugin_active: 'ComfyUI Plugin Active',
             workflow_status: 'Workflow Status',
@@ -6463,13 +6468,13 @@ body.cyber-active {
                     // Theme Selection
                     '<div class="neu-setting-row"><label class="neu-setting-label">' + t('theme') + '</label>' +
                         '<div class="neu-radio-group" role="radiogroup" aria-label="' + t('theme') + '">' +
-                            VALID_STYLES.map((s,i) => '<button class="neu-radio-btn'+(s==='neu'?' active':'')+'" data-target="'+s+'" role="radio">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('') +
+                            VALID_STYLES.map((s,i) => '<button class="neu-radio-btn'+(s==='neu'?' active':'')+'" data-target="'+s+'" role="radio">'+t('theme_name_' + s)+'</button>').join('') +
                         '</div>' +
                     '</div>' +
                     // Color Selection
                     '<div class="neu-setting-row"><label class="neu-setting-label">' + t('color') + '</label>' +
                         '<div class="neu-radio-group" role="radiogroup" aria-label="' + t('color') + '">' +
-                            COLOR_WHITELIST.map(c => '<button class="neu-radio-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'" role="radio">'+c.charAt(0).toUpperCase()+c.slice(1)+'</button>').join('') +
+                            COLOR_WHITELIST.map(c => '<button class="neu-radio-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'" role="radio">'+t('color_name_' + c)+'</button>').join('') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -6555,9 +6560,9 @@ body.cyber-active {
             '<div class="retro-scan-beam" style="animation-delay:1s;"></div>' +
             '<div class="retro-glass-reflection"></div>' +
             '<div class="retro-panel-inner retro-flicker">' +
-            // 模块1: Style Buttons (大写英文)
+            // 模块1: Style Buttons
             '<div class="retro-section"><div class="retro-style-row">' +
-                VALID_STYLES.map(s => '<button class="retro-style-btn'+(s==='retro'?' active':'')+'" data-target="'+s+'">'+s.toUpperCase()+'</button>').join('') +
+                VALID_STYLES.map(s => '<button class="retro-style-btn'+(s==='retro'?' active':'')+'" data-target="'+s+'">'+t('theme_name_' + s)+'</button>').join('') +
             '</div></div>' +
             // 模块2: Color Palette (磷光色块)
             '<div class="retro-section"><div class="retro-color-palette">' +
@@ -6664,10 +6669,10 @@ body.cyber-active {
                 '<div class="lux-detail-item"><div class="lux-detail-left"><span class="lux-detail-icon">&#x1F310;</span><span>' + t('network_io') + '</span></div><span class="lux-detail-right" id="lp-net-detail">↑ -- / ↓ -- MB/s</span></div>' +
             '</div></div></section>' +
             '<div class="lux-settings-area"><div class="lux-style-chips">' +
-                VALID_STYLES.map(s => '<button class="lux-style-chip'+(s==='lux'?' active':'')+'" data-target="'+s+'">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('') +
+                VALID_STYLES.map(s => '<button class="lux-style-chip'+(s==='lux'?' active':'')+'" data-target="'+s+'">'+t('theme_name_' + s)+'</button>').join('') +
             '</div>' +
             '<div class="lux-color-chips" style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">' +
-                COLOR_WHITELIST.map(c => '<button class="lux-style-chip'+(c==='forest'?' active':'')+'" data-color="'+c+'" style="font-size:10px;padding:4px 10px;background:'+COLOR_MAPS[c].base+';color:#4a5568;border-radius:8px;border:none;cursor:pointer;font-weight:600;">'+c.charAt(0).toUpperCase()+c.slice(1)+'</button>').join('') +
+                COLOR_WHITELIST.map(c => '<button class="lux-style-chip'+(c==='forest'?' active':'')+'" data-color="'+c+'" style="font-size:10px;padding:4px 10px;background:'+COLOR_MAPS[c].base+';color:#4a5568;border-radius:8px;border:none;cursor:pointer;font-weight:600;">'+t('color_name_' + c)+'</button>').join('') +
             '</div></div>' +
             '<div class="lux-settings-area" style="margin-top:8px;"><div style="display:flex;flex-direction:column;gap:10px;">' +
                 '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(212,175,55,0.08);border-radius:10px;border:1px solid rgba(212,175,55,0.2);"><span style="color:#d4af37;font-size:11px;font-weight:600;">' + t('sound_alert') + '</span>' +
@@ -6774,10 +6779,10 @@ body.cyber-active {
                 '</div></div>' +
             '</section>' +
             '<div class="cyber-control-bar"><span class="cyber-mode-label">' + t('theme') + ':</span>' +
-                VALID_STYLES.map(s => '<button class="cyber-mode-btn'+(s==='cyber'?' active':'')+'" data-target="'+s+'">'+s.toUpperCase()+'</button>').join('') +
+                VALID_STYLES.map(s => '<button class="cyber-mode-btn'+(s==='cyber'?' active':'')+'" data-target="'+s+'">'+t('theme_name_' + s)+'</button>').join('') +
             '</div>' +
             '<div class="cyber-color-bar"><span class="cyber-mode-label">' + t('color') + ':</span>' +
-                COLOR_WHITELIST.map(c => '<button class="cyber-color-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'" style="--chip-color:'+(cyberChipColors[c] || '#00f0ff')+'">'+c.toUpperCase()+'</button>').join('') +
+                COLOR_WHITELIST.map(c => '<button class="cyber-color-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'" style="--chip-color:'+(cyberChipColors[c] || '#00f0ff')+'">'+t('color_name_' + c)+'</button>').join('') +
             '</div>' +
             '<div class="cyber-controls-section"><div class="cyber-control-group">' +
                 '<div class="cyber-control-row"><label class="cyber-control-label" for="cyber-soundToggle">' + t('sound_alert') + '</label>' +
