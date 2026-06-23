@@ -1,198 +1,198 @@
 # ComfyUI-Feixue-UniversalMonitor
 
 <p align="center">
-  <strong>飞雪监测器</strong> — 专注 AMD · 跨平台 · 5 色 × 5 风格 · 实时硬件监测器
+  <strong>Feixue Universal Monitor</strong> — AMD-focused · Cross-platform · 5 Colors × 5 Styles · Real-time Hardware Monitor
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.25-red" alt="Version" />
-  <img src="https://img.shields.io/badge/Styles-5_Colors_×_5_Styles-blueviolet" alt="25 Combinations" />
+  <img src="https://img.shields.io/badge/Version-3.26-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Styles-5_Colors_%C3%97_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
 <p align="center">
-  <a href="https://feixue-ai.github.io/ComfyUI-Feixue-UniversalMonitor/?demo">🖥️ 在线预览外观 (Live Demo)</a>
+  <a href="https://feixue-ai.github.io/ComfyUI-Feixue-UniversalMonitor/?demo">🖥️ Live Preview (Live Demo)</a>
 </p>
 
 ---
 
-## 外观预览
+## Preview
 
-![飞雪监测器 Premium UI v3.25](screenshot.png)
+![Feixue Universal Monitor Premium UI v3.26](screenshot.png)
 
-> 上图展示了 Premium UI 玉竹（Jade Bamboo）风格监控栏，采用横向玉竹造型：8 段竹节（左侧拖拽头 + 6 个监测段 + 右侧设置节）自然衔接，玉质光泽与圆柱体感，设置面板为玉竹简风格，包含 GPU / VRAM / CPU / RAM / SWAP / TEMP 六项实时指标。
+> The screenshot above shows the Premium UI **Neu** style monitor bar — a white neumorphic design with medical-instrument-style recessed windows, precise groove bases, and soft embossed shadows. It displays six real-time metrics: GPU / VRAM / CPU / RAM / SWAP / TEMP.
 >
-> 插件支持 **5 种颜色方案 × 5 种视觉风格**，共 **25 种组合**，可在设置面板中一键切换。
+> The plugin supports **5 color schemes × 5 visual styles**, for a total of **25 combinations**, switchable with one click in the settings panel.
 >
-> 在线演示（早期设计原型，非当前 ComfyUI 内真实 UI）：[Live Demo](https://feixue-ai.github.io/ComfyUI-Feixue-UniversalMonitor/?demo)
+> Live demo (early design prototype, not the actual ComfyUI UI): [Live Demo](https://feixue-ai.github.io/ComfyUI-Feixue-UniversalMonitor/?demo)
 
-### 5 种视觉风格
+### 5 Visual Styles
 
-| 风格 | 英文名 | 设计特点 |
-|------|--------|----------|
-| **拟物白** | Neu | 白色新拟态（Neumorphism），医疗仪表式内凹窗口，精确凹槽底座，柔和浮雕阴影 |
-| **玉竹** | Jade Bamboo | 横向玉竹监测条，8 段竹节自然衔接，玉质圆柱光泽；玉竹简设置面板，清雅高级 |
-| **复古终端** | Retro | CRT 荧光屏效果，LED 段码条，扫描线与辉光，支持 5 种磷光色 |
-| **珠宝柜** | Lux | 黑金奢侈品展柜，金色镶边与宝石色调，高对比度数据卡片 |
-| **量子核** | Cyber | 重型钛金机架 + 霓虹灯管，HUD 数字，未来科幻感 |
+| Style | Name | Design Highlights |
+|------|--------|-------------------|
+| **Neu** | Neu | White neumorphism, medical-instrument recessed windows, precise groove base, soft embossed shadows |
+| **Jade Bamboo** | Jade Bamboo | Horizontal jade bamboo monitor bar with 8 naturally connected segments, jade cylindrical gloss, and a bamboo-slip settings panel |
+| **Retro Terminal** | Retro | CRT phosphor screen effect, LED segment bars, scanlines and glow, supports 5 phosphor colors |
+| **Luxury Cabinet** | Lux | Black-gold luxury showcase, gold trim with gemstone tones, high-contrast data cards |
+| **Quantum Core** | Cyber | Heavy titanium frame + neon tubes, HUD numbers, futuristic sci-fi aesthetic |
 
-### 5 种颜色方案
+### 5 Color Schemes
 
-极光陶瓷 / 深海蓝 / 落日暖 / 森林绿 / 午夜黑（不同风格会映射为对应材质色或磷光色）。
+Aurora Ceramic / Deep Sea Blue / Sunset Warm / Forest Green / Midnight Black (each style maps these to corresponding material or phosphor colors).
 
 ---
 
-## 特性
+## Features
 
-- **实时硬件监测** — GPU 利用率、显存（VRAM，以 GB 显示）、CPU 负载、物理内存（RAM）、虚拟内存（Swap）、GPU 温度、磁盘 I/O、网络速率，共 8 项指标
-- **5 色 × 5 风格独立组合** — 颜色与视觉风格完全解耦，25 种搭配一键切换
-- **中/英文自动适配** — 根据浏览器语言自动显示中文或英文标签，避免翻译软件与布局溢出
-- **工作流声音提示** — ComfyUI 工作流完成或出错时播放提示音，开关状态跨主题持久同步
-- **拖拽自由定位** — 开启拖拽模式后可自由移动监测栏，关闭后自动回到顶部居中；主题切换后自动归位
-- **折叠式悬浮面板** — 点击齿轮打开设置面板，支持分区展开/收起
-- **Neu 医疗仪表窗口** — 监测条采用精确镶嵌的内凹仪表窗口 + 连续凹槽底座，质感更高级
-- **玉竹监测条** — 横向玉竹造型，8 段竹节自然衔接，玉质圆柱光泽；玉竹简设置面板，与 Neu 形成强烈视觉反差
-- **跨平台 AMD 优化** — Windows（pynvml / WMI）与 Linux（amdsmi / ROCm / sysfs）三级 fallback 降级
-- **WebSocket 实时推送** — 低于 100ms 延迟的数据推送，同时提供 HTTP API 降级模式
-- **零外部前端依赖** — 单文件 `extension.js` 自包含全部 UI、CSS、事件与数据逻辑
+- **Real-time hardware monitoring** — GPU utilization, VRAM (displayed in GB), CPU load, physical RAM, virtual memory (Swap), GPU temperature, disk I/O, network speed — 8 metrics in total
+- **5 colors × 5 styles independently combinable** — color and visual style are fully decoupled, 25 combinations switchable with one click
+- **Auto Chinese/English adaptation** — labels automatically display in Chinese or English based on browser language, avoiding translation software and layout overflow
+- **Workflow sound alerts** — plays a sound when a ComfyUI workflow completes or errors; toggle state persists and syncs across themes
+- **Drag-to-position** — enable drag mode to move the monitor bar freely; disable to automatically return to top-center; auto-repositions after theme switching
+- **Collapsible floating panel** — click the gear icon to open the settings panel with expandable/collapsible sections
+- **Neu medical instrument windows** — monitor bars use precisely inset instrument windows + continuous groove bases for a premium feel
+- **Jade Bamboo monitor bar** — horizontal jade bamboo shape with 8 naturally connected segments, jade cylindrical gloss, and a bamboo-slip settings panel that strongly contrasts with Neu
+- **Cross-platform AMD optimization** — Windows (pynvml / WMI) and Linux (amdsmi / ROCm / sysfs) with three-level fallback degradation
+- **WebSocket real-time push** — data pushed with sub-100ms latency, with an HTTP API fallback mode
+- **Zero external frontend dependencies** — single `extension.js` file contains all UI, CSS, events, and data logic
 
 ---
 
-## 安装
+## Installation
 
-### 方式一：ComfyUI Manager（推荐）
+### Method 1: ComfyUI Manager (Recommended)
 
-1. 打开 ComfyUI → **Manager** → **Install Custom Nodes**
-2. 搜索：`ComfyUI-Feixue-UniversalMonitor`
-3. 点击 **Install** → **重启** ComfyUI
+1. Open ComfyUI → **Manager** → **Install Custom Nodes**
+2. Search for: `ComfyUI-Feixue-UniversalMonitor`
+3. Click **Install** → **Restart** ComfyUI
 
-安装脚本会自动检测操作系统并安装对应依赖：
-- **Windows**：`pynvml-amd-windows`（ADLX GPU 监控）、`wmi`（系统信息）
-- **Linux**：`amdsmi`（AMD GPU 官方监控库）
+The install script will automatically detect the operating system and install the corresponding dependencies:
+- **Windows**: `pynvml-amd-windows` (ADLX GPU monitoring), `wmi` (system info)
+- **Linux**: `amdsmi` (official AMD GPU monitoring library)
 
-### 方式二：手动安装
+### Method 2: Manual Installation
 
 ```bash
 cd ComfyUI/custom_nodes
 git clone https://github.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor.git
 ```
 
-然后重启 ComfyUI，插件会自动启动后端监控服务。
+Then restart ComfyUI. The plugin will automatically start the backend monitoring service.
 
 ---
 
-## 使用
+## Usage
 
-安装后，监控栏自动显示在 ComfyUI 界面顶部：
+After installation, the monitor bar automatically appears at the top of the ComfyUI interface:
 
-- **6 项核心指标**：GPU 利用率 | 显存（VRAM） | CPU 负载 | 物理内存（RAM） | 虚拟内存（Swap） | GPU 温度
-- **2 项辅助指标**：磁盘 I/O | 网络速率（在悬浮面板中查看）
-- **主题切换**：点击监测栏右侧的 ⚙️ 齿轮按钮打开设置面板，在「风格」与「色彩」区切换
-- **声音提示**：在设置面板中开启/关闭，状态会自动保存并在所有主题间同步
-- **拖拽定位**：开启「拖拽模式」后可拖拽监测栏，关闭后自动回到顶部居中
-- **实时更新**：默认 2 秒刷新间隔，数据通过 WebSocket 实时推送
+- **6 core metrics**: GPU Utilization | VRAM | CPU Load | Physical RAM | Virtual Memory (Swap) | GPU Temperature
+- **2 auxiliary metrics**: Disk I/O | Network Speed (viewable in the floating panel)
+- **Theme switching**: Click the ⚙️ gear button on the right side of the monitor bar to open the settings panel, then switch between "Style" and "Color"
+- **Sound alerts**: Enable/disable in the settings panel; the state is automatically saved and synced across all themes
+- **Drag positioning**: Enable "Drag Mode" to drag the monitor bar; disable to return it to top-center
+- **Real-time updates**: Default refresh interval is 2 seconds; data is pushed in real time via WebSocket
 
 ---
 
-## 项目结构
+## Project Structure
 
 ```
 ComfyUI-Feixue-UniversalMonitor/
-├── __init__.py              # 插件入口 & HTTP API 路由
-├── pyproject.toml           # 包元数据与 ComfyUI 注册表信息
-├── install.py               # 跨平台自动依赖安装
-├── requirements.txt         # 基础依赖声明
+├── __init__.py              # Plugin entry & HTTP API routes
+├── pyproject.toml           # Package metadata & ComfyUI registry info
+├── install.py               # Cross-platform automatic dependency installation
+├── requirements.txt         # Base dependency declaration
 ├── core/
-│   ├── monitor.py           # 核心硬件采集引擎 (FeixueHardwareInfo)
-│   ├── websocket_service.py # WebSocket 实时推送服务
-│   └── data_models.py       # 数据模型定义
-├── collectors/              # 数据采集器 (CPU, Memory, Predictor)
-├── providers/amd/           # AMD GPU 数据源 (ROCm/sysfs)
-├── config/                  # 配置管理
-├── utils/                   # 平台检测、线程安全、性能优化
+│   ├── monitor.py           # Core hardware collection engine (FeixueHardwareInfo)
+│   ├── websocket_service.py # WebSocket real-time push service
+│   └── data_models.py       # Data model definitions
+├── collectors/              # Data collectors (CPU, Memory, Predictor)
+├── providers/amd/           # AMD GPU data sources (ROCm/sysfs)
+├── config/                  # Configuration management
+├── utils/                   # Platform detection, thread safety, performance optimization
 ├── web/
-│   └── extension.js         # 前端 UI (Premium UI v3.26)
+│   └── extension.js         # Frontend UI (Premium UI v3.26)
 ├── docs/
-│   └── index.html           # 在线外观演示 (GitHub Pages)
-└── tests/                   # 单元测试
+│   └── index.html           # Online appearance demo (GitHub Pages)
+└── tests/                   # Unit tests
 ```
 
 ---
 
-## 技术细节
+## Technical Details
 
-| 层级 | 技术栈 |
+| Layer | Tech Stack |
 |------|--------|
-| **后端数据采集** | Python (psutil, pynvml-amd-windows, amdsmi, WMI, PyTorch) |
-| **前端 UI** | Vanilla JavaScript（零外部依赖，单文件自包含） |
-| **数据通道** | WebSocket (`feixue.monitor` 事件) + HTTP REST API |
-| **兼容性** | ComfyUI (Windows / Linux Ubuntu)，AMD / NVIDIA GPU |
+| **Backend Data Collection** | Python (psutil, pynvml-amd-windows, amdsmi, WMI, PyTorch) |
+| **Frontend UI** | Vanilla JavaScript (zero external dependencies, single self-contained file) |
+| **Data Channel** | WebSocket (`feixue.monitor` event) + HTTP REST API |
+| **Compatibility** | ComfyUI (Windows / Linux Ubuntu), AMD / NVIDIA GPU |
 
-### 数据采集策略
+### Data Collection Strategy
 
 ```
-GPU 数据源优先级:
+GPU data source priority:
   Windows: pynvml (ADLX) → PyTorch → PowerShell → WMI
   Linux:   amdsmi → rocm_smi → sysfs
 
-CPU/RAM/Swap: psutil (跨平台统一)
+CPU/RAM/Swap: psutil (unified cross-platform)
 ```
 
-所有采集操作均有超时保护（≤8s），异常时自动降级到缓存数据或安全默认值，确保 ComfyUI 主流程不受影响。
+All collection operations have timeout protection (≤8s). On exceptions, the system automatically degrades to cached data or safe default values, ensuring the ComfyUI main workflow is not affected.
 
 ---
 
-## 更新日志
+## Changelog
 
-### v3.26 — Premium UI 5 色 × 5 风格重构 + 稳定性修复（当前版本）
+### v3.26 — Premium UI 5 Colors × 5 Styles Refactor + Stability Fixes (Current)
 
-- **全新 5 种视觉风格**：拟物白（Neu）、玉竹（Jade Bamboo）、复古终端（Retro）、珠宝柜（Lux）、量子核（Cyber）
-- **5 种颜色方案独立切换**：极光陶瓷 / 深海蓝 / 落日暖 / 森林绿 / 午夜黑
-- **中/英文自动适配**：根据系统语言显示中文或英文，关键标签保持简短避免 UI 溢出
-- **显存统一显示为 GB**：所有风格坞站与面板中 VRAM 均显示为已用/总容量（GB）
-- **声音提示状态持久同步**：修复主题切换后提示音开关状态不一致的问题，支持跨主题记忆
-- **主题切换自动归位**：切换风格后监测条自动回到顶部居中，避免旧位置残留
-- **Lux 温度显示修复**：补全珠宝柜风格的 GPU 温度渲染
-- **Cyber 折叠面板修复**：修复量子核风格设置面板展开/收起失效的问题
-- **Neu 医疗仪表窗口重做**：芯片改为精确镶嵌的内凹仪表窗口，底座凹槽对齐，整体质感向高端医疗设备看齐
-- **玉竹主题重做**：横向玉竹监测条，8 段竹节自然衔接，玉质圆柱光泽；玉竹简设置面板，与 Neu 形成强烈视觉反差
-- **玉竹指标高对比度自适应**：文字/进度条颜色随主题自动切换，避免在橙色/紫色等主题下被背景淹没
-- **Retro 暗色 LED 条修复**：恢复未激活时的暗色背景条，保持监测条视觉饱满
-- **前端稳定性修复**：修复拖拽监听器泄漏、Retro 字体加载、主题 body 背景覆盖、fetch 超时定时器泄漏、localStorage 隐私模式异常等隐患
-- **后端稳定性修复**：WebSocket 监控循环异常保护、amdsmi 初始化失败资源释放、BatchSysfsReader 线程安全、线程池关闭异常处理、刷新率 API 边界校验
-- **版本号统一**：代码、面板、包元数据全部统一为 v3.26
-- **清理遗留代码**：移除旧版 Emerald Capsule / v13 主题系统的死代码与 DEBUG 日志
+- **5 new visual styles**: Neu, Jade Bamboo, Retro, Lux, Cyber
+- **5 independently switchable color schemes**: Aurora Ceramic / Deep Sea Blue / Sunset Warm / Forest Green / Midnight Black
+- **Chinese/English auto adaptation**: Displays Chinese or English based on system language; key labels stay short to avoid UI overflow
+- **VRAM uniformly displayed in GB**: VRAM shown as used/total capacity (GB) in all dock styles and panels
+- **Persistent sound alert sync**: Fixed inconsistent sound alert toggle state after theme switching; supports cross-theme memory
+- **Auto reposition on theme switch**: Monitor bar automatically returns to top-center after style switch, avoiding stale positions
+- **Lux temperature display fix**: Added GPU temperature rendering for the Lux style
+- **Cyber collapsible panel fix**: Fixed expand/collapse failure in the Cyber style settings panel
+- **Neu medical instrument windows redo**: Chips changed to precisely inset instrument windows with aligned groove bases, evoking high-end medical equipment
+- **Jade Bamboo theme redo**: Horizontal jade bamboo monitor bar with 8 naturally connected segments, jade cylindrical gloss, and a bamboo-slip settings panel that strongly contrasts with Neu
+- **Jade Bamboo high-contrast adaptive metrics**: Text/progress bar colors automatically switch with theme, avoiding being overwhelmed by orange/purple backgrounds
+- **Retro dark LED bar fix**: Restored dark inactive background bars to keep the monitor bar visually full
+- **Frontend stability fixes**: Fixed drag listener leaks, Retro font loading, theme body background overlay, fetch timeout timer leaks, localStorage privacy mode exceptions
+- **Backend stability fixes**: WebSocket monitor loop exception protection, amdsmi init failure resource release, BatchSysfsReader thread safety, thread pool shutdown exception handling, refresh-rate API boundary validation
+- **Version unification**: Code, panel, and package metadata all unified to v3.26
+- **Legacy code cleanup**: Removed dead code and DEBUG logs from the old Emerald Capsule / v13 theme system
 
-### v3.1.0 — 黑曜石玻璃重构 + 5 风格完全隔离
+### v3.1.0 — Obsidian Glass Refactor + Full 5-Style Isolation
 
-- 悬浮面板全面重构：半透明毛玻璃 + 多层弥散阴影 + 玻璃边缘高光
-- 5 种风格完全视觉隔离
-- 新增磁盘 I/O 和网络速率监测
-- 跨平台所有指标可用
+- Floating panel fully refactored: semi-transparent frosted glass + multi-layer diffuse shadows + glass edge highlights
+- 5 styles fully visually isolated
+- Added disk I/O and network speed monitoring
+- All metrics available cross-platform
 
 ### v3.0.1 — Emerald Capsule
 
-- 完整 UI 重写：药丸/胶囊形设计 + 3D 圆柱横截面立体效果
-- 新增 5 色主题系统
-- 新增拖拽自由定位功能
-- 新增 Swap 虚拟内存监测
+- Complete UI rewrite: pill/capsule design + 3D cylindrical cross-section stereo effect
+- Added 5-color theme system
+- Added drag-to-position feature
+- Added Swap virtual memory monitoring
 
 ### v2.5.0
 
-- 首次公开发布
-- 基础监测功能 (GPU/CPU/RAM)
-- WebSocket 实时推送
+- First public release
+- Basic monitoring functions (GPU/CPU/RAM)
+- WebSocket real-time push
 
 ---
 
-## 许可证
+## License
 
 MIT License
 
 ---
 
-## 作者
+## Author
 
 [Feixue Team](https://github.com/feixue-ai)
