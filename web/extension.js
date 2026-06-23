@@ -2041,9 +2041,10 @@ body.neu-active {
       text-shadow:
         0 0 4px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 10px rgba(0, 0, 0, 0.9);
-      width: 30px;
+      min-width: 30px;
       flex: 0 0 auto;
       text-align: right;
+      white-space: nowrap;
     }
 
     /* LED Bar Progress Indicator */
