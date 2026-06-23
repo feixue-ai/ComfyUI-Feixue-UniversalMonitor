@@ -4963,10 +4963,10 @@ body.cyber-active {
     left: 50%;
     transform: translateX(-50%);
     z-index: 10001;
-    width: 94vw;
-    min-width: 960px;
-    max-width: 1200px;
-    height: 96px;
+    width: auto;
+    min-width: 720px;
+    max-width: 960px;
+    height: 100px;
     background: transparent;
     color: var(--text-light, #f1f8f3);
     font-family: var(--neu-font-ui, 'Inter', sans-serif);
@@ -5155,7 +5155,7 @@ body.cyber-active {
 /* 玉竹简面板 */
 #ind-panel {
     position: fixed;
-    top: 102px;
+    top: 110px;
     right: 20px;
     z-index: 10000;
     width: 360px;
@@ -5522,7 +5522,7 @@ body.cyber-active {
         min-width: auto;
         width: calc(100vw - 24px);
         height: auto;
-        min-height: 78px;
+        min-height: 86px;
     }
     .ind-cockpit {
         display: flex;
