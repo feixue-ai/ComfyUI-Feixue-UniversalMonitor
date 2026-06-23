@@ -1969,8 +1969,8 @@ body.neu-active {
       left: 50%;
       transform: translateX(-50%);
       z-index: 99999;
-      min-width: 720px;
-      max-width: 900px;
+      min-width: 680px;
+      max-width: 960px;
     }
 
     .retro-dock-inner {
@@ -2014,12 +2014,12 @@ body.neu-active {
     .retro-metric {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 5px 10px;
+      gap: 6px;
+      padding: 4px 8px;
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: 4px;
-      min-width: 152px;
+      min-width: 128px;
     }
 
     .retro-metric-label {
@@ -2030,7 +2030,7 @@ body.neu-active {
       text-shadow:
         0 0 6px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 12px rgba(0, 0, 0, 0.9);
-      width: 44px;
+      width: 38px;
       flex: 0 0 auto;
     }
 
@@ -2041,7 +2041,7 @@ body.neu-active {
       text-shadow:
         0 0 4px var(--retro-phosphor-glow, var(--retro-glow)),
         0 0 10px rgba(0, 0, 0, 0.9);
-      width: 38px;
+      width: 34px;
       flex: 0 0 auto;
       text-align: right;
     }
@@ -2052,7 +2052,7 @@ body.neu-active {
       gap: 2px;
       align-items: flex-end;
       height: 18px;
-      width: 48px;
+      width: 44px;
       flex: 0 0 auto;
     }
 
