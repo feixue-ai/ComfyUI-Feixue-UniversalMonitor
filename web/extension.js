@@ -4867,21 +4867,21 @@ body.cyber-active {
 
 /* 五色玉竹主题 */
 .ind-theme-aurora {
-    --jade-light: #e8f5e9;
-    --jade-mid: #a5d6a7;
-    --jade: #66bb6a;
-    --jade-dark: #2e7d32;
-    --joint: #1b5e20;
-    --shadow: #1b3d1c;
-    --text: #1b5e20;
-    --text-dim: #4a7c4b;
-    --text-light: #f1f8f3;
-    --glow: rgba(129, 199, 132, 0.45);
+    --jade-light: #eef5f2;
+    --jade-mid: #a8c8c4;
+    --jade: #5f8f8a;
+    --jade-dark: #2a4f4b;
+    --joint: #1a3835;
+    --shadow: #112625;
+    --text: #2a4f4b;
+    --text-dim: #5a7c78;
+    --text-light: #f0f7f5;
+    --glow: rgba(111, 166, 159, 0.42);
     --metric-text: #ffffff;
-    --metric-unit: #f8bbd0;
-    --metric-glow: rgba(255, 0, 229, 0.55);
-    --metric-fill-start: #ff00e5;
-    --metric-fill-mid: #ff80e1;
+    --metric-unit: #d4f1e8;
+    --metric-glow: rgba(0, 245, 212, 0.55);
+    --metric-fill-start: #00d2a0;
+    --metric-fill-mid: #80ffe0;
     --metric-fill-end: #ffffff;
 }
 .ind-theme-ocean {
