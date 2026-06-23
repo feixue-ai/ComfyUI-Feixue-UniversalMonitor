@@ -538,8 +538,8 @@
         -10px -10px 18px rgba(255, 255, 255, 0.88);
 
     /* 尺寸令牌 (Design Tokens) */
-    --neu-dock-height: 72px;
-    --neu-dock-width: 880px;
+    --neu-dock-height: 86px;
+    --neu-dock-width: 900px;
     --neu-panel-width: 340px;
     --neu-panel-radius: 24px;
     --neu-card-radius: 18px;
@@ -694,7 +694,7 @@ body.neu-active {
    ============================================ */
 #neu-dock {
     position: fixed;
-    top: 18px;
+    top: 16px;
     left: 50%;
     transform: translateX(-50%);
     width: var(--neu-dock-width);
@@ -702,33 +702,33 @@ body.neu-active {
     z-index: 99999;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 0 64px 0 60px;
+    gap: 10px;
+    padding: 0 68px 0 62px;
 
     /* 厚实医疗陶瓷/硅胶仪表带 */
     background-color: var(--neu-base-color);
-    border-radius: 38px;
+    border-radius: 44px;
 
     /* 强悬浮感 + 清晰厚度截面 + 外框双层边缘 */
     box-shadow:
         /* 外框上层：极细白色高光边缘 */
-        0 0 0 1px rgba(255, 255, 255, 0.38),
+        0 0 0 2px rgba(255, 255, 255, 0.42),
         /* 外框下层：暗色厚度边 */
-        0 0 0 2px rgba(0, 0, 0, 0.10),
+        0 0 0 4px rgba(0, 0, 0, 0.08),
         /* 外部悬浮阴影 */
-        0 20px 50px rgba(0, 0, 0, 0.14),
-        0 8px 20px rgba(0, 0, 0, 0.09),
+        0 22px 54px rgba(0, 0, 0, 0.13),
+        0 10px 24px rgba(0, 0, 0, 0.09),
         /* 上沿/左沿高光（横截面亮面）*/
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.80),
-        inset 1.5px 0 0 rgba(255, 255, 255, 0.55),
+        inset 0 2px 0 rgba(255, 255, 255, 0.82),
+        inset 2px 0 0 rgba(255, 255, 255, 0.58),
         /* 下沿/右沿暗边（厚度阴影）*/
-        inset 0 -1.5px 0 rgba(0, 0, 0, 0.11),
-        inset -1.5px 0 0 rgba(0, 0, 0, 0.08),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.10),
+        inset -2px 0 0 rgba(0, 0, 0, 0.07),
         /* 内凹倒角 */
-        inset 0 3px 6px rgba(255, 255, 255, 0.30),
-        inset 0 -3px 6px rgba(0, 0, 0, 0.05);
+        inset 0 4px 8px rgba(255, 255, 255, 0.28),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.05);
 
-    border: 1px solid rgba(255, 255, 255, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.34);
 
     /* 平滑过渡（用于主题切换）*/
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -740,21 +740,23 @@ body.neu-active {
     box-shadow:
         0 24px 58px rgba(0, 0, 0, 0.16),
         0 10px 24px rgba(0, 0, 0, 0.11),
-        inset 0 1.5px 0 rgba(255, 255, 255, 0.84),
-        inset 1.5px 0 0 rgba(255, 255, 255, 0.58),
-        inset 0 -1.5px 0 rgba(0, 0, 0, 0.12),
-        inset -1.5px 0 0 rgba(0, 0, 0, 0.09),
-        inset 0 3px 6px rgba(255, 255, 255, 0.32),
-        inset 0 -3px 6px rgba(0, 0, 0, 0.06);
+        0 0 0 2px rgba(255, 255, 255, 0.44),
+        0 0 0 4px rgba(0, 0, 0, 0.09),
+        inset 0 2px 0 rgba(255, 255, 255, 0.86),
+        inset 2px 0 0 rgba(255, 255, 255, 0.60),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.12),
+        inset -2px 0 0 rgba(0, 0, 0, 0.08),
+        inset 0 4px 8px rgba(255, 255, 255, 0.32),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.06);
 }
 
 /* 左侧 ~5px 横截面高光 — 模拟厚仪表带左边缘受光，两端淡出避免超出圆角 */
 #neu-dock::before {
     content: '';
     position: absolute;
-    left: 6px;
-    top: 20%;
-    bottom: 20%;
+    left: 7px;
+    top: 22%;
+    bottom: 22%;
     width: 5px;
     background: linear-gradient(180deg,
         transparent 0%,
@@ -772,25 +774,24 @@ body.neu-active {
     z-index: 2;
 }
 
-/* 凹槽底座 — 精确覆盖 6 个芯片区域，形成一条连续的仪表轨道
-   left = padding-left + handle-width + half-gap = 60 + 32 + 7 = 99px
-   right = padding-right + settings-btn-width + half-gap = 64 + 42 + 7 = 113px */
+/* 凹槽底座 — 覆盖整个仪表带内部，形成一条厚实连续的仪表轨道
+   left/right 与 padding 对齐，让模块像嵌在一体式外壳里 */
 #neu-dock::after {
     content: '';
     position: absolute;
-    left: 99px;
-    right: 113px;
-    top: 10px;
-    bottom: 10px;
-    border-radius: 22px;
+    left: 96px;
+    right: 116px;
+    top: 13px;
+    bottom: 13px;
+    border-radius: 26px;
     background: linear-gradient(180deg,
-        rgba(0, 0, 0, 0.055) 0%,
-        rgba(0, 0, 0, 0.02) 45%,
-        rgba(255, 255, 255, 0.16) 100%);
+        rgba(0, 0, 0, 0.07) 0%,
+        rgba(0, 0, 0, 0.03) 45%,
+        rgba(255, 255, 255, 0.18) 100%);
     box-shadow:
-        inset 4px 4px 10px rgba(0, 0, 0, 0.12),
-        inset -4px -4px 10px rgba(255, 255, 255, 0.82),
-        0 1px 0 rgba(255, 255, 255, 0.42);
+        inset 5px 5px 12px rgba(0, 0, 0, 0.13),
+        inset -5px -5px 12px rgba(255, 255, 255, 0.86),
+        0 1px 0 rgba(255, 255, 255, 0.45);
     pointer-events: none;
     z-index: 0;
 }
@@ -820,25 +821,25 @@ body.neu-active {
     box-shadow: var(--neu-shadow-concave-mini);
 }
 
-/* 单个指标模块 - 医疗仪表窗口，精确嵌在凹槽轨道中 */
+/* 单个指标模块 - 医疗仪表窗口，嵌在凹槽轨道中，与外壳形成整体 */
 .neu-metric-chip {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 8px;
-    height: 50px;
-    padding: 6px 11px 10px 11px;
-    background-color: var(--neu-base-color);
-    border-radius: 16px;
+    height: 56px;
+    padding: 7px 12px 11px 12px;
+    background-color: rgba(255, 255, 255, 0.22);
+    border-radius: 18px;
 
     /* 内凹仪表窗口：看起来像从底座挖出的观测窗 */
     box-shadow:
-        inset 3px 3px 8px rgba(0, 0, 0, 0.12),
-        inset -2px -2px 6px rgba(255, 255, 255, 0.80),
-        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        inset 3px 3px 9px rgba(0, 0, 0, 0.14),
+        inset -2px -2px 7px rgba(255, 255, 255, 0.82),
+        inset 0 1px 0 rgba(255, 255, 255, 0.58),
         /* 窗口边缘微凸 */
-        1px 1px 2px rgba(255, 255, 255, 0.45),
-        -1px -1px 2px rgba(0, 0, 0, 0.04);
+        1px 1px 2px rgba(255, 255, 255, 0.48),
+        -1px -1px 2px rgba(0, 0, 0, 0.05);
 
     cursor: default;
     transition: all 0.25s ease;
@@ -847,8 +848,8 @@ body.neu-active {
     position: relative;
     z-index: 1;
     flex: 1;
-    min-width: 92px;
-    max-width: 120px;
+    min-width: 96px;
+    max-width: 126px;
     overflow: hidden;
 }
 
@@ -1665,7 +1666,7 @@ body.neu-active {
     .neu-metric-chip {
         min-width: calc(33% - 8px);
         max-width: calc(33% - 8px);
-        height: 48px;
+        height: 52px;
     }
 
     #neu-panel {
