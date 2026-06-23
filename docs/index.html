@@ -1,1297 +1,563 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>飞雪监测器 v3.25 - Premium UI 设计原型</title>
+    <title>Feixue Universal Monitor v3.26 — Premium UI Live Demo</title>
     <style>
-        /* ============================================
-           CSS 变量 - 主题系统
-           ============================================ */
         :root {
-            /* 默认主题：森林绿 Forest (演示映射为 emerald CSS) */
-            --theme-name: 'forest';
-            --accent-primary: #00D080;
-            --accent-secondary: #00A068;
-            --accent-light: #4FFFBF;
-            --accent-glow: rgba(0, 208, 128, 0.65);
-            --accent-glow-soft: rgba(0, 208, 128, 0.35);
-            --accent-glow-diffuse: rgba(0, 208, 128, 0.18);
-            --accent-rgb: 0, 208, 128;
-            
-            /* 背景色 */
-            --bg-primary: #12181f;
-            --bg-secondary: #0d1117;
-            --bg-card: #161b22;
-            --bg-item: rgba(22, 27, 34, 0.9);
-            
-            /* 文字色 */
+            --bg-dark: #0d1117;
+            --bg-light: #e8eaed;
             --text-primary: #e6edf3;
             --text-secondary: #8b949e;
-            --text-accent: #00D080;
-
-            /* 边框和阴影 */
-            --border-color: rgba(0, 208, 128, 0.65);
-            --shadow-glow: 0 0 16px rgba(0, 208, 128, 0.35);
-            --shadow-glow-large: 0 0 32px rgba(0, 208, 128, 0.18);
+            --accent: #00D080;
+            --accent-glow: rgba(0, 208, 128, 0.55);
         }
 
-        /* 主题：赛博紫 Cyber Purple */
-        [data-theme="purple"] {
-            --accent-primary: #B04DFF;
-            --accent-secondary: #7C3AED;
-            --accent-light: #E0B3FF;
-            --accent-glow: rgba(176, 77, 255, 0.6);
-            --accent-glow-soft: rgba(176, 77, 255, 0.32);
-            --accent-glow-diffuse: rgba(176, 77, 255, 0.15);
-            --accent-rgb: 176, 77, 255;
-            --text-accent: #B04DFF;
-            --border-color: rgba(176, 77, 255, 0.65);
-            --shadow-glow: 0 0 16px rgba(176, 77, 255, 0.35);
-            --shadow-glow-large: 0 0 32px rgba(176, 77, 255, 0.18);
-        }
-
-        /* 主题：琥珀金 Amber Gold */
-        [data-theme="amber"] {
-            --accent-primary: #FFB800;
-            --accent-secondary: #CC8800;
-            --accent-light: #FFE060;
-            --accent-glow: rgba(255, 184, 0, 0.6);
-            --accent-glow-soft: rgba(255, 184, 0, 0.32);
-            --accent-glow-diffuse: rgba(255, 184, 0, 0.15);
-            --accent-rgb: 255, 184, 0;
-            --text-accent: #FFB800;
-            --border-color: rgba(255, 184, 0, 0.65);
-            --shadow-glow: 0 0 16px rgba(255, 184, 0, 0.35);
-            --shadow-glow-large: 0 0 32px rgba(255, 184, 0, 0.18);
-        }
-
-        /* 主题：极光蓝 Aurora Blue */
-        [data-theme="blue"] {
-            --accent-primary: #00B4D8;
-            --accent-secondary: #0077B6;
-            --accent-light: #90E0EF;
-            --accent-glow: rgba(0, 180, 216, 0.6);
-            --accent-glow-soft: rgba(0, 180, 216, 0.32);
-            --accent-glow-diffuse: rgba(0, 180, 216, 0.15);
-            --accent-rgb: 0, 180, 216;
-            --text-accent: #00B4D8;
-            --border-color: rgba(0, 180, 216, 0.65);
-            --shadow-glow: 0 0 16px rgba(0, 180, 216, 0.35);
-            --shadow-glow-large: 0 0 32px rgba(0, 180, 216, 0.18);
-        }
-
-        /* 主题：樱花粉 Sakura Pink */
-        [data-theme="pink"] {
-            --accent-primary: #FF6B9D;
-            --accent-secondary: #C9184A;
-            --accent-light: #FFB3D0;
-            --accent-glow: rgba(255, 107, 157, 0.6);
-            --accent-glow-soft: rgba(255, 107, 157, 0.32);
-            --accent-glow-diffuse: rgba(255, 107, 157, 0.15);
-            --accent-rgb: 255, 107, 157;
-            --text-accent: #FF6B9D;
-            --border-color: rgba(255, 107, 157, 0.65);
-            --shadow-glow: 0 0 16px rgba(255, 107, 157, 0.35);
-            --shadow-glow-large: 0 0 32px rgba(255, 107, 157, 0.18);
-        }
-
-        /* ============================================
-           全局样式重置与基础设置
-           ============================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-            background: #1a1f2e;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
+            padding: 60px 20px 40px;
             transition: background 0.5s ease;
         }
 
-        /* 浅色背景模式 */
-        body.light-mode {
-            background: #e8eaed;
-        }
+        body.light-mode { background: var(--bg-light); --text-primary: #1f2328; --text-secondary: #57606a; }
 
-        /* 页面标题 */
-        .page-title {
-            color: var(--text-primary);
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 30px;
+        .page-header {
             text-align: center;
-            letter-spacing: 1px;
-            opacity: 0.8;
+            margin-bottom: 40px;
         }
 
-        .page-title span {
-            color: var(--accent-primary);
+        .page-header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .page-header p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .page-header .version {
+            color: var(--accent);
             font-weight: 700;
         }
 
-        /* ============================================
-           控制按钮区域
-           ============================================ */
+        /* Controls */
         .controls {
-            position: fixed;
-            top: 20px;
-            right: 20px;
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
-            z-index: 1000;
+            justify-content: center;
+            margin-bottom: 40px;
+            max-width: 800px;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 6px;
+            background: rgba(255,255,255,0.05);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        body.light-mode .control-group {
+            background: rgba(0,0,0,0.04);
+            border-color: rgba(0,0,0,0.08);
         }
 
         .control-btn {
-            padding: 8px 16px;
-            border: 1px solid var(--border-color);
+            padding: 8px 14px;
+            border: none;
             border-radius: 8px;
-            background: var(--bg-card);
-            color: var(--text-primary);
+            background: transparent;
+            color: var(--text-secondary);
             font-size: 12px;
-            font-family: inherit;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-glow-soft);
+            transition: all 0.2s ease;
         }
 
-        .control-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-glow);
-        }
-
+        .control-btn:hover { color: var(--text-primary); }
         .control-btn.active {
-            background: var(--accent-primary);
-            color: #000;
+            background: rgba(255,255,255,0.12);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
-        /* ============================================
-           主容器：Pill/Capsule 胶囊形顶部栏
-           ============================================ */
-        .capsule-container {
+        body.light-mode .control-btn.active { background: rgba(0,0,0,0.08); }
+
+        /* Stage */
+        .stage {
             width: 100%;
-            max-width: 900px;
-            background: var(--bg-primary);
-            border-radius: 999px;  /* 完美胶囊形 */
-            padding: 10px 16px;
-            border: 1.5px solid var(--accent-primary);
+            max-width: 1100px;
+            min-height: 220px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 20px;
+        }
+
+        .dock {
+            display: none;
+        }
+
+        .dock.active {
+            display: block;
+        }
+
+        /* ============================================================
+           NEU STYLE
+           ============================================================ */
+        .neu-dock {
+            width: auto;
+            min-width: 720px;
+            max-width: 960px;
+            height: 92px;
+            background: linear-gradient(180deg, #f0f2f5 0%, #e2e5e9 100%);
+            border-radius: 46px;
             box-shadow:
-                0 0 16px var(--accent-glow),
-                0 0 32px var(--accent-glow-diffuse),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+                0 18px 40px rgba(0,0,0,0.18),
+                inset 0 1px 1px rgba(255,255,255,0.9),
+                inset 0 -1px 1px rgba(0,0,0,0.06);
+            padding: 10px 14px;
             position: relative;
-            overflow: hidden;
-            transition: all 0.4s ease;
         }
 
-        /* 3D 圆柱横截面效果 - 左侧区域 */
-        .capsule-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 120px;
+        .neu-inner {
+            width: 100%;
             height: 100%;
-            border-radius: 50% 0 0 50%;  /* 左半圆 */
-            background: linear-gradient(
-                to bottom,
-                rgba(255, 255, 255, 0.6) 0%,
-                rgba(255, 255, 255, 0.3) 5%,
-                var(--accent-light) 15%,
-                var(--accent-primary) 35%,
-                var(--accent-secondary) 65%,
-                rgba(0, 0, 0, 0.35) 85%,
-                rgba(0, 0, 0, 0.48) 95%,
-                rgba(0, 0, 0, 0.55) 100%
-            );
-            opacity: 0.92;
-            z-index: 1;
-            pointer-events: none;
-            transition: all 0.4s ease;
+            background: linear-gradient(180deg, #e6e9ed 0%, #d9dde2 100%);
+            border-radius: 36px;
+            box-shadow:
+                inset 0 3px 6px rgba(0,0,0,0.12),
+                inset 0 -2px 4px rgba(255,255,255,0.8),
+                0 1px 0 rgba(255,255,255,0.6);
+            display: flex;
+            align-items: center;
+            padding: 8px 18px;
+            gap: 10px;
         }
 
-        /* 指标项容器 */
-        .metrics-row {
+        .neu-metric {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 8px;
+            background: linear-gradient(145deg, #eef1f4, #d4d8dd);
+            border-radius: 16px;
+            box-shadow:
+                inset 0 2px 4px rgba(255,255,255,0.7),
+                inset 0 -2px 4px rgba(0,0,0,0.1),
+                3px 3px 6px rgba(0,0,0,0.1),
+                -2px -2px 5px rgba(255,255,255,0.8);
+            gap: 4px;
+        }
+
+        .neu-metric-top {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 15px;
+            font-weight: 800;
+            color: #3a3f45;
+        }
+
+        .neu-metric-top .icon { font-size: 16px; }
+
+        .neu-bar {
+            width: 70%;
+            height: 5px;
+            background: #d1d5da;
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
+        }
+
+        .neu-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light, #4FFFBF));
+            border-radius: 3px;
+            box-shadow: 0 0 8px var(--accent-glow);
+            transition: width 0.6s ease;
+        }
+
+        .neu-settings {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, #eef1f4, #d4d8dd);
+            border-radius: 50%;
+            box-shadow:
+                3px 3px 6px rgba(0,0,0,0.1),
+                -2px -2px 5px rgba(255,255,255,0.8),
+                inset 0 1px 1px rgba(255,255,255,0.7);
+            color: #6a737d;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* ============================================================
+           JADE BAMBOO STYLE
+           ============================================================ */
+        .jade-dock {
+            width: auto;
+            min-width: 720px;
+            max-width: 960px;
+            height: 100px;
+            position: relative;
+        }
+
+        .jade-dock svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            filter: drop-shadow(0 0 18px var(--accent-glow));
+        }
+
+        .jade-cockpit {
+            position: absolute;
+            left: 7%; width: 86%; height: 100%;
             display: flex;
             align-items: stretch;
-            gap: 8px;
-            position: relative;
             z-index: 2;
         }
 
-        /* 单个指标项 */
-        .metric-item {
+        .jade-metric {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 8px 6px;
-            background: var(--bg-item);
-            border-radius: 12px;
-            min-width: 80px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            gap: 2px;
+            color: #fff8e1;
         }
 
-        .metric-item:hover {
-            transform: translateY(-1px);
-            background: rgba(30, 36, 46, 0.95);
-            border: 1px solid var(--accent-light);
-            box-shadow:
-                0 4px 12px rgba(0, 0, 0, 0.3),
-                0 0 8px var(--accent-glow-diffuse);
-        }
+        .jade-metric:nth-child(1) { flex-basis: 15%; }
+        .jade-metric:nth-child(2) { flex-basis: 19%; }
+        .jade-metric:nth-child(3) { flex-basis: 13%; }
+        .jade-metric:nth-child(4) { flex-basis: 18%; }
+        .jade-metric:nth-child(5) { flex-basis: 15%; }
+        .jade-metric:nth-child(6) { flex-basis: 20%; }
 
-        /* 第一个指标项（GPU）特殊样式 - 与3D圆柱效果配合 */
-        .metric-item:first-child {
-            padding-left: 28px;  /* 为左侧圆柱效果留出空间 */
-            border-radius: 16px 12px 12px 16px;
-        }
-
-        /* 设置按钮 */
-        .settings-btn {
+        .jade-metric-icon { font-size: 17px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55)); }
+        .jade-metric-top {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            min-width: 40px;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-radius: 12px;
-            padding: 8px;
-        }
-
-        .settings-btn:hover {
-            color: var(--accent-primary);
-            background: rgba(var(--accent-rgb), 0.1);
-            transform: rotate(90deg);
-        }
-
-        /* ============================================
-           渐变状态条
-           ============================================ */
-        .progress-bar {
-            width: 100%;
-            height: 3px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 2px;
-            margin-bottom: 6px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(
-                90deg,
-                var(--accent-secondary),
-                var(--accent-primary),
-                var(--accent-light)
-            );
-            border-radius: 2px;
-            box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
-            position: relative;
-            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* 光泽动画效果 */
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.5),
-                transparent
-            );
-            animation: liquidShine 2.5s infinite;
-        }
-
-        @keyframes liquidShine {
-            0% { left: -100%; }
-            100% { left: 200%; }
-        }
-
-        /* ============================================
-           指标内容区域
-           ============================================ */
-        .metric-content {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            width: 100%;
-        }
-
-        .metric-icon {
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .metric-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            min-width: 0;
-        }
-
-        .metric-label {
-            font-size: 9px;
-            color: var(--text-secondary);
+            align-items: baseline;
+            gap: 3px;
+            font-size: 8px;
+            font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            color: rgba(255,255,255,0.96);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.65);
         }
-
-        .metric-value {
-            font-size: 13px;
-            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        .jade-metric-value {
+            font-size: 16px;
             font-weight: 800;
-            color: var(--text-accent);
-            letter-spacing: -0.02em;
-            line-height: 1.2;
-            text-shadow:
-                0 0 8px var(--accent-glow-soft),
-                0 0 16px var(--accent-glow-diffuse);
+            color: #fff8e1;
+            text-shadow: 0 0 12px rgba(255,193,7,0.55), 0 1px 2px rgba(0,0,0,0.55);
         }
-
-        /* ============================================
-           芯片图标系统 - CSS绘制
-           ============================================ */
-
-        /* GPU 图标 - 显卡芯片 */
-        .icon-gpu {
-            width: 18px;
-            height: 13px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        .jade-bar {
+            width: 70%; height: 4px;
+            background: rgba(0,0,0,0.32);
             border-radius: 2px;
-            position: relative;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.25),
-                inset 0 -2px 0 rgba(0, 0, 0, 0.25),
-                0 0 6px var(--accent-glow-soft),
-                0 0 12px var(--accent-glow-diffuse);
-        }
-
-        .icon-gpu::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            bottom: 2px;
-            background:
-                radial-gradient(circle at 25% 25%, var(--accent-light) 1px, transparent 1px),
-                radial-gradient(circle at 75% 25%, var(--accent-light) 1px, transparent 1px),
-                radial-gradient(circle at 25% 75%, var(--accent-light) 1px, transparent 1px),
-                radial-gradient(circle at 75% 75%, var(--accent-light) 1px, transparent 1px);
-        }
-
-        /* VRAM 图标 - 内存颗粒 */
-        .icon-vram {
-            width: 16px;
-            height: 11px;
-            background: linear-gradient(180deg, var(--accent-light), var(--accent-primary));
-            border-radius: 2px;
-            position: relative;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.3),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.25),
-                0 0 5px var(--accent-glow-soft),
-                0 0 10px var(--accent-glow-diffuse);
-        }
-
-        .icon-vram::before {
-            content: '';
-            position: absolute;
-            top: 1px;
-            left: 1px;
-            right: 1px;
-            height: 2px;
-            background: rgba(255, 255, 255, 0.4);
-            border-radius: 1px;
-        }
-
-        /* CPU 图标 - 处理器 */
-        .icon-cpu {
-            width: 14px;
-            height: 14px;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            border-radius: 2px;
-            position: relative;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.25),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-                0 0 5px var(--accent-glow-soft),
-                0 0 10px var(--accent-glow-diffuse);
-        }
-
-        .icon-cpu::before {
-            content: '';
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            right: 3px;
-            bottom: 3px;
-            background: var(--bg-primary);
-            border-radius: 1px;
-        }
-
-        .icon-cpu::after {
-            content: '';
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            right: 5px;
-            bottom: 5px;
-            background: linear-gradient(135deg, var(--accent-light), var(--accent-primary));
-            border-radius: 1px;
-        }
-
-        /* RAM 图标 - 内存条 */
-        .icon-ram {
-            width: 18px;
-            height: 10px;
-            background: linear-gradient(180deg, var(--accent-light), var(--accent-secondary));
-            border-radius: 2px;
-            position: relative;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.25),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-                0 0 5px var(--accent-glow-soft),
-                0 0 10px var(--accent-glow-diffuse);
-        }
-
-        .icon-ram::before {
-            content: '';
-            position: absolute;
-            bottom: -3px;
-            left: 2px;
-            right: 2px;
-            height: 3px;
-            background: repeating-linear-gradient(
-                90deg,
-                var(--accent-primary) 0px,
-                var(--accent-primary) 2px,
-                transparent 2px,
-                transparent 3px
-            );
-        }
-
-        /* Swap 图标 - 存储/硬盘 */
-        .icon-swap {
-            width: 16px;
-            height: 14px;
-            background: linear-gradient(180deg, var(--accent-light), var(--accent-secondary));
-            border-radius: 50% 50% 3px 3px;
-            position: relative;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.25),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-                0 0 5px var(--accent-glow-soft),
-                0 0 10px var(--accent-glow-diffuse);
-        }
-
-        .icon-swap::before {
-            content: '';
-            position: absolute;
-            top: 4px;
-            left: 3px;
-            right: 3px;
-            height: 1px;
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        .icon-swap::after {
-            content: '';
-            position: absolute;
-            top: 7px;
-            left: 5px;
-            right: 5px;
-            height: 1px;
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        /* Temp 图标 - 温度计 */
-        .icon-temp {
-            width: 10px;
-            height: 16px;
-            background: linear-gradient(to bottom, var(--accent-light), var(--accent-primary), var(--accent-secondary));
-            border-radius: 5px 5px 3px 3px;
-            position: relative;
-            box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.25),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-                0 0 5px var(--accent-glow-soft),
-                0 0 10px var(--accent-glow-diffuse);
-        }
-
-        .icon-temp::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 1px;
-            right: 1px;
-            height: 5px;
-            background: var(--accent-primary);
-            border-radius: 50%;
-        }
-
-        /* ============================================
-           悬浮面板 - 不透明卡片风格
-           ============================================ */
-        .panel-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-            z-index: 998;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .panel-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .floating-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.9);
-            width: 90%;
-            max-width: 720px;
-            max-height: 80vh;
-            background: var(--bg-secondary);
-            border: 1.5px solid var(--border-color);
-            border-radius: 20px;
-            box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.5),
-                var(--shadow-glow-large),
-                var(--shadow-glow);
-            z-index: 999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.45);
+            margin-top: 2px;
+        }
+        .jade-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffb300, #ffd54f, #ffffff);
+            box-shadow: 0 0 8px rgba(255,193,7,0.65);
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        /* ============================================================
+           CYBER STYLE
+           ============================================================ */
+        .cyber-dock {
+            width: auto;
+            min-width: 720px;
+            max-width: 960px;
+            height: 92px;
+            background:
+                linear-gradient(180deg, rgba(12,16,24,0.95) 0%, rgba(8,11,18,0.98) 100%),
+                repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,255,200,0.03) 2px, rgba(0,255,200,0.03) 3px);
+            border: 1px solid rgba(0,255,200,0.25);
+            border-radius: 8px;
+            box-shadow:
+                0 0 20px rgba(0,255,200,0.15),
+                inset 0 0 30px rgba(0,255,200,0.05);
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cyber-dock::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.8;
+        }
+
+        .cyber-pod {
+            flex: 1;
             display: flex;
             flex-direction: column;
-        }
-
-        .floating-panel.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        /* 面板标题栏 */
-        .panel-header {
-            padding: 20px 24px;
-            background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
-            border-bottom: 1px solid rgba(var(--accent-rgb), 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .panel-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .panel-title-icon {
-            font-size: 20px;
-        }
-
-        .close-btn {
-            width: 32px;
-            height: 32px;
-            border: none;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-secondary);
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            padding: 8px;
+            background: rgba(0,255,200,0.05);
+            border: 1px solid rgba(0,255,200,0.18);
+            border-radius: 6px;
+            gap: 5px;
+            position: relative;
         }
 
-        .close-btn:hover {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
-        }
-
-        /* 面板内容区 */
-        .panel-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-        }
-
-        /* 主题切换区 */
-        .theme-section {
-            margin-bottom: 24px;
-        }
-
-        .section-label {
-            font-size: 11px;
-            color: var(--text-secondary);
+        .cyber-pod-label {
+            font-size: 9px;
+            color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 12px;
-            font-weight: 600;
+            text-shadow: 0 0 6px var(--accent-glow);
         }
 
-        .theme-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .theme-btn {
-            padding: 10px 18px;
-            border: 2px solid transparent;
-            border-radius: 10px;
-            background: var(--bg-card);
-            color: var(--text-primary);
-            font-size: 12px;
-            font-family: inherit;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .theme-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .theme-btn.active {
-            border-color: currentColor;
-            box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
-        }
-
-        .theme-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            box-shadow: 0 0 6px currentColor;
-        }
-
-        /* 数据卡片区 */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-        }
-
-        .data-card {
-            background: var(--bg-card);
-            border: 1px solid rgba(var(--accent-rgb), 0.2);
-            border-radius: 14px;
-            padding: 18px;
-            transition: all 0.3s ease;
-        }
-
-        .data-card:hover {
-            border-color: var(--accent-glow);
-            transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-        }
-
-        .card-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .card-value {
-            font-size: 20px;
+        .cyber-pod-value {
+            font-size: 17px;
             font-weight: 800;
-            color: var(--text-accent);
+            color: #fff;
+            text-shadow: 0 0 10px var(--accent-glow);
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        .card-progress {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 3px;
+        .cyber-bar {
+            width: 80%; height: 3px;
+            background: rgba(0,255,200,0.12);
+            border-radius: 2px;
             overflow: hidden;
-            margin-top: 12px;
         }
 
-        .card-progress-fill {
+        .cyber-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary), var(--accent-light));
-            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), #fff);
+            box-shadow: 0 0 8px var(--accent-glow);
             transition: width 0.6s ease;
-            box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
         }
 
-        .card-details {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            font-size: 10px;
-            color: var(--text-secondary);
+        .cyber-settings {
+            width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,255,200,0.08);
+            border: 1px solid rgba(0,255,200,0.3);
+            border-radius: 6px;
+            color: var(--accent);
+            font-size: 18px;
+            cursor: pointer;
+            text-shadow: 0 0 8px var(--accent-glow);
         }
 
-        /* 面板底部状态栏 */
-        .panel-footer {
-            padding: 16px 24px;
-            background: var(--bg-card);
-            border-top: 1px solid rgba(var(--accent-rgb), 0.15);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        /* Theme-specific accent adjustments */
+        [data-color="aurora"]   { --accent: #FF6B9D; --accent-glow: rgba(255,107,157,0.55); --accent-light: #FFB3D0; }
+        [data-color="ocean"]    { --accent: #00B4D8; --accent-glow: rgba(0,180,216,0.55); --accent-light: #90E0EF; }
+        [data-color="sunset"]   { --accent: #FFB800; --accent-glow: rgba(255,184,0,0.55); --accent-light: #FFE060; }
+        [data-color="forest"]   { --accent: #00D080; --accent-glow: rgba(0,208,128,0.55); --accent-light: #4FFFBF; }
+        [data-color="midnight"] { --accent: #B04DFF; --accent-glow: rgba(176,77,255,0.55); --accent-light: #E0B3FF; }
+
+        .footer {
+            margin-top: auto;
+            padding-top: 40px;
             font-size: 11px;
             color: var(--text-secondary);
+            text-align: center;
         }
 
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        @media (max-width: 780px) {
+            .neu-dock, .jade-dock, .cyber-dock { min-width: auto; width: calc(100vw - 40px); transform: scale(0.92); transform-origin: top center; }
         }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-primary);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* ============================================
-           响应式设计
-           ============================================ */
-        @media (max-width: 768px) {
-            .capsule-container {
-                padding: 8px 12px;
-            }
-
-            .metrics-row {
-                gap: 4px;
-            }
-
-            .metric-item {
-                padding: 6px 4px;
-                min-width: 60px;
-            }
-
-            .metric-item:first-child {
-                padding-left: 20px;
-            }
-
-            .metric-label {
-                font-size: 7px;
-            }
-
-            .metric-value {
-                font-size: 11px;
-            }
-
-            .floating-panel {
-                width: 95%;
-                max-height: 90vh;
-            }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 20px 10px;
-            }
-
-            .controls {
-                top: 10px;
-                right: 10px;
-            }
-
-            .control-btn {
-                padding: 6px 10px;
-                font-size: 10px;
-            }
-
-            .cards-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ============================================
-           动画效果
-           ============================================ */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .capsule-container {
-            animation: fadeInUp 0.6s ease-out;
-        }
-
-        .metric-item {
-            animation: fadeInUp 0.6s ease-out backwards;
-        }
-
-        .metric-item:nth-child(1) { animation-delay: 0.1s; }
-        .metric-item:nth-child(2) { animation-delay: 0.15s; }
-        .metric-item:nth-child(3) { animation-delay: 0.2s; }
-        .metric-item:nth-child(4) { animation-delay: 0.25s; }
-        .metric-item:nth-child(5) { animation-delay: 0.3s; }
-        .metric-item:nth-child(6) { animation-delay: 0.35s; }
-        .metric-item:nth-child(7) { animation-delay: 0.4s; }
     </style>
 </head>
-<body>
-    <!-- 页面标题 -->
-    <div class="page-title">
-        <span>v3.25</span> 飞雪监测器 | Premium UI 设计原型
+<body data-color="forest">
+    <div class="page-header">
+        <h1>Feixue Universal Monitor <span class="version">v3.26</span></h1>
+        <p>Premium UI Live Demo — 5 Colors × 5 Styles · Cross-platform Hardware Monitor</p>
     </div>
 
-    <!-- 控制按钮 -->
     <div class="controls">
-        <button class="control-btn" id="bgToggleBtn" onclick="toggleBackground()">
-            切换背景
-        </button>
-        <button class="control-btn" onclick="showThemeInfo()">
-            主题信息
-        </button>
-    </div>
-
-    <!-- 主容器：Pill/Capsule 胶囊形顶部栏 -->
-    <div class="capsule-container" id="capsuleContainer">
-        <div class="metrics-row">
-            <!-- GPU 指标 -->
-            <div class="metric-item">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 25%"></div>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-icon">
-                        <div class="icon-gpu"></div>
-                    </div>
-                    <div class="metric-info">
-                        <span class="metric-label">GPU</span>
-                        <span class="metric-value">25%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VRAM 指标 -->
-            <div class="metric-item">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 72%"></div>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-icon">
-                        <div class="icon-vram"></div>
-                    </div>
-                    <div class="metric-info">
-                        <span class="metric-label">VRAM</span>
-                        <span class="metric-value">2.9GB</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CPU 指标 -->
-            <div class="metric-item">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 5%"></div>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-icon">
-                        <div class="icon-cpu"></div>
-                    </div>
-                    <div class="metric-info">
-                        <span class="metric-label">CPU</span>
-                        <span class="metric-value">5%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RAM 指标 -->
-            <div class="metric-item">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 29%"></div>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-icon">
-                        <div class="icon-ram"></div>
-                    </div>
-                    <div class="metric-info">
-                        <span class="metric-label">RAM</span>
-                        <span class="metric-value">29%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SWAP 指标 -->
-            <div class="metric-item">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-icon">
-                        <div class="icon-swap"></div>
-                    </div>
-                    <div class="metric-info">
-                        <span class="metric-label">SWAP</span>
-                        <span class="metric-value">--%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TEMP 指标 -->
-            <div class="metric-item">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 41%"></div>
-                </div>
-                <div class="metric-content">
-                    <div class="metric-icon">
-                        <div class="icon-temp"></div>
-                    </div>
-                    <div class="metric-info">
-                        <span class="metric-label">TEMP</span>
-                        <span class="metric-value">41°C</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 设置按钮 -->
-            <button class="settings-btn" id="settingsBtn" onclick="togglePanel()" title="打开设置面板">
-                ⚙
-            </button>
+        <div class="control-group">
+            <button class="control-btn active" onclick="setStyle('neu', this)">Neu</button>
+            <button class="control-btn" onclick="setStyle('jade', this)">Jade Bamboo</button>
+            <button class="control-btn" onclick="setStyle('cyber', this)">Cyber</button>
+        </div>
+        <div class="control-group">
+            <button class="control-btn active" onclick="setColor('forest', this)">Forest</button>
+            <button class="control-btn" onclick="setColor('ocean', this)">Ocean</button>
+            <button class="control-btn" onclick="setColor('sunset', this)">Sunset</button>
+            <button class="control-btn" onclick="setColor('aurora', this)">Aurora</button>
+            <button class="control-btn" onclick="setColor('midnight', this)">Midnight</button>
+        </div>
+        <div class="control-group">
+            <button class="control-btn" onclick="toggleBackground(this)">Light Background</button>
         </div>
     </div>
 
-    <!-- 遮罩层 -->
-    <div class="panel-overlay" id="panelOverlay" onclick="togglePanel()"></div>
-
-    <!-- 悬浮面板 -->
-    <div class="floating-panel" id="floatingPanel">
-        <!-- 标题栏 -->
-        <div class="panel-header">
-            <div class="panel-title">
-                <span class="panel-title-icon">📊</span>
-                飞雪监测器 <span style="color: var(--accent-primary)">v3.25</span>
-            </div>
-            <button class="close-btn" onclick="togglePanel()">✕</button>
-        </div>
-
-        <!-- 内容区 -->
-        <div class="panel-body">
-            <!-- 主题切换区 -->
-            <div class="theme-section">
-                <div class="section-label">主题切换</div>
-                <div class="theme-buttons">
-                    <button class="theme-btn active" data-theme="forest" onclick="setTheme('forest', this)">
-                        <span class="theme-dot" style="color: #00D080; background: #00D080;"></span>
-                        森林绿
-                    </button>
-                    <button class="theme-btn" data-theme="ocean" onclick="setTheme('ocean', this)">
-                        <span class="theme-dot" style="color: #00B4D8; background: #00B4D8;"></span>
-                        深海蓝
-                    </button>
-                    <button class="theme-btn" data-theme="sunset" onclick="setTheme('sunset', this)">
-                        <span class="theme-dot" style="color: #FFB800; background: #FFB800;"></span>
-                        落日暖
-                    </button>
-                    <button class="theme-btn" data-theme="aurora" onclick="setTheme('aurora', this)">
-                        <span class="theme-dot" style="color: #FF6B9D; background: #FF6B9D;"></span>
-                        极光陶瓷
-                    </button>
-                    <button class="theme-btn" data-theme="midnight" onclick="setTheme('midnight', this)">
-                        <span class="theme-dot" style="color: #B04DFF; background: #B04DFF;"></span>
-                        午夜黑
-                    </button>
-                </div>
-            </div>
-
-            <!-- 数据卡片区 -->
-            <div class="section-label">系统监控数据</div>
-            <div class="cards-grid">
-                <!-- 处理器卡片 -->
-                <div class="data-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="icon-cpu" style="transform: scale(1.2);"></div>
-                            处理器 CPU
-                        </div>
-                        <div class="card-value">5%</div>
-                    </div>
-                    <div class="card-progress">
-                        <div class="card-progress-fill" style="width: 5%"></div>
-                    </div>
-                    <div class="card-details">
-                        <span>使用率: 5%</span>
-                        <span>核心数: 8</span>
-                    </div>
-                </div>
-
-                <!-- 显卡卡片 -->
-                <div class="data-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="icon-gpu" style="transform: scale(1.2);"></div>
-                            显卡 GPU
-                        </div>
-                        <div class="card-value">25%</div>
-                    </div>
-                    <div class="card-progress">
-                        <div class="card-progress-fill" style="width: 25%"></div>
-                    </div>
-                    <div class="card-details">
-                        <span>使用率: 25%</span>
-                        <span>显存: 2.9GB</span>
-                    </div>
-                </div>
-
-                <!-- 内存卡片 -->
-                <div class="data-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="icon-ram" style="transform: scale(1.2);"></div>
-                            内存 RAM
-                        </div>
-                        <div class="card-value">29%</div>
-                    </div>
-                    <div class="card-progress">
-                        <div class="card-progress-fill" style="width: 29%"></div>
-                    </div>
-                    <div class="card-details">
-                        <span>已用: 9.3GB</span>
-                        <span>总计: 32GB</span>
-                    </div>
-                </div>
-
-                <!-- 温度卡片 -->
-                <div class="data-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="icon-temp" style="transform: scale(1.2);"></div>
-                            温度 TEMP
-                        </div>
-                        <div class="card-value">41°C</div>
-                    </div>
-                    <div class="card-progress">
-                        <div class="card-progress-fill" style="width: 41%"></div>
-                    </div>
-                    <div class="card-details">
-                        <span>GPU温度: 41°C</span>
-                        <span>状态: 正常</span>
-                    </div>
-                </div>
+    <div class="stage">
+        <!-- Neu -->
+        <div class="dock neu-dock active" id="dock-neu">
+            <div class="neu-inner">
+                <div class="neu-metric"><div class="neu-metric-top"><span class="icon">🎮</span><span class="neu-val" data-type="gpu">12%</span></div><div class="neu-bar"><div class="neu-bar-fill" data-bar="gpu"></div></div></div>
+                <div class="neu-metric"><div class="neu-metric-top"><span class="icon">💾</span><span class="neu-val" data-type="vram">2.5GB</span></div><div class="neu-bar"><div class="neu-bar-fill" data-bar="vram"></div></div></div>
+                <div class="neu-metric"><div class="neu-metric-top"><span class="icon">⚡</span><span class="neu-val" data-type="cpu">10%</span></div><div class="neu-bar"><div class="neu-bar-fill" data-bar="cpu"></div></div></div>
+                <div class="neu-metric"><div class="neu-metric-top"><span class="icon">🧮</span><span class="neu-val" data-type="ram">41%</span></div><div class="neu-bar"><div class="neu-bar-fill" data-bar="ram"></div></div></div>
+                <div class="neu-metric"><div class="neu-metric-top"><span class="icon">🔄</span><span class="neu-val" data-type="swap">0.0GB</span></div><div class="neu-bar"><div class="neu-bar-fill" data-bar="swap"></div></div></div>
+                <div class="neu-metric"><div class="neu-metric-top"><span class="icon">🌡️</span><span class="neu-val" data-type="temp">42°C</span></div><div class="neu-bar"><div class="neu-bar-fill" data-bar="temp"></div></div></div>
+                <button class="neu-settings">⚙</button>
             </div>
         </div>
 
-        <!-- 底部状态栏 -->
-        <div class="panel-footer">
-            <div class="status-indicator">
-                <div class="status-dot"></div>
-                <span>系统运行正常</span>
-            </div>
-            <div>
-                更新间隔: 2s | 飞雪监测器 v3.26
+        <!-- Jade Bamboo -->
+        <div class="dock jade-dock" id="dock-jade">
+            <svg viewBox="0 0 1000 100" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="jade-cyl" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#1b5e20" />
+                        <stop offset="20%" stop-color="#4caf50" />
+                        <stop offset="45%" stop-color="#81c784" />
+                        <stop offset="55%" stop-color="#c8e6c9" />
+                        <stop offset="65%" stop-color="#81c784" />
+                        <stop offset="80%" stop-color="#4caf50" />
+                        <stop offset="100%" stop-color="#1b5e20" />
+                    </linearGradient>
+                    <radialGradient id="jade-inner" cx="0.5" cy="0.4" r="0.6">
+                        <stop offset="0%" stop-color="rgba(255,255,255,0.25)" />
+                        <stop offset="60%" stop-color="rgba(255,255,255,0.05)" />
+                        <stop offset="100%" stop-color="transparent" />
+                    </radialGradient>
+                    <linearGradient id="jade-sheen" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="rgba(255,255,255,0.45)" />
+                        <stop offset="40%" stop-color="rgba(255,255,255,0.1)" />
+                        <stop offset="100%" stop-color="transparent" />
+                    </linearGradient>
+                </defs>
+                <path d="M0,50 C6,42,24,16,36,10 C48,4,54,7,70,8 C86,9,112,16,134,16 C156,16,174,10,198,11 C222,12,252,19,280,18 C308,17,340,9,362,9 C384,9,398,15,418,15 C438,15,452,9,474,10 C496,11,526,18,552,17 C578,16,606,6,630,7 C654,8,672,19,694,19 C716,19,734,10,758,10 C782,10,808,16,844,16 C880,16,940,5,966,11 C992,17,994,42,1000,50 L1000,50 C994,58,992,83,966,89 C940,95,880,84,844,84 C808,84,782,90,758,90 C734,90,716,81,694,81 C672,81,654,92,630,93 C606,94,578,84,552,83 C526,82,496,89,474,90 C452,91,438,85,418,85 C398,85,384,91,362,91 C340,91,308,83,280,82 C252,81,222,88,198,89 C174,90,156,84,134,84 C112,84,86,91,70,92 C54,93,48,96,36,90 C24,84,6,58,0,50 Z" fill="url(#jade-cyl)" />
+                <path d="M0,50 C6,42,24,16,36,10 C48,4,54,7,70,8 C86,9,112,16,134,16 C156,16,174,10,198,11 C222,12,252,19,280,18 C308,17,340,9,362,9 C384,9,398,15,418,15 C438,15,452,9,474,10 C496,11,526,18,552,17 C578,16,606,6,630,7 C654,8,672,19,694,19 C716,19,734,10,758,10 C782,10,808,16,844,16 C880,16,940,5,966,11 C992,17,994,42,1000,50 L1000,50 C994,58,992,83,966,89 C940,95,880,84,844,84 C808,84,782,90,758,90 C734,90,716,81,694,81 C672,81,654,92,630,93 C606,94,578,84,552,83 C526,82,496,89,474,90 C452,91,438,85,418,85 C398,85,384,91,362,91 C340,91,308,83,280,82 C252,81,222,88,198,89 C174,90,156,84,134,84 C112,84,86,91,70,92 C54,93,48,96,36,90 C24,84,6,58,0,50 Z" fill="url(#jade-inner)" />
+                <rect x="0" y="0" width="1000" height="100" fill="url(#jade-sheen)" clip-path="url(#jade-clip)" opacity="0.6" />
+                <clipPath id="jade-clip"><path d="M0,50 C6,42,24,16,36,10 C48,4,54,7,70,8 C86,9,112,16,134,16 C156,16,174,10,198,11 C222,12,252,19,280,18 C308,17,340,9,362,9 C384,9,398,15,418,15 C438,15,452,9,474,10 C496,11,526,18,552,17 C578,16,606,6,630,7 C654,8,672,19,694,19 C716,19,734,10,758,10 C782,10,808,16,844,16 C880,16,940,5,966,11 C992,17,994,42,1000,50 L1000,50 C994,58,992,83,966,89 C940,95,880,84,844,84 C808,84,782,90,758,90 C734,90,716,81,694,81 C672,81,654,92,630,93 C606,94,578,84,552,83 C526,82,496,89,474,90 C452,91,438,85,418,85 C398,85,384,91,362,91 C340,91,308,83,280,82 C252,81,222,88,198,89 C174,90,156,84,134,84 C112,84,86,91,70,92 C54,93,48,96,36,90 C24,84,6,58,0,50 Z" /></clipPath>
+                <g opacity="0.75">
+                    <rect x="66" y="6" width="7" height="88" rx="3.5" fill="rgba(0,0,0,0.22)" />
+                    <rect x="196" y="8" width="6" height="84" rx="3" fill="rgba(0,0,0,0.18)" />
+                    <rect x="359" y="5" width="7" height="90" rx="3.5" fill="rgba(0,0,0,0.22)" />
+                    <rect x="470" y="7" width="6" height="86" rx="3" fill="rgba(0,0,0,0.18)" />
+                    <rect x="626" y="4" width="7" height="92" rx="3.5" fill="rgba(0,0,0,0.24)" />
+                    <rect x="755" y="7" width="6" height="86" rx="3" fill="rgba(0,0,0,0.18)" />
+                    <rect x="927" y="5" width="7" height="90" rx="3.5" fill="rgba(0,0,0,0.22)" />
+                </g>
+            </svg>
+            <div class="jade-cockpit">
+                <div class="jade-metric"><div class="jade-metric-icon">🎮</div><div class="jade-metric-top">GPU</div><div class="jade-metric-value jade-val" data-type="gpu">12%</div><div class="jade-bar"><div class="jade-bar-fill" data-bar="gpu"></div></div></div>
+                <div class="jade-metric"><div class="jade-metric-icon">💾</div><div class="jade-metric-top">VRAM</div><div class="jade-metric-value jade-val" data-type="vram">2.5GB</div><div class="jade-bar"><div class="jade-bar-fill" data-bar="vram"></div></div></div>
+                <div class="jade-metric"><div class="jade-metric-icon">⚡</div><div class="jade-metric-top">CPU</div><div class="jade-metric-value jade-val" data-type="cpu">10%</div><div class="jade-bar"><div class="jade-bar-fill" data-bar="cpu"></div></div></div>
+                <div class="jade-metric"><div class="jade-metric-icon">🧮</div><div class="jade-metric-top">RAM</div><div class="jade-metric-value jade-val" data-type="ram">41%</div><div class="jade-bar"><div class="jade-bar-fill" data-bar="ram"></div></div></div>
+                <div class="jade-metric"><div class="jade-metric-icon">🔄</div><div class="jade-metric-top">SWAP</div><div class="jade-metric-value jade-val" data-type="swap">0.0GB</div><div class="jade-bar"><div class="jade-bar-fill" data-bar="swap"></div></div></div>
+                <div class="jade-metric"><div class="jade-metric-icon">🌡️</div><div class="jade-metric-top">TEMP</div><div class="jade-metric-value jade-val" data-type="temp">42°C</div><div class="jade-bar"><div class="jade-bar-fill" data-bar="temp"></div></div></div>
             </div>
         </div>
+
+        <!-- Cyber -->
+        <div class="dock cyber-dock" id="dock-cyber">
+            <div class="cyber-pod"><div class="cyber-pod-label">GPU</div><div class="cyber-pod-value cyber-val" data-type="gpu">12%</div><div class="cyber-bar"><div class="cyber-bar-fill" data-bar="gpu"></div></div></div>
+            <div class="cyber-pod"><div class="cyber-pod-label">VRAM</div><div class="cyber-pod-value cyber-val" data-type="vram">2.5GB</div><div class="cyber-bar"><div class="cyber-bar-fill" data-bar="vram"></div></div></div>
+            <div class="cyber-pod"><div class="cyber-pod-label">CPU</div><div class="cyber-pod-value cyber-val" data-type="cpu">10%</div><div class="cyber-bar"><div class="cyber-bar-fill" data-bar="cpu"></div></div></div>
+            <div class="cyber-pod"><div class="cyber-pod-label">RAM</div><div class="cyber-pod-value cyber-val" data-type="ram">41%</div><div class="cyber-bar"><div class="cyber-bar-fill" data-bar="ram"></div></div></div>
+            <div class="cyber-pod"><div class="cyber-pod-label">SWAP</div><div class="cyber-pod-value cyber-val" data-type="swap">0.0GB</div><div class="cyber-bar"><div class="cyber-bar-fill" data-bar="swap"></div></div></div>
+            <div class="cyber-pod"><div class="cyber-pod-label">TEMP</div><div class="cyber-pod-value cyber-val" data-type="temp">42°C</div><div class="cyber-bar"><div class="cyber-bar-fill" data-bar="temp"></div></div></div>
+            <button class="cyber-settings">⚙</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        Pure frontend demo. No ComfyUI connection. Data is simulated with setInterval.<br>
+        Get the real plugin at <a href="https://github.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor" style="color: var(--accent);">GitHub</a>.
     </div>
 
     <script>
-        // ============================================
-        // 全局变量
-        // ============================================
-        let isLightMode = false;
-
-        // ============================================
-        // 面板开关功能
-        // ============================================
-        function togglePanel() {
-            const panel = document.getElementById('floatingPanel');
-            const overlay = document.getElementById('panelOverlay');
-            const isActive = panel.classList.contains('active');
-
-            if (isActive) {
-                panel.classList.remove('active');
-                overlay.classList.remove('active');
-            } else {
-                panel.classList.add('active');
-                overlay.classList.add('active');
-            }
-        }
-
-        // ESC 键关闭面板
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                const panel = document.getElementById('floatingPanel');
-                const overlay = document.getElementById('panelOverlay');
-
-                if (panel.classList.contains('active')) {
-                    panel.classList.remove('active');
-                    overlay.classList.remove('active');
-                }
-            }
-        });
-
-        // ============================================
-        // 背景切换功能
-        // ============================================
-        function toggleBackground() {
-            const body = document.body;
-            const btn = document.getElementById('bgToggleBtn');
-
-            isLightMode = !isLightMode;
-
-            if (isLightMode) {
-                body.classList.add('light-mode');
-                btn.textContent = '深色背景';
-                btn.classList.add('active');
-            } else {
-                body.classList.remove('light-mode');
-                btn.textContent = '浅色背景';
-                btn.classList.remove('active');
-            }
-        }
-
-        // ============================================
-        // 主题切换功能
-        // ============================================
-        // 产品颜色名 → 演示 CSS data-theme 映射
-        const THEME_CSS_MAP = {
-            'forest': 'emerald',
-            'ocean': 'blue',
-            'sunset': 'amber',
-            'aurora': 'pink',
-            'midnight': 'purple'
+        const metrics = {
+            gpu: { min: 2, max: 95, unit: '%', decimals: 0 },
+            vram: { min: 1.2, max: 7.8, unit: 'GB', decimals: 1 },
+            cpu: { min: 3, max: 85, unit: '%', decimals: 0 },
+            ram: { min: 20, max: 78, unit: '%', decimals: 0 },
+            swap: { min: 0, max: 2.5, unit: 'GB', decimals: 1 },
+            temp: { min: 38, max: 76, unit: '°C', decimals: 0 }
         };
 
-        function setTheme(themeName, buttonElement) {
-            // 移除所有主题
-            document.documentElement.removeAttribute('data-theme');
-
-            // 默认森林绿不设置 data-theme；其他颜色映射到演示 CSS
-            const cssTheme = THEME_CSS_MAP[themeName];
-            if (cssTheme && cssTheme !== 'emerald') {
-                document.documentElement.setAttribute('data-theme', cssTheme);
-            }
-
-            // 更新按钮激活状态
-            document.querySelectorAll('.theme-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            if (buttonElement) {
-                buttonElement.classList.add('active');
-            }
-
-            console.log(`主题已切换为: ${themeName}`);
+        function randomValue(key) {
+            const m = metrics[key];
+            const v = m.min + Math.random() * (m.max - m.min);
+            return m.decimals === 0 ? Math.round(v) + m.unit : v.toFixed(m.decimals) + m.unit;
         }
 
-        // ============================================
-        // 显示当前主题信息
-        // ============================================
-        function showThemeInfo() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'forest';
-            // 反向查找产品颜色名
-            const reverseMap = {};
-            for (const [k, v] of Object.entries(THEME_CSS_MAP)) {
-                reverseMap[v] = k;
-            }
-            const productTheme = reverseMap[currentTheme] || 'forest';
-            const themeNames = {
-                'forest': '森林绿 (默认)',
-                'ocean': '深海蓝',
-                'sunset': '落日暖',
-                'aurora': '极光陶瓷',
-                'midnight': '午夜黑'
-            };
-
-            alert(`当前主题: ${themeNames[productTheme]}\n\n可用主题:\n- 森林绿 (默认)\n- 深海蓝\n- 落日暖\n- 极光陶瓷\n- 午夜黑`);
+        function randomPercent(key) {
+            const m = metrics[key];
+            const v = m.min + Math.random() * (m.max - m.min);
+            return Math.max(0, Math.min(100, Math.round((v / m.max) * 100)));
         }
 
-        // ============================================
-        // 模拟数据更新动画（演示用）
-        // ============================================
-        function simulateDataUpdate() {
-            const progressBars = document.querySelectorAll('.progress-fill');
-            const cardProgressBars = document.querySelectorAll('.card-progress-fill');
+        function updateData() {
+            Object.keys(metrics).forEach(key => {
+                const val = randomValue(key);
+                const pct = randomPercent(key);
 
-            // 随机更新进度条宽度（演示效果）
-            progressBars.forEach(bar => {
-                const randomWidth = Math.floor(Math.random() * 80 + 5);
-                bar.style.width = `${randomWidth}%`;
-            });
+                document.querySelectorAll(`.neu-val[data-type="${key}"]`).forEach(el => el.textContent = val);
+                document.querySelectorAll(`.jade-val[data-type="${key}"]`).forEach(el => el.textContent = val);
+                document.querySelectorAll(`.cyber-val[data-type="${key}"]`).forEach(el => el.textContent = val);
 
-            cardProgressBars.forEach(bar => {
-                const randomWidth = Math.floor(Math.random() * 80 + 5);
-                bar.style.width = `${randomWidth}%`;
+                document.querySelectorAll(`[data-bar="${key}"]`).forEach(el => el.style.width = pct + '%');
             });
         }
 
-        // 每5秒更新一次数据（演示）
-        setInterval(simulateDataUpdate, 5000);
+        function setStyle(style, btn) {
+            document.querySelectorAll('.dock').forEach(d => d.classList.remove('active'));
+            document.getElementById('dock-' + style).classList.add('active');
+            document.querySelectorAll('.control-group:first-child .control-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
 
-        // ============================================
-        // 初始化提示
-        // ============================================
-        console.log('%c 飞雪监测器 v3.26 Premium UI', 'font-size: 20px; font-weight: bold; color: #00D080;');
-        console.log('%c设计原型已加载完成！', 'font-size: 14px; color: #888;');
-        console.log('%c按 ESC 键可关闭悬浮面板', 'font-size: 12px; color: #666;');
+        function setColor(color, btn) {
+            document.body.setAttribute('data-color', color);
+            document.querySelectorAll('.control-group:nth-child(2) .control-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function toggleBackground(btn) {
+            document.body.classList.toggle('light-mode');
+            btn.classList.toggle('active');
+            btn.textContent = document.body.classList.contains('light-mode') ? 'Dark Background' : 'Light Background';
+        }
+
+        updateData();
+        setInterval(updateData, 2000);
+
+        console.log('%c Feixue Universal Monitor v3.26 Premium UI Demo', 'font-size: 18px; font-weight: bold; color: #00D080;');
     </script>
 </body>
 </html>

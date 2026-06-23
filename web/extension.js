@@ -8141,7 +8141,7 @@ body.cyber-active {
             return;
         }
 
-        api.addEventListener('executed', function() {
+        api.addEventListener('execution_complete', function() {
             console.log('[飞雪监测器] 工作流完成，播放提示音');
             if (window.FxMonitorSound && window.FxMonitorSound._enabled) {
                 window.FxMonitorSound.play();
