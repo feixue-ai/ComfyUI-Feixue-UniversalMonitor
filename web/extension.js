@@ -9191,7 +9191,6 @@ body.cyber-active {
 
     const CLEANUP_BASE_DELAY_MS = 2000;
     const CLEANUP_SEGMENTED_DELAY_MS = 8000;
-    const CLEANUP_COOLDOWN_MS = 30000;
     const QUEUE_POLL_INTERVAL_MS = 2000;
     const CLEANUP_PATTERN_WINDOW_MS = 5 * 60 * 1000;
     const CLEANUP_PATTERN_FALLBACK_MS = 10 * 60 * 1000;
@@ -9201,7 +9200,7 @@ body.cyber-active {
         queueZeroSince: 0,
         lastRamPercent: null,
         prevRamPercent: null,
-        lastAutoCleanupTime: 0,
+        cleanedForCurrentIdle: false,
         lastManualCleanupTime: 0,
         wsAvailable: false,
         queuePollTimer: null,
@@ -9212,13 +9211,6 @@ body.cyber-active {
         executingNode: null,
         executingSince: 0
     };
-
-    /**
-     * 获取当前有效冷却时间：普通模式 5 秒（防止条件持续满足时无限循环），分段/连续队列模式 30 秒
-     */
-    function getEffectiveCooldownMs() {
-        return cleanupTracker.isSegmented ? CLEANUP_COOLDOWN_MS : 5000;
-    }
 
     /**
      * 判断队列是否处于“真正空闲”状态（queue_remaining 持续为 0 超过稳定期且当前无节点执行）
@@ -9257,6 +9249,8 @@ body.cyber-active {
                     recordQueuePattern();
                 }
                 cleanupTracker.queueZeroSince = 0;
+                // 队列从空恢复到有任务，说明新的工作流开始，允许下一次空闲时清理一次
+                cleanupTracker.cleanedForCurrentIdle = false;
             }
         }
     }
@@ -9287,8 +9281,8 @@ body.cyber-active {
             state._adaptiveDelaySeconds = 8;
             syncCleanupControls();
             const msg = FXM_LANG === 'zh'
-                ? '飞雪智能清理：检测到连续工作流，已启用保守策略（8秒/30秒冷却）'
-                : 'Smart cleanup: continuous workflow detected, conservative strategy enabled (8s / 30s cooldown)';
+                ? '飞雪智能清理：检测到连续工作流，已启用保守策略（8秒稳定期）'
+                : 'Smart cleanup: continuous workflow detected, conservative strategy enabled (8s stabilization)';
             showCleanupToast(true, msg);
         }
     }
@@ -9307,8 +9301,8 @@ body.cyber-active {
             state._adaptiveDelaySeconds = 2;
             syncCleanupControls();
             const msg = FXM_LANG === 'zh'
-                ? '飞雪智能清理：恢复快速清理策略（2秒/5秒冷却）'
-                : 'Smart cleanup: fast cleanup restored (2s / 5s cooldown)';
+                ? '飞雪智能清理：恢复快速清理策略（2秒稳定期，每次空闲只清一次）'
+                : 'Smart cleanup: fast cleanup restored (2s stabilization, once per idle)';
             showCleanupToast(true, msg);
         }
     }
@@ -9450,6 +9444,7 @@ body.cyber-active {
 
     /**
      * 检查并触发自动内存清理
+     * 每个“队列空”事件只触发一次，避免循环清理
      */
     function maybeTriggerAutoCleanup() {
         const state = window.FxMonitorMemoryCleanup;
@@ -9459,9 +9454,7 @@ body.cyber-active {
 
         const now = Date.now();
         const idleMs = cleanupTracker.queueZeroSince ? now - cleanupTracker.queueZeroSince : 0;
-        const cooldownRemaining = now - cleanupTracker.lastAutoCleanupTime;
         const effectiveDelay = state.getEffectiveDelay();
-        const effectiveCooldown = getEffectiveCooldownMs();
 
         // 关键条件日志，便于排查误触发
         console.log('[飞雪监测器] 自动清理条件检查:', {
@@ -9473,12 +9466,11 @@ body.cyber-active {
             ramPrev: cleanupTracker.prevRamPercent,
             ramLast: cleanupTracker.lastRamPercent,
             threshold: state.threshold,
-            cooldownRemainingMs: cooldownRemaining,
-            effectiveCooldownMs: effectiveCooldown,
+            cleanedForCurrentIdle: cleanupTracker.cleanedForCurrentIdle,
             wsAvailable: cleanupTracker.wsAvailable
         });
 
-        if (cooldownRemaining < effectiveCooldown) return;
+        if (cleanupTracker.cleanedForCurrentIdle) return;
         if (!isQueueTrulyIdle()) return;
 
         const threshold = state.threshold;
@@ -9488,7 +9480,7 @@ body.cyber-active {
         if (prev < threshold || last < threshold) return;
 
         console.log('[飞雪监测器] 自动清理条件满足，开始释放内存');
-        cleanupTracker.lastAutoCleanupTime = now;
+        cleanupTracker.cleanedForCurrentIdle = true;
         performMemoryCleanup(state.mode);
     }
 
