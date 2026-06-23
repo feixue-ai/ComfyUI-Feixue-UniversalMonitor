@@ -21,7 +21,7 @@ import time
 import threading
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Callable, TypeVar, Generic
+from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar, Union
 from dataclasses import dataclass, field
 from contextlib import contextmanager
 from collections import OrderedDict
@@ -177,7 +177,7 @@ class BatchSysfsReader:
             cached = self._cache.get(relative_path)
             if cached is not None:
                 value, timestamp = cached
-                if (time.time() - timestamp) < self.cache_ttl:
+                if (time.monotonic() - timestamp) < self.cache_ttl:
                     self._stats["cache_hits"] += 1
                     return value
 
@@ -189,10 +189,10 @@ class BatchSysfsReader:
 
                 # 更新缓存
                 with self._cache_lock:
-                    self._cache[relative_path] = (value, time.time())
+                    self._cache[relative_path] = (value, time.monotonic())
                     # 清理过期缓存（简单策略：超过 100 条时清理）
                     if len(self._cache) > 100:
-                        now = time.time()
+                        now = time.monotonic()
                         self._cache = {
                             k: v for k, v in self._cache.items()
                             if (now - v[1]) < self.cache_ttl * 2
@@ -334,7 +334,7 @@ class SmartTTLCache:
                 return default
 
             # 检查是否过期
-            if (time.time() - entry.timestamp) > entry.ttl:
+            if (time.monotonic() - entry.timestamp) > entry.ttl:
                 # 过期删除
                 del self._cache[key]
                 self._misses += 1
@@ -367,7 +367,7 @@ class SmartTTLCache:
             # 插入新条目
             entry = CacheEntry(
                 value=value,
-                timestamp=time.time(),
+                timestamp=time.monotonic(),
                 ttl=ttl or self.default_ttl,
             )
             self._cache[key] = entry
@@ -452,13 +452,12 @@ class SmartTTLCache:
 
     def clear_expired(self) -> int:
         """清理所有过期条目，返回清理数量"""
-        now = time.time()
-        expired_keys = [
-            key for key, entry in self._cache.items()
-            if (now - entry.timestamp) > entry.ttl
-        ]
-
         with self._lock:
+            now = time.monotonic()
+            expired_keys = [
+                key for key, entry in self._cache.items()
+                if (now - entry.timestamp) > entry.ttl
+            ]
             for key in expired_keys:
                 if key in self._cache:
                     del self._cache[key]

@@ -24,7 +24,7 @@ import threading
 import time
 from collections import OrderedDict
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar
 
 logger = logging.getLogger(__name__)
@@ -150,6 +150,16 @@ def execute_with_timeout(
             elapsed_time=elapsed_time
         )
 
+    except RuntimeError as e:
+        # 线程池关闭后 submit 或线程启动失败（如资源耗尽）
+        logger.error(f"Failed to execute {func.__name__}: {e}")
+        return TimeoutResult(
+            success=False,
+            data=default,
+            error=e,
+            elapsed_time=time.perf_counter() - start_time
+        )
+
     except Exception as e:
         # 线程创建或启动失败（极少见）
         logger.error(f"Failed to execute {func.__name__}: {e}")
@@ -214,10 +224,7 @@ class ThreadSafeCache:
 
     def get(self, key: str, default: Any = None) -> Any:
         """
-        读取缓存值（快速路径，无锁）
-
-        利用 Python GIL 保证字典单次操作的原子性，
-        无需加锁即可安全读取单个 key。
+        读取缓存值（线程安全）
 
         Args:
             key: 缓存键
@@ -225,28 +232,25 @@ class ThreadSafeCache:
 
         Returns:
             缓存的值，或 default（如果不存在/已过期）
-
-        Note:
-            此方法不更新访问顺序（为了性能），
-            如需 LRU 更新请使用 get_or_compute 或显式 set
         """
-        # 快速路径：无锁读取（Python GIL 保护 dict.__getitem__ 原子性）
-        entry = self._cache.get(key)
+        with self._lock:
+            entry = self._cache.get(key)
 
-        if entry is None:
-            self._misses += 1
-            return default
+            if entry is None:
+                self._misses += 1
+                return default
 
-        value, expiry_time = entry
+            value, expiry_time = entry
 
-        # 检查是否过期（lazy eviction）
-        if time.time() > expiry_time:
-            self._misses += 1
-            return default
+            # 检查是否过期（lazy eviction）
+            if time.time() > expiry_time:
+                self._misses += 1
+                return default
 
-        # 缓存命中
-        self._hits += 1
-        return value
+            # 缓存命中：更新 LRU 顺序与计数
+            self._access_order.move_to_end(key)
+            self._hits += 1
+            return value
 
     def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
         """

@@ -4,16 +4,15 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 
 功能：
 - 实时监测 ComfyUI 工作流执行状态
-- Emerald Capsule 翡翠胶囊 UI
-- 胶囊形悬浮监控栏
-- 实时GPU/CPU/内存监控（后端服务）
-- WebSocket实时推送（<100ms延迟，替代HTTP轮询）
+- Premium UI 5 色 × 5 风格悬浮监控栏
+- 实时 GPU/CPU/内存监控（后端服务）
+- WebSocket / HTTP 双通道实时数据推送
 
 作者: Feixue Team
-版本: 3.25 (5 Colors × 5 Styles Real-time Hardware Monitor)
+版本: 3.26 (5 Colors × 5 Styles Real-time Hardware Monitor)
 """
 
-__version__ = "3.25"
+__version__ = "3.26"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -21,7 +20,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.25 5色×5风格实时硬件监测)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.26 5色×5风格实时硬件监测)")
 
 # ============================================================================
 # 获取插件根目录（用于导入 core 模块）
@@ -121,6 +120,7 @@ def get_snapshot():
 # ============================================================================
 
 import asyncio
+import math
 from aiohttp import web
 from server import PromptServer
 import time as _time
@@ -319,13 +319,11 @@ try:
             except Exception as e:
                 print(f"[飞雪监测器] ⚠️ WebSocket监控循环异常退出: {e}")
 
-        # 获取或创建事件循环
+        # 获取当前事件循环（优先运行中的循环，避免弃用警告）
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
         except RuntimeError:
-            # 如果没有运行中的事件循环，创建新的
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            loop = asyncio.get_event_loop_policy().get_event_loop()
 
         # 创建后台任务
         monitor_task = loop.create_task(_start_websocket_monitor())
@@ -387,7 +385,15 @@ async def handle_rate(request):
                     "status": "error"
                 }, status=400)
 
-            # 调用服务设置方法（会自动钳位到合法范围）
+            # API 层边界校验：限制在合理范围 0.1-60 秒，并排除 NaN/inf
+            if not math.isfinite(new_rate) or new_rate < 0.1 or new_rate > 60.0:
+                print(
+                    f"[飞雪监测器] 请求的刷新率 {new_rate}s 超出 API 允许范围，"
+                    f"已钳位到 [0.1, 60.0]"
+                )
+            new_rate = max(0.1, min(new_rate, 60.0))
+
+            # 调用服务设置方法（会自动钳位到服务自身的合法范围）
             actual_rate = _monitor_service.set_rate(new_rate)
 
             return web.json_response({

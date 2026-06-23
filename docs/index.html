@@ -9,8 +9,8 @@
            CSS 变量 - 主题系统
            ============================================ */
         :root {
-            /* 默认主题：帝王绿 Imperial Emerald */
-            --theme-name: 'emerald';
+            /* 默认主题：森林绿 Forest (演示映射为 emerald CSS) */
+            --theme-name: 'forest';
             --accent-primary: #00D080;
             --accent-secondary: #00A068;
             --accent-light: #4FFFBF;
@@ -1040,25 +1040,25 @@
             <div class="theme-section">
                 <div class="section-label">主题切换</div>
                 <div class="theme-buttons">
-                    <button class="theme-btn active" data-theme="emerald" onclick="setTheme('emerald', this)">
+                    <button class="theme-btn active" data-theme="forest" onclick="setTheme('forest', this)">
                         <span class="theme-dot" style="color: #00D080; background: #00D080;"></span>
-                        翡翠绿
+                        森林绿
                     </button>
-                    <button class="theme-btn" data-theme="purple" onclick="setTheme('purple', this)">
-                        <span class="theme-dot" style="color: #B04DFF; background: #B04DFF;"></span>
-                        赛博紫
-                    </button>
-                    <button class="theme-btn" data-theme="amber" onclick="setTheme('amber', this)">
-                        <span class="theme-dot" style="color: #FFB800; background: #FFB800;"></span>
-                        琥珀金
-                    </button>
-                    <button class="theme-btn" data-theme="blue" onclick="setTheme('blue', this)">
+                    <button class="theme-btn" data-theme="ocean" onclick="setTheme('ocean', this)">
                         <span class="theme-dot" style="color: #00B4D8; background: #00B4D8;"></span>
-                        极光蓝
+                        深海蓝
                     </button>
-                    <button class="theme-btn" data-theme="pink" onclick="setTheme('pink', this)">
+                    <button class="theme-btn" data-theme="sunset" onclick="setTheme('sunset', this)">
+                        <span class="theme-dot" style="color: #FFB800; background: #FFB800;"></span>
+                        落日暖
+                    </button>
+                    <button class="theme-btn" data-theme="aurora" onclick="setTheme('aurora', this)">
                         <span class="theme-dot" style="color: #FF6B9D; background: #FF6B9D;"></span>
-                        樱花粉
+                        极光陶瓷
+                    </button>
+                    <button class="theme-btn" data-theme="midnight" onclick="setTheme('midnight', this)">
+                        <span class="theme-dot" style="color: #B04DFF; background: #B04DFF;"></span>
+                        午夜黑
                     </button>
                 </div>
             </div>
@@ -1147,7 +1147,7 @@
                 <span>系统运行正常</span>
             </div>
             <div>
-                更新间隔: 2s | 飞雪监测器 v3.25
+                更新间隔: 2s | 飞雪监测器 v3.26
             </div>
         </div>
     </div>
@@ -1211,13 +1211,23 @@
         // ============================================
         // 主题切换功能
         // ============================================
+        // 产品颜色名 → 演示 CSS data-theme 映射
+        const THEME_CSS_MAP = {
+            'forest': 'emerald',
+            'ocean': 'blue',
+            'sunset': 'amber',
+            'aurora': 'pink',
+            'midnight': 'purple'
+        };
+
         function setTheme(themeName, buttonElement) {
             // 移除所有主题
             document.documentElement.removeAttribute('data-theme');
 
-            // 如果不是默认的 emerald 主题，则添加对应的 data-theme 属性
-            if (themeName !== 'emerald') {
-                document.documentElement.setAttribute('data-theme', themeName);
+            // 默认森林绿不设置 data-theme；其他颜色映射到演示 CSS
+            const cssTheme = THEME_CSS_MAP[themeName];
+            if (cssTheme && cssTheme !== 'emerald') {
+                document.documentElement.setAttribute('data-theme', cssTheme);
             }
 
             // 更新按钮激活状态
@@ -1236,16 +1246,22 @@
         // 显示当前主题信息
         // ============================================
         function showThemeInfo() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'emerald';
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'forest';
+            // 反向查找产品颜色名
+            const reverseMap = {};
+            for (const [k, v] of Object.entries(THEME_CSS_MAP)) {
+                reverseMap[v] = k;
+            }
+            const productTheme = reverseMap[currentTheme] || 'forest';
             const themeNames = {
-                'emerald': '翡翠绿 (默认)',
-                'purple': '赛博紫',
-                'amber': '琥珀金',
-                'blue': '极光蓝',
-                'pink': '樱花粉'
+                'forest': '森林绿 (默认)',
+                'ocean': '深海蓝',
+                'sunset': '落日暖',
+                'aurora': '极光陶瓷',
+                'midnight': '午夜黑'
             };
 
-            alert(`当前主题: ${themeNames[currentTheme]}\n\n可用主题:\n- 翡翠绿 (默认)\n- 赛博紫 (霓虹)\n- 琥珀金 (奢华)\n- 极光蓝 (科技)\n- 樱花粉 (柔美)`);
+            alert(`当前主题: ${themeNames[productTheme]}\n\n可用主题:\n- 森林绿 (默认)\n- 深海蓝\n- 落日暖\n- 极光陶瓷\n- 午夜黑`);
         }
 
         // ============================================
@@ -1273,7 +1289,7 @@
         // ============================================
         // 初始化提示
         // ============================================
-        console.log('%c 飞雪监测器 v3.25 Premium UI', 'font-size: 20px; font-weight: bold; color: #00D080;');
+        console.log('%c 飞雪监测器 v3.26 Premium UI', 'font-size: 20px; font-weight: bold; color: #00D080;');
         console.log('%c设计原型已加载完成！', 'font-size: 14px; color: #888;');
         console.log('%c按 ESC 键可关闭悬浮面板', 'font-size: 12px; color: #666;');
     </script>

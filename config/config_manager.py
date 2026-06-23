@@ -11,7 +11,7 @@ DEFAULTS = {
     "refresh_interval": 1.0,
     "prediction_enabled": True,
     "ui": {
-        "theme": "cyberpunk-dark",
+        "theme": "neu",
         "position": {"x": 20, "y": 20},
         "show_on_startup": True,
     },
@@ -126,7 +126,7 @@ class ConfigManager:
                             cb()
                         except Exception:
                             pass
-            except OSError:
+            except Exception:
                 pass
 
     def stop_watching(self) -> None:

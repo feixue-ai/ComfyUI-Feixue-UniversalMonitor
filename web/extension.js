@@ -1,20 +1,20 @@
 /**
- * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.25
+ * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.26
  *
  * 设计原则：不透明实底背景 + 发光边框灯条 + 药丸/胶囊形状 + 3D圆柱横截面效果 + CSS芯片图标 + 渐变状态条 + 5色主题系统
- * @version 3.25
+ * @version 3.26
  */
 
 (function() {
     'use strict';
 
-    console.log('[飞雪监测器] 🚀 Premium UI v3.25 启动...');
+    console.log('[飞雪监测器] 🚀 Premium UI v3.26 启动...');
 
     // ============================================================
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.25',
+        version: '3.26',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -61,17 +61,16 @@
             return cachedData;
         }
 
+        let timeoutId = null;
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), CACHE_CONFIG.timeout);
+            timeoutId = setTimeout(() => controller.abort(), CACHE_CONFIG.timeout);
 
             const response = await fetch('/feixue_monitor/snapshot', {
                 method: 'GET',
                 signal: controller.signal,
                 headers: { 'Accept': 'application/json' }
             });
-
-            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 if (response.status === 503) {
@@ -120,6 +119,8 @@
             console.warn('[飞雪监测器] 数据获取失败:', error.message);
             backendAvailable = false;
             return null;
+        } finally {
+            if (timeoutId !== null) clearTimeout(timeoutId);
         }
     }
 
@@ -152,8 +153,8 @@
                     power_draw: gpu0?.power_draw,
                 },
                 swap: {
-                    used_gb: rawData.swap?.used_gb || rawData.ram?.swap_used_gb || null,
-                    percent: rawData.swap?.percent || rawData.ram?.swap_percent || rawData.swap_percent || null,
+                    used_gb: rawData.swap?.used_gb ?? rawData.ram?.swap_used_gb ?? null,
+                    percent: rawData.swap?.percent ?? rawData.ram?.swap_percent ?? rawData.swap_percent ?? null,
                 },
                 data_source: rawData.data_source || 'cached',
                 _backend_available: false,  // 标记为缓存数据
@@ -276,7 +277,7 @@
 
                     swap: {
                         percent: realData.ram?.swap_percent,
-                        used_gb: realData.ram?.swap_used_gb || realData.swap?.used_gb || null,
+                        used_gb: realData.ram?.swap_used_gb ?? realData.swap?.used_gb ?? null,
                     },
 
                     data_source: realData.data_source || 'backend-api',
@@ -398,7 +399,7 @@
     }
 
     // ============================================================
-    // Premium UI v3.25 — 5 主题系统
+    // Premium UI v3.26 — 5 主题系统
     // ============================================================
 
     // ============================================================
@@ -413,16 +414,26 @@
     let savedBarLeft = null;          // localStorage 记忆位置
     let savedBarTop = null;
 
+    // 拖拽事件处理器引用（用于主题切换时正确解绑，避免泄漏）
+    let dragMouseDownHandler = null;
+    let dragMouseMoveHandler = null;
+    let dragMouseUpHandler = null;
+    let boundDragHandle = null;
+    let boundDragDock = null;
+
+    // 声音警报状态标记，避免阈值持续满足时连续触发
+    let alarmActive = false;
+
     /** 当前风格（与 switchStyle 共用） */
     let currentStyle = 'neu';
 
     // ============================================================
-    // CSS 注入 — Premium UI v3.25 内联样式
+    // CSS 注入 — Premium UI v3.26 内联样式
     // ============================================================
 
     /**
      * 内联注入 Premium UI CSS v19.0 - 5套主题完整样式
-     * Neu(拟物白) / Ind(流光玻璃) / Retro(复古终端) / Lux(珠宝柜) / Cyber(量子核)
+     * Neu(拟物白) / 玉竹 / Retro(复古终端) / Lux(珠宝柜) / Cyber(量子核)
      */
     function injectPremiumCSS() {
         // 避免重复注入
@@ -436,6 +447,9 @@
         style.id = 'fxm-emerald-css';
         style.setAttribute('data-version', '19.0');
         style.textContent = `
+
+    /* Retro / 复古终端主题字体（@import 必须位于所有其他 CSS 规则之前） */
+    @import url('https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap');
 
     /* 通用隐藏类 */
     .style-hidden { display: none !important; }
@@ -662,7 +676,7 @@
    ============================================ */
 
 
-body {
+body.neu-active {
     font-family: var(--neu-font-ui);
     background-color: var(--neu-base-color);
     color: var(--neu-text-primary);
@@ -695,8 +709,12 @@ body {
     background-color: var(--neu-base-color);
     border-radius: 38px;
 
-    /* 强悬浮感 + 清晰厚度截面 */
+    /* 强悬浮感 + 清晰厚度截面 + 外框双层边缘 */
     box-shadow:
+        /* 外框上层：极细白色高光边缘 */
+        0 0 0 1px rgba(255, 255, 255, 0.38),
+        /* 外框下层：暗色厚度边 */
+        0 0 0 2px rgba(0, 0, 0, 0.10),
         /* 外部悬浮阴影 */
         0 20px 50px rgba(0, 0, 0, 0.14),
         0 8px 20px rgba(0, 0, 0, 0.09),
@@ -710,7 +728,7 @@ body {
         inset 0 3px 6px rgba(255, 255, 255, 0.30),
         inset 0 -3px 6px rgba(0, 0, 0, 0.05);
 
-    border: 1px solid rgba(255, 255, 255, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.32);
 
     /* 平滑过渡（用于主题切换）*/
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -730,20 +748,22 @@ body {
         inset 0 -3px 6px rgba(0, 0, 0, 0.06);
 }
 
-/* 左侧 ~5px 横截面高光 — 模拟厚仪表带左边缘受光 */
+/* 左侧 ~5px 横截面高光 — 模拟厚仪表带左边缘受光，两端淡出避免超出圆角 */
 #neu-dock::before {
     content: '';
     position: absolute;
-    left: 4px;
-    top: 14%;
-    bottom: 14%;
+    left: 6px;
+    top: 20%;
+    bottom: 20%;
     width: 5px;
     background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.98) 0%,
+        transparent 0%,
+        rgba(255, 255, 255, 0.95) 10%,
         rgba(255, 255, 255, 0.90) 30%,
         rgba(255, 255, 255, 0.55) 72%,
+        rgba(255, 255, 255, 0.15) 95%,
         transparent 100%);
-    border-radius: 4px;
+    border-radius: 3px;
     box-shadow:
         inset 1px 0 2px rgba(255, 255, 255, 0.95),
         0 0 10px rgba(255, 255, 255, 0.60),
@@ -1701,8 +1721,6 @@ body {
        CRT + VFD + LED Hybrid Display Technology
        ============================================ */
 
-    @import url('https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;700&display=swap');
-
     :root {
       /* Phosphor Color Themes (5 Types) */
       --phosphor-green-primary: #00FF41;
@@ -2120,7 +2138,7 @@ body {
       padding-bottom: 10px;
     }
 
-    .reto-section:last-child {
+    .retro-section:last-child {
       border-bottom: none;
     }
 
@@ -2180,7 +2198,7 @@ body {
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
 
-    .reto-color-block:hover {
+    .retro-color-block:hover {
       transform: scale(1.1);
       z-index: 5;
     }
@@ -2234,13 +2252,13 @@ body {
       box-shadow: inset 0 0 10px color-mix(in srgb, var(--retro-phosphor-glow, var(--retro-glow)) 5%, transparent);
     }
 
-    .reto-progress-item {
+    .retro-progress-item {
       display: flex;
       flex-direction: column;
       gap: 3px;
     }
 
-    .reto-progress-header {
+    .retro-progress-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -2248,19 +2266,19 @@ body {
       font-size: 14px;
     }
 
-    .reto-progress-label {
+    .retro-progress-label {
       color: var(--retro-phosphor-dim, var(--retro-dim));
       text-shadow: 0 0 4px var(--retro-phosphor-glow, var(--retro-glow));
     }
 
-    .reto-progress-value {
+    .retro-progress-value {
       color: var(--retro-phosphor-primary, var(--retro-primary));
       text-shadow: 0 0 6px var(--retro-phosphor-glow, var(--retro-glow));
       font-weight: bold;
     }
 
     /* VFD-style Progress Bar Track */
-    .reto-vfd-track {
+    .retro-vfd-track {
       position: relative;
       height: 14px;
       background: rgba(0, 0, 0, 0.6);
@@ -2270,7 +2288,7 @@ body {
       box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
     }
 
-    .reto-vfd-fill {
+    .retro-vfd-fill {
       height: 100%;
       background: linear-gradient(
         90deg,
@@ -2286,7 +2304,7 @@ body {
     }
 
     /* Segmented fill effect */
-    .reto-vfd-fill::before {
+    .retro-vfd-fill::before {
       content: '';
       position: absolute;
       inset: 0;
@@ -2687,7 +2705,7 @@ body {
    ============================================ */
 
 
-body {
+body.lux-active {
     font-family: var(--lux-font-ui);
     background: linear-gradient(135deg, #1a1d24 0%, #0d1117 50%, #161b22 100%);
     color: var(--lux-text-primary);
@@ -2697,7 +2715,7 @@ body {
 }
 
 /* 背景环境光效果 */
-body::before {
+body.lux-active::before {
     content: '';
     position: fixed;
     top: -200px;
@@ -4842,74 +4860,101 @@ body.cyber-active {
 }
 
 /* ============================================
-   6. Ind Theme — Deep-space Glassmorphism
+   6. 玉竹 Theme — Jade Bamboo Segmented Stalk
+   横向玉竹：8 段竹节（1 拖拽 + 6 仪表 + 1 设置），
+   节环分隔，玉质光泽，面板采用玉竹简风格。
    ============================================ */
 
-/* Scoped color systems for Obsidian Prism HUD theme */
+/* 五色玉竹主题 */
 .ind-theme-aurora {
-    --glass-bg: rgba(12, 14, 20, 0.94);
-    --glass-panel-bg: rgba(16, 19, 27, 0.96);
-    --glass-card-bg: rgba(255, 255, 255, 0.045);
-    --glass-border: rgba(255, 255, 255, 0.16);
-    --glass-edge: rgba(0, 240, 255, 0.55);
-    --glass-highlight: rgba(255, 255, 255, 0.30);
-    --glass-accent-1: #00f0ff;
-    --glass-accent-2: #ff00aa;
-    --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.68);
-    --glass-glow: rgba(0, 240, 255, 0.45);
+    --jade-light: #e8f5e9;
+    --jade-mid: #a5d6a7;
+    --jade: #66bb6a;
+    --jade-dark: #2e7d32;
+    --joint: #1b5e20;
+    --shadow: #1b3d1c;
+    --text: #1b5e20;
+    --text-dim: #4a7c4b;
+    --text-light: #f1f8f3;
+    --glow: rgba(129, 199, 132, 0.45);
+    --metric-text: #ffffff;
+    --metric-unit: #f8bbd0;
+    --metric-glow: rgba(255, 0, 229, 0.55);
+    --metric-fill-start: #ff00e5;
+    --metric-fill-mid: #ff80e1;
+    --metric-fill-end: #ffffff;
 }
 .ind-theme-ocean {
-    --glass-bg: rgba(12, 14, 20, 0.94);
-    --glass-panel-bg: rgba(16, 19, 27, 0.96);
-    --glass-card-bg: rgba(255, 255, 255, 0.045);
-    --glass-border: rgba(255, 255, 255, 0.16);
-    --glass-edge: rgba(0, 229, 255, 0.55);
-    --glass-highlight: rgba(255, 255, 255, 0.30);
-    --glass-accent-1: #00e5ff;
-    --glass-accent-2: #448aff;
-    --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.68);
-    --glass-glow: rgba(0, 229, 255, 0.45);
+    --jade-light: #e0f7fa;
+    --jade-mid: #80deea;
+    --jade: #26c6da;
+    --jade-dark: #00838f;
+    --joint: #006064;
+    --shadow: #00363a;
+    --text: #006064;
+    --text-dim: #4a8c8f;
+    --text-light: #e0f7fa;
+    --glow: rgba(38, 198, 218, 0.45);
+    --metric-text: #ffffff;
+    --metric-unit: #b2ffff;
+    --metric-glow: rgba(0, 245, 255, 0.55);
+    --metric-fill-start: #00e5ff;
+    --metric-fill-mid: #80ffff;
+    --metric-fill-end: #ffffff;
 }
 .ind-theme-sunset {
-    --glass-bg: rgba(12, 14, 20, 0.94);
-    --glass-panel-bg: rgba(16, 19, 27, 0.96);
-    --glass-card-bg: rgba(255, 255, 255, 0.045);
-    --glass-border: rgba(255, 255, 255, 0.16);
-    --glass-edge: rgba(255, 107, 53, 0.55);
-    --glass-highlight: rgba(255, 255, 255, 0.30);
-    --glass-accent-1: #ff6b35;
-    --glass-accent-2: #ffca28;
-    --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.68);
-    --glass-glow: rgba(255, 107, 53, 0.45);
+    --jade-light: #fff3e0;
+    --jade-mid: #ffcc80;
+    --jade: #ffa726;
+    --jade-dark: #ef6c00;
+    --joint: #e65100;
+    --shadow: #8d2f00;
+    --text: #e65100;
+    --text-dim: #b07d4b;
+    --text-light: #fff8e1;
+    --glow: rgba(255, 167, 38, 0.45);
+    --metric-text: #ffffff;
+    --metric-unit: #fff59d;
+    --metric-glow: rgba(255, 234, 0, 0.6);
+    --metric-fill-start: #ffea00;
+    --metric-fill-mid: #fff59d;
+    --metric-fill-end: #ffffff;
 }
 .ind-theme-forest {
-    --glass-bg: rgba(12, 14, 20, 0.94);
-    --glass-panel-bg: rgba(16, 19, 27, 0.96);
-    --glass-card-bg: rgba(255, 255, 255, 0.045);
-    --glass-border: rgba(255, 255, 255, 0.16);
-    --glass-edge: rgba(0, 230, 118, 0.55);
-    --glass-highlight: rgba(255, 255, 255, 0.30);
-    --glass-accent-1: #00e676;
-    --glass-accent-2: #76ff03;
-    --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.68);
-    --glass-glow: rgba(0, 230, 118, 0.45);
+    --jade-light: #e8f5e9;
+    --jade-mid: #a5d6a7;
+    --jade: #43a047;
+    --jade-dark: #1b5e20;
+    --joint: #0d3d10;
+    --shadow: #0a2a0c;
+    --text: #1b5e20;
+    --text-dim: #4a7c4b;
+    --text-light: #f1f8f3;
+    --glow: rgba(67, 160, 71, 0.45);
+    --metric-text: #ffffff;
+    --metric-unit: #e6ee9c;
+    --metric-glow: rgba(198, 255, 0, 0.6);
+    --metric-fill-start: #c6ff00;
+    --metric-fill-mid: #faffd1;
+    --metric-fill-end: #ffffff;
 }
 .ind-theme-midnight {
-    --glass-bg: rgba(12, 14, 20, 0.94);
-    --glass-panel-bg: rgba(16, 19, 27, 0.96);
-    --glass-card-bg: rgba(255, 255, 255, 0.045);
-    --glass-border: rgba(255, 255, 255, 0.16);
-    --glass-edge: rgba(224, 64, 251, 0.55);
-    --glass-highlight: rgba(255, 255, 255, 0.30);
-    --glass-accent-1: #e040fb;
-    --glass-accent-2: #536dfe;
-    --glass-text: rgba(255, 255, 255, 0.96);
-    --glass-text-dim: rgba(255, 255, 255, 0.68);
-    --glass-glow: rgba(224, 64, 251, 0.45);
+    --jade-light: #f3e5f5;
+    --jade-mid: #ce93d8;
+    --jade: #ab47bc;
+    --jade-dark: #6a1b9a;
+    --joint: #4a148c;
+    --shadow: #240c3c;
+    --text: #4a148c;
+    --text-dim: #7d5a9a;
+    --text-light: #f3e5f5;
+    --glow: rgba(171, 71, 188, 0.45);
+    --metric-text: #ffffff;
+    --metric-unit: #b2ebf2;
+    --metric-glow: rgba(0, 229, 255, 0.6);
+    --metric-fill-start: #00e5ff;
+    --metric-fill-mid: #80ffff;
+    --metric-fill-end: #ffffff;
 }
 
 #ind-dock {
@@ -4918,254 +4963,283 @@ body.cyber-active {
     left: 50%;
     transform: translateX(-50%);
     z-index: 10001;
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    min-width: 740px;
-    max-width: 94vw;
-    height: 70px;
-    padding: 4px 52px 4px 48px;
-    background: var(--glass-bg, rgba(12, 14, 20, 0.94));
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.16));
-    border-radius: 8px;
-    clip-path: polygon(
-        0 12px, 12px 0,
-        calc(100% - 12px) 0, 100% 12px,
-        100% calc(100% - 12px), calc(100% - 12px) 100%,
-        12px 100%, 0 calc(100% - 12px)
-    );
-    box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,0.06),
-        inset 0 1px 0 rgba(255,255,255,0.18),
-        0 0 0 1px rgba(0,0,0,0.4),
-        0 14px 40px rgba(0,0,0,0.55),
-        0 0 24px rgba(0,0,0,0.35),
-        0 0 2px var(--glass-edge, rgba(0,240,255,0.55));
-    color: var(--glass-text, rgba(255,255,255,0.96));
+    width: 94vw;
+    min-width: 960px;
+    max-width: 1200px;
+    height: 96px;
+    background: transparent;
+    color: var(--text-light, #f1f8f3);
     font-family: var(--neu-font-ui, 'Inter', sans-serif);
     box-sizing: border-box;
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
-#ind-dock::before {
-    content: '';
+
+/* SVG 玉竹本体：单一路径实体，无 clip-path，无透明间隙 */
+.ind-bamboo-svg {
     position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        var(--glass-accent-1, #00f0ff) 20%,
-        var(--glass-accent-2, #ff00aa) 80%,
-        transparent 100%);
-    opacity: 0.8;
-    filter: blur(0.5px);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: visible;
+    pointer-events: none;
+    filter: drop-shadow(0 0 18px var(--glow));
 }
 
+/* 左侧拖拽热区 */
 .ind-dock-handle {
     position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 28px;
+    left: 0;
+    top: 0;
+    width: 7%;
+    height: 100%;
+    z-index: 10;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 6px;
     cursor: grab;
-    opacity: 0.6;
+    background: transparent;
+    border: none;
 }
 .ind-dock-handle:active { cursor: grabbing; }
+
 .ind-handle-dot {
-    width: 3px;
-    height: 3px;
-    background: var(--glass-accent-1, #00f0ff);
-    box-shadow: 0 0 5px var(--glass-glow, rgba(0,240,255,0.45));
-    transform: rotate(45deg);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-light, #f1f8f3);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.25);
+    opacity: 0.8;
 }
 
+/* 指标容器：覆盖 SVG 竹身中段，强制单行 */
 .ind-cockpit {
-    flex: 1;
+    position: absolute;
+    left: 7%;
+    width: 86%;
+    height: 100%;
+    z-index: 5;
     display: flex;
+    flex-wrap: nowrap;
     align-items: stretch;
+}
+
+/* 指标模块：仅承载内容，无背景，内容不溢出 */
+.ind-metric {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px 6px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    min-width: 0;
     overflow: hidden;
 }
 
-.ind-metric {
-    position: relative;
-    flex: 1 1 0;
-    min-width: 92px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 6px 8px;
-    border-right: 1px solid rgba(255,255,255,0.08);
-    background:
-        linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 40%),
-        linear-gradient(225deg, rgba(0,0,0,0.18) 0%, transparent 40%);
-}
-.ind-metric:last-of-type { border-right: none; }
+/* 局部暗角晕影：压暗竹节高光，让文字更稳 */
 .ind-metric::before {
     content: '';
     position: absolute;
-    top: 4px; left: 6px; right: 6px; bottom: 4px;
-    border: 1px solid rgba(255,255,255,0.05);
-    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+    inset: -10%;
     pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.28) 0%, transparent 72%);
+    z-index: -1;
 }
-.ind-metric::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 15%; right: 15%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa), transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-.ind-metric:hover::after { opacity: 0.7; }
+
+/* 各节长度：自然不均，与 SVG 竹节对应（宽值给宽节） */
+.ind-metric:nth-child(1) { flex-basis: 15%; }
+.ind-metric:nth-child(2) { flex-basis: 19%; }
+.ind-metric:nth-child(3) { flex-basis: 13%; }
+.ind-metric:nth-child(4) { flex-basis: 18%; }
+.ind-metric:nth-child(5) { flex-basis: 15%; }
+.ind-metric:nth-child(6) { flex-basis: 20%; }
 
 .ind-metric-icon {
-    font-size: 18px;
+    font-size: 17px;
     line-height: 1;
-    filter: drop-shadow(0 0 4px var(--glass-accent-1, #00f0ff));
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55));
 }
 .ind-metric-info {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 1px;
     min-width: 0;
+    width: 100%;
 }
 .ind-metric-top {
     display: flex;
     align-items: baseline;
+    justify-content: center;
     gap: 3px;
+    min-width: 0;
+    width: 100%;
 }
 .ind-metric-label {
-    font-size: 9px;
-    font-weight: 700;
+    font-size: 8px;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.96);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.65), 0 0 1px rgba(0,0,0,0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40%;
+    flex-shrink: 0;
 }
 .ind-metric-value {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
     font-family: var(--neu-font-mono, monospace);
-    color: var(--glass-text, rgba(255,255,255,0.96));
-    text-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.45));
+    color: var(--metric-text, #ffffff);
+    text-shadow: 0 0 12px var(--metric-glow, rgba(198, 255, 0, 0.6)), 0 0 4px rgba(0,0,0,0.55), 0 1px 2px rgba(0,0,0,0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .ind-metric-unit {
-    font-size: 9px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--metric-unit, #e6ee9c);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.55);
 }
 .ind-metric-bar {
-    width: 72%;
-    height: 3px;
-    background: rgba(0,0,0,0.45);
-    border-radius: 1.5px;
+    width: 70%;
+    height: 4px;
+    background: rgba(0,0,0,0.32);
+    border-radius: 2px;
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.45);
 }
 .ind-metric-bar-fill {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
-    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.45));
+    background: linear-gradient(90deg, var(--metric-fill-start, #aeea00) 0%, var(--metric-fill-mid, #faffd1) 55%, var(--metric-fill-end, #ffffff) 100%);
+    box-shadow: 0 0 8px var(--metric-glow, rgba(198, 255, 0, 0.65));
+    border-radius: 2px;
     transition: width 0.5s ease;
 }
 
+/* 右侧设置热区 */
 .ind-settings-btn {
     position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 30px;
-    height: 30px;
+    right: 0;
+    top: 0;
+    width: 7%;
+    height: 100%;
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.16));
-    color: var(--glass-text, rgba(255,255,255,0.96));
-    font-size: 15px;
+    background: transparent;
+    border: none;
+    color: var(--text, var(--jade-dark));
+    font-size: 20px;
     cursor: pointer;
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
     transition: all 0.2s ease;
 }
 .ind-settings-btn:hover {
-    background: rgba(255,255,255,0.12);
-    box-shadow: 0 0 16px var(--glass-glow, rgba(0,240,255,0.45));
+    color: var(--text-light, #f1f8f3);
+    text-shadow: 0 0 12px var(--glow);
 }
 
+/* 玉竹简面板 */
 #ind-panel {
     position: fixed;
-    top: 94px;
+    top: 102px;
     right: 20px;
     z-index: 10000;
     width: 360px;
     max-width: calc(100vw - 40px);
-    max-height: calc(100vh - 110px);
+    max-height: calc(100vh - 116px);
     overflow-y: auto;
-    padding: 18px;
-    background: var(--glass-panel-bg, rgba(16, 19, 27, 0.96));
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.16));
-    border-radius: 10px;
-    clip-path: polygon(
-        0 16px, 16px 0,
-        calc(100% - 16px) 0, 100% 16px,
-        100% calc(100% - 16px), calc(100% - 16px) 100%,
-        16px 100%, 0 calc(100% - 16px)
-    );
+    padding: 22px 20px 20px;
+    /* 玉竹简面板：深色玉底 + 竹节纵向纹理 */
+    background:
+        /* 竹节纵向纹理 */
+        repeating-linear-gradient(90deg,
+            rgba(255,255,255,0.03) 0px,
+            rgba(255,255,255,0.03) 1px,
+            transparent 1px,
+            transparent 22px
+        ),
+        /* 玉质光泽 */
+        radial-gradient(ellipse 80% 50% at 50% 25%, rgba(255,255,255,0.08) 0%, transparent 55%),
+        linear-gradient(180deg,
+            rgba(20,35,24,0.92) 0%,
+            rgba(30,50,34,0.95) 50%,
+            rgba(20,35,24,0.92) 100%
+        );
+    border-radius: 14px;
+    border: 1px solid rgba(160,220,170,0.22);
     box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,0.06),
-        inset 0 1px 0 rgba(255,255,255,0.16),
-        0 18px 50px rgba(0,0,0,0.55),
-        0 0 30px rgba(0,0,0,0.35),
-        0 0 3px var(--glass-edge, rgba(0,240,255,0.55));
-    color: var(--glass-text, rgba(255,255,255,0.96));
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -1px 0 rgba(0,0,0,0.25),
+        0 0 0 1px rgba(0,0,0,0.35),
+        0 18px 50px rgba(0,0,0,0.35),
+        0 0 24px var(--glow);
+    color: var(--text-light, #f1f8f3);
     font-family: var(--neu-font-ui, 'Inter', sans-serif);
     box-sizing: border-box;
 }
-#ind-panel::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        var(--glass-accent-1, #00f0ff) 25%,
-        var(--glass-accent-2, #ff00aa) 75%,
-        transparent 100%);
-    opacity: 0.9;
-}
 #ind-panel::-webkit-scrollbar { width: 6px; }
-#ind-panel::-webkit-scrollbar-track { background: transparent; }
+#ind-panel::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); border-radius: 3px; }
 #ind-panel::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.18);
+    background: linear-gradient(180deg, var(--jade-dark), var(--jade));
     border-radius: 3px;
 }
+
+/* 玉竹简上下节点 */
+#ind-panel::before,
+#ind-panel::after {
+    content: '';
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    height: 8px;
+    background: linear-gradient(180deg,
+        var(--jade-dark) 0%,
+        var(--jade) 40%,
+        var(--jade-light) 50%,
+        var(--jade) 60%,
+        var(--jade-dark) 100%
+    );
+    border-radius: 4px;
+    box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.3),
+        0 1px 2px rgba(0,0,0,0.25);
+}
+#ind-panel::before { top: 8px; }
+#ind-panel::after { bottom: 8px; }
 
 .ind-panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    padding: 10px 0 12px;
+    border-bottom: 1px solid rgba(160,220,170,0.18);
 }
 .ind-brand-text h1 {
     margin: 0;
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 1.5px;
-    color: var(--glass-text, rgba(255,255,255,0.96));
+    color: var(--jade-light, #e8f5e9);
+    text-shadow: 0 0 10px var(--glow);
 }
 .ind-brand-text span {
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    color: rgba(200,230,205,0.65);
 }
 .ind-header-actions {
     display: flex;
@@ -5177,17 +5251,22 @@ body.cyber-active {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--glass-border, rgba(255,255,255,0.16));
-    color: var(--glass-text, rgba(255,255,255,0.96));
+    background:
+        radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15), transparent 45%),
+        linear-gradient(180deg, var(--jade-dark), var(--jade));
+    border: 1px solid rgba(160,220,170,0.25);
+    border-radius: 6px;
+    color: var(--jade-light, #e8f5e9);
     font-size: 14px;
     cursor: pointer;
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.2),
+        0 1px 3px rgba(0,0,0,0.25);
     transition: all 0.2s ease;
 }
 .ind-action-btn:hover {
-    background: rgba(255,255,255,0.12);
-    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.45));
+    background: linear-gradient(180deg, var(--jade), var(--jade-mid));
+    box-shadow: 0 0 12px var(--glow);
 }
 
 .ind-metrics-grid {
@@ -5198,45 +5277,52 @@ body.cyber-active {
 }
 .ind-metric-card {
     position: relative;
-    padding: 10px 6px;
-    background: var(--glass-card-bg, rgba(255,255,255,0.045));
-    border: 1px solid rgba(255,255,255,0.08);
-    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+    padding: 12px 6px;
+    background:
+        radial-gradient(ellipse 70% 40% at 50% 18%, rgba(255,255,255,0.12) 0%, transparent 55%),
+        linear-gradient(180deg,
+            rgba(60,100,65,0.55) 0%,
+            rgba(40,75,45,0.65) 100%
+        );
+    border: 1px solid rgba(160,220,170,0.15);
+    border-radius: 10px;
     text-align: center;
-}
-.ind-metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 8px; right: 8px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--glass-accent-1, #00f0ff), transparent);
-    opacity: 0.5;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 2px 4px rgba(0,0,0,0.2);
 }
 .ind-metric-card-label {
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
-    margin-bottom: 4px;
+    color: rgba(200,230,205,0.65);
+    margin-bottom: 5px;
 }
 .ind-metric-card-value {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 700;
     font-family: var(--neu-font-mono, monospace);
-    color: var(--glass-text, rgba(255,255,255,0.96));
-    text-shadow: 0 0 10px var(--glass-glow, rgba(0,240,255,0.45));
+    color: var(--jade-light, #e8f5e9);
+    text-shadow: 0 0 10px var(--glow);
 }
 .ind-metric-card-unit {
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    color: rgba(200,230,205,0.55);
 }
 
 .ind-section {
     margin-bottom: 12px;
-    background: var(--glass-card-bg, rgba(255,255,255,0.045));
-    border: 1px solid rgba(255,255,255,0.08);
-    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+    background:
+        linear-gradient(180deg,
+            rgba(60,100,65,0.45) 0%,
+            rgba(40,75,45,0.55) 100%
+        );
+    border: 1px solid rgba(160,220,170,0.15);
+    border-radius: 10px;
     overflow: hidden;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        0 2px 4px rgba(0,0,0,0.2);
 }
 .ind-section-header {
     display: flex;
@@ -5247,14 +5333,14 @@ body.cyber-active {
     user-select: none;
     transition: background 0.2s ease;
 }
-.ind-section-header:hover { background: rgba(255, 255, 255, 0.05); }
+.ind-section-header:hover { background: rgba(255, 255, 255, 0.06); }
 .ind-section-header.collapsed { }
 .ind-section-header.collapsed + .ind-section-content { display: none; }
 .ind-section-title {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.6px;
-    color: var(--glass-text, rgba(255,255,255,0.96));
+    color: var(--jade-light, #e8f5e9);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -5262,7 +5348,7 @@ body.cyber-active {
 .ind-section-icon { font-size: 12px; }
 .ind-section-toggle {
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    color: rgba(200,230,205,0.65);
     transition: transform 0.25s ease;
 }
 .ind-section-header.collapsed .ind-section-toggle { transform: rotate(-90deg); }
@@ -5278,7 +5364,7 @@ body.cyber-active {
     margin-bottom: 5px;
 }
 .ind-progress-label {
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    color: rgba(200,230,205,0.7);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -5286,27 +5372,28 @@ body.cyber-active {
 .ind-progress-dot {
     width: 6px;
     height: 6px;
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-    background: var(--glass-accent-1, #00f0ff);
-    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.45));
+    border-radius: 50%;
+    background: var(--jade, #66bb6a);
+    box-shadow: 0 0 8px var(--glow);
 }
 .ind-progress-badge {
     font-weight: 700;
     font-family: var(--neu-font-mono, monospace);
-    color: var(--glass-text, rgba(255,255,255,0.96));
+    color: var(--jade-light, #e8f5e9);
 }
 .ind-progress-track {
-    height: 8px;
-    background: rgba(0, 0, 0, 0.45);
-    border-radius: 1px;
+    height: 10px;
+    background: rgba(0,0,0,0.22);
+    border-radius: 5px;
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.50);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 .ind-progress-fill {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
-    box-shadow: 0 0 12px var(--glass-glow, rgba(0,240,255,0.45));
+    background: linear-gradient(90deg, var(--jade-dark, #2e7d32), var(--jade, #66bb6a), var(--jade-light, #e8f5e9));
+    box-shadow: 0 0 10px var(--glow);
+    border-radius: 5px;
     transition: width 0.5s ease;
 }
 
@@ -5321,18 +5408,19 @@ body.cyber-active {
     align-items: center;
     font-size: 11px;
     padding: 6px 8px;
-    background: rgba(0, 0, 0, 0.22);
-    border-left: 2px solid var(--glass-accent-1, #00f0ff);
+    background: rgba(255,255,255,0.05);
+    border-left: 2px solid var(--jade, #66bb6a);
+    border-radius: 0 4px 4px 0;
 }
 .ind-detail-left {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    color: rgba(200,230,205,0.65);
 }
 .ind-detail-right {
     font-family: var(--neu-font-mono, monospace);
-    color: var(--glass-text, rgba(255,255,255,0.96));
+    color: var(--jade-light, #e8f5e9);
 }
 
 .ind-settings-section { margin-top: 14px; }
@@ -5341,27 +5429,27 @@ body.cyber-active {
     align-items: center;
     justify-content: space-between;
     padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(160,220,170,0.1);
 }
 .ind-setting-row:last-child { border-bottom: none; }
 .ind-setting-label {
     font-size: 12px;
-    color: var(--glass-text, rgba(255,255,255,0.96));
+    color: rgba(230,245,232,0.85);
 }
 .ind-toggle-switch {
     width: 38px;
     height: 20px;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(160,220,170,0.2);
     position: relative;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 .ind-toggle-switch.active {
-    background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
+    background: linear-gradient(90deg, var(--jade-dark), var(--jade));
     border-color: transparent;
-    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.45));
+    box-shadow: 0 0 12px var(--glow);
 }
 .ind-toggle-thumb {
     position: absolute;
@@ -5370,7 +5458,8 @@ body.cyber-active {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #fff;
+    background: radial-gradient(circle at 35% 35%, #fff, #d0e8d3);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
     transition: transform 0.2s ease;
 }
 .ind-toggle-switch.active .ind-toggle-thumb { transform: translateX(18px); }
@@ -5382,26 +5471,30 @@ body.cyber-active {
     padding-top: 6px;
 }
 .ind-radio-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
-    border-radius: 2px;
+    background:
+        radial-gradient(circle at 35% 35%, rgba(255,255,255,0.1), transparent 45%),
+        linear-gradient(180deg, rgba(60,100,65,0.5), rgba(40,75,45,0.6));
+    border: 1px solid rgba(160,220,170,0.18);
+    color: rgba(200,230,205,0.75);
+    border-radius: 6px;
     padding: 5px 10px;
     font-size: 10px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
-    clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 0 calc(100% - 5px), 0 5px);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        0 1px 2px rgba(0,0,0,0.15);
 }
 .ind-radio-btn:hover {
-    background: rgba(255, 255, 255, 0.10);
-    color: var(--glass-text, rgba(255,255,255,0.96));
+    background: linear-gradient(180deg, rgba(70,115,75,0.6), rgba(50,90,55,0.7));
+    color: var(--jade-light, #e8f5e9);
 }
 .ind-radio-btn.active {
-    color: #0b0d12;
-    background: linear-gradient(90deg, var(--glass-accent-1, #00f0ff), var(--glass-accent-2, #ff00aa));
+    color: var(--jade-light, #e8f5e9);
+    background: linear-gradient(180deg, var(--jade), var(--jade-dark));
     border-color: transparent;
-    box-shadow: 0 0 14px var(--glass-glow, rgba(0,240,255,0.45));
+    box-shadow: 0 0 12px var(--glow);
 }
 
 .ind-panel-footer {
@@ -5410,17 +5503,17 @@ body.cyber-active {
     align-items: center;
     margin-top: 14px;
     padding-top: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    border-top: 1px solid rgba(160,220,170,0.15);
     font-size: 10px;
-    color: var(--glass-text-dim, rgba(255,255,255,0.68));
+    color: rgba(200,230,205,0.55);
 }
 .ind-status-dot {
     display: inline-block;
     width: 6px;
     height: 6px;
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-    background: var(--glass-accent-1, #00f0ff);
-    box-shadow: 0 0 8px var(--glass-glow, rgba(0,240,255,0.45));
+    border-radius: 50%;
+    background: var(--jade, #66bb6a);
+    box-shadow: 0 0 8px var(--glow);
     margin-right: 6px;
 }
 
@@ -5429,20 +5522,44 @@ body.cyber-active {
         min-width: auto;
         width: calc(100vw - 24px);
         height: auto;
-        min-height: 58px;
-        padding: 6px 44px 6px 40px;
-        flex-wrap: wrap;
+        min-height: 78px;
     }
     .ind-cockpit {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        row-gap: 6px;
+        display: flex;
+        flex-wrap: nowrap;
+        left: 8%;
+        width: 84%;
     }
     .ind-metric {
-        border-right: none;
-        padding: 6px 6px;
+        min-width: 0;
+        padding: 4px 2px;
+        gap: 1px;
     }
-    .ind-metric-bar { display: none; }
+    .ind-metric-icon {
+        font-size: 14px;
+    }
+    .ind-metric-value {
+        font-size: 12px;
+    }
+    .ind-metric-unit {
+        font-size: 7px;
+    }
+    .ind-metric-label {
+        font-size: 7px;
+        letter-spacing: 0.3px;
+        max-width: 45%;
+    }
+    .ind-metric-bar {
+        width: 75%;
+        height: 2px;
+    }
+    .ind-metric-bar-fill {
+        box-shadow: 0 0 6px var(--metric-glow, rgba(198, 255, 0, 0.55));
+    }
+    .ind-dock-handle,
+    .ind-settings-btn {
+        width: 8%;
+    }
     #ind-panel {
         top: auto;
         bottom: 12px;
@@ -5452,10 +5569,23 @@ body.cyber-active {
     }
 }
 
+@media (max-width: 520px) {
+    .ind-metric-label {
+        display: none;
+    }
+    .ind-metric-icon {
+        font-size: 13px;
+    }
+    .ind-metric-value {
+        font-size: 11px;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ind-metric-bar-fill,
     .ind-progress-fill { transition: none; }
 }
+
 
 
 
@@ -5467,7 +5597,7 @@ body.cyber-active {
     }
 
     // ============================================================
-    // 5主题系统常量定义 — Premium UI v3.25
+    // 5主题系统常量定义 — Premium UI v3.26
     // ============================================================
 
     /** 有效风格列表 */
@@ -5496,8 +5626,8 @@ body.cyber-active {
             sound_alert: '声音提示', drag_mode: '拖拽模式', theme: '主题',
             color: '色彩', settings: '设置', settings_panel: '设置面板', close: '关闭',
             // 风格名称
-            theme_name_neu: '拟物白', theme_name_ind: '流光玻璃', theme_name_retro: '复古终端',
-            theme_name_lux: '珠宝柜', theme_name_cyber: '量子核', theme_name_capsule: '翡翠胶囊',
+            theme_name_neu: '拟物白', theme_name_ind: '玉竹', theme_name_retro: '复古终端',
+            theme_name_lux: '珠宝柜', theme_name_cyber: '量子核',
             // 状态/来源
             source_prefix: '来源: ', detecting: '检测中...',
             plugin_active: 'ComfyUI 插件运行中',
@@ -5521,8 +5651,8 @@ body.cyber-active {
             net_up: 'Upload', net_down: 'Download',
             sound_alert: 'Sound Alert', drag_mode: 'Drag Mode', theme: 'Theme',
             color: 'Color', settings: 'Settings', settings_panel: 'Settings Panel', close: 'Close',
-            theme_name_neu: 'Neu', theme_name_ind: 'Glass', theme_name_retro: 'Retro',
-            theme_name_lux: 'Lux', theme_name_cyber: 'Cyber', theme_name_capsule: 'Capsule',
+            theme_name_neu: 'Neu', theme_name_ind: 'Jade Bamboo', theme_name_retro: 'Retro',
+            theme_name_lux: 'Lux', theme_name_cyber: 'Cyber',
             source_prefix: 'Source: ', detecting: 'Detecting...',
             plugin_active: 'ComfyUI Plugin Active',
             workflow_status: 'Workflow Status',
@@ -5540,8 +5670,8 @@ body.cyber-active {
         return map[key] !== undefined ? map[key] : (I18N_MAPS.en[key] !== undefined ? I18N_MAPS.en[key] : key);
     }
 
-    /** 有效颜色白名单（Neu子主题色） */
-    const COLOR_WHITELIST = ['aurora', 'ocean', 'sunset', 'forest', 'midnight'];
+    /** 有效颜色白名单（Neu子主题色），Forest 作为竹系主题默认首选前置 */
+    const COLOR_WHITELIST = ['forest', 'ocean', 'sunset', 'midnight', 'aurora'];
 
     /** 颜色映射表：CSS变量值 */
     const COLOR_MAPS = {
@@ -5555,7 +5685,7 @@ body.cyber-active {
     /** 风格→CSS类名映射 + 显示信息 */
     const THEME_CLASS_MAP = {
         neu:   { dockClass: 'neu-dock', panelClass: 'neu-panel', bodyClass: 'neu-active', name: '拟物白' },
-        ind:   { dockClass: 'ind-dock',  panelClass: 'ind-panel',  bodyClass: 'ind-active',  name: '流光玻璃' },
+        ind:   { dockClass: 'ind-dock',  panelClass: 'ind-panel',  bodyClass: 'ind-active',  name: '玉竹' },
         retro: { dockClass: 'retro-dock',panelClass: 'retro-panel',bodyClass: 'retro-active',name: '复古终端' },
         lux:   { dockClass: 'lux-dock',  panelClass: 'lux-panel',  bodyClass: 'lux-active',  name: '珠宝柜' },
         cyber: { dockClass: 'cyber-dock',panelClass: 'cyber-panel',bodyClass: 'cyber-active',name: '量子核' }
@@ -5565,7 +5695,7 @@ body.cyber-active {
     // let currentStyle = 'neu'; // 已在上方声明，此处不重复
 
     /** 当前激活的颜色方案（仅Neu风格使用） */
-    let currentColor = 'aurora';
+    let currentColor = 'forest';
 
     // ============================================================
     // 拖拽状态（新5主题系统）
@@ -5612,11 +5742,11 @@ body.cyber-active {
                     buildRetroDock(dock, metrics);
                     break;
                 case 'lux':
-                    dock.className = 'lux-dock';
+                    dock.className = 'lux-dock style-hidden';
                     buildLuxDock(dock, metrics);
                     break;
                 case 'cyber':
-                    dock.className = 'cyber-dock';
+                    dock.className = 'cyber-dock style-hidden';
                     buildCyberDock(dock, metrics);
                     break;
 
@@ -5718,7 +5848,7 @@ body.cyber-active {
         // 拖拽手柄
         const handle = document.createElement('div');
         handle.className = 'retro-drag-handle';
-        handle.title = 'DRAG TO MOVE';
+        handle.title = t('drag_move');
         for (let i = 0; i < 3; i++) {
             const line = document.createElement('div');
             line.className = 'retro-drag-line';
@@ -5942,8 +6072,127 @@ body.cyber-active {
     }
 
     
-    /** Ind Dock 内部构建（深空玻璃胶囊） */
+    /** Ind Dock 内部构建（SVG 玉竹） */
     function buildIndDock(dock, metrics) {
+        // SVG 玉竹本体：单一路径实体，无 clip-path、无透明间隙
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('class', 'ind-bamboo-svg');
+        svg.setAttribute('viewBox', '0 0 1000 96');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.innerHTML = `
+            <defs>
+                <!-- 玉竹整体外形：自然生长曲线，节长不一，两端圆钝非对称 -->
+                <path id="ind-bamboo-shape"
+                    d="M 0.0 48.0 C 5.8 41.8, 23.3 17.7, 35.0 11.0 C 46.7 4.3, 53.4 7.2, 70.0 8.0 C 86.6 8.8, 113.0 15.5, 134.5 16.0 C 156.0 16.5, 174.7 10.7, 199.0 11.0 C 223.3 11.3, 253.3 18.3, 280.5 18.0 C 307.7 17.7, 339.1 9.5, 362.0 9.0 C 384.9 8.5, 399.3 14.8, 418.0 15.0 C 436.7 15.2, 451.8 9.7, 474.0 10.0 C 496.2 10.3, 525.7 17.5, 551.5 17.0 C 577.3 16.5, 605.3 6.7, 629.0 7.0 C 652.7 7.3, 672.0 18.5, 693.5 19.0 C 715.0 19.5, 732.9 10.5, 758.0 10.0 C 783.1 9.5, 809.5 15.8, 844.0 16.0 C 878.5 16.2, 939.0 5.7, 965.0 11.0 C 991.0 16.3, 994.2 41.8, 1000.0 48.0 L 1000.0 48.0 C 994.2 54.2, 991.0 79.7, 965.0 85.0 C 939.0 90.3, 878.5 79.8, 844.0 80.0 C 809.5 80.2, 783.1 86.5, 758.0 86.0 C 732.9 85.5, 715.0 76.5, 693.5 77.0 C 672.0 77.5, 652.7 88.7, 629.0 89.0 C 605.3 89.3, 577.3 79.5, 551.5 79.0 C 525.7 78.5, 496.2 85.7, 474.0 86.0 C 451.8 86.3, 436.7 80.8, 418.0 81.0 C 399.3 81.2, 384.9 87.5, 362.0 87.0 C 339.1 86.5, 307.7 78.3, 280.5 78.0 C 253.3 77.7, 223.3 84.7, 199.0 85.0 C 174.7 85.3, 156.0 79.5, 134.5 80.0 C 113.0 80.5, 86.6 87.2, 70.0 88.0 C 53.4 88.8, 46.7 91.7, 35.0 85.0 C 23.3 78.3, 5.8 54.2, 0.0 48.0 Z" />
+                <clipPath id="ind-bamboo-clip">
+                    <use href="#ind-bamboo-shape" />
+                </clipPath>
+
+                <!-- 翡翠圆柱底色：柔和蜡质过渡，避免塑料锐边 -->
+                <linearGradient id="ind-jade-cyl" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--jade-dark)" />
+                    <stop offset="18%" stop-color="var(--jade)" />
+                    <stop offset="36%" stop-color="var(--jade-mid)" />
+                    <stop offset="50%" stop-color="var(--jade-light)" />
+                    <stop offset="64%" stop-color="var(--jade-mid)" />
+                    <stop offset="82%" stop-color="var(--jade)" />
+                    <stop offset="100%" stop-color="var(--jade-dark)" />
+                </linearGradient>
+
+                <!-- 长度方向自然色斑：模拟翡翠色根/棉絮分布 -->
+                <linearGradient id="ind-jade-length" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.06)" />
+                    <stop offset="18%" stop-color="rgba(0,40,10,0.08)" />
+                    <stop offset="34%" stop-color="rgba(255,255,255,0.04)" />
+                    <stop offset="52%" stop-color="rgba(0,50,15,0.10)" />
+                    <stop offset="70%" stop-color="rgba(255,255,255,0.05)" />
+                    <stop offset="86%" stop-color="rgba(0,40,10,0.07)" />
+                    <stop offset="100%" stop-color="rgba(255,255,255,0.06)" />
+                </linearGradient>
+
+                <!-- 内部通透感：模拟翡翠次表面散射，柔和漫射 -->
+                <radialGradient id="ind-jade-inner" cx="0.48" cy="0.42" r="0.60">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.22)" />
+                    <stop offset="35%" stop-color="rgba(255,255,255,0.09)" />
+                    <stop offset="65%" stop-color="rgba(255,255,255,0.03)" />
+                    <stop offset="100%" stop-color="transparent" />
+                </radialGradient>
+
+                <!-- 顶部柔光：大面积温润油脂光，非镜面 -->
+                <linearGradient id="ind-jade-sheen" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.38)" />
+                    <stop offset="28%" stop-color="rgba(255,255,255,0.12)" />
+                    <stop offset="55%" stop-color="rgba(255,255,255,0.03)" />
+                    <stop offset="100%" stop-color="transparent" />
+                </linearGradient>
+
+                <!-- 蜡质高光：软边、低对比，更接近玉的温润 -->
+                <radialGradient id="ind-jade-spec" cx="0.35" cy="0.28" r="0.55">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.65)" />
+                    <stop offset="22%" stop-color="rgba(255,255,255,0.22)" />
+                    <stop offset="50%" stop-color="rgba(255,255,255,0.06)" />
+                    <stop offset="100%" stop-color="transparent" />
+                </radialGradient>
+
+                <!-- 竹节环：弱化金属感，融入竹身 -->
+                <linearGradient id="ind-node-ring" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.22)" />
+                    <stop offset="32%" stop-color="rgba(0,0,0,0.18)" />
+                    <stop offset="50%" stop-color="rgba(0,0,0,0.24)" />
+                    <stop offset="68%" stop-color="rgba(0,0,0,0.18)" />
+                    <stop offset="100%" stop-color="rgba(255,255,255,0.16)" />
+                </linearGradient>
+
+                <!-- 玉质云絮：多层噪声叠加，模拟天然棉絮/色根 -->
+                <filter id="ind-jade-texture" x="-10%" y="-10%" width="120%" height="120%">
+                    <!-- 大面积云雾 -->
+                    <feTurbulence type="fractalNoise" baseFrequency="0.018 0.008" numOctaves="4" seed="5" result="cloudNoise" />
+                    <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.10 0" in="cloudNoise" result="cloud" />
+                    <feGaussianBlur in="cloud" stdDeviation="1.4" result="cloudBlur" />
+                    <!-- 细碎的玉质杂点 -->
+                    <feTurbulence type="fractalNoise" baseFrequency="0.09 0.03" numOctaves="3" seed="11" result="grainNoise" />
+                    <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.05 0" in="grainNoise" result="grain" />
+                    <feGaussianBlur in="grain" stdDeviation="0.4" result="grainBlur" />
+                    <!-- 混合 -->
+                    <feBlend mode="screen" in="cloudBlur" in2="grainBlur" result="jadeTexture" />
+                    <feBlend mode="overlay" in="jadeTexture" in2="SourceGraphic" />
+                </filter>
+            </defs>
+
+            <!-- 主体：翡翠圆柱底色 -->
+            <use href="#ind-bamboo-shape" fill="url(#ind-jade-cyl)" />
+
+            <!-- 长度方向色斑 -->
+            <use href="#ind-bamboo-shape" fill="url(#ind-jade-length)" opacity="0.55" />
+
+            <!-- 内部通透层 -->
+            <use href="#ind-bamboo-shape" fill="url(#ind-jade-inner)" opacity="0.80" />
+
+            <!-- 云絮纹理层：增加天然棉絮/杂质感 -->
+            <use href="#ind-bamboo-shape" fill="url(#ind-jade-cyl)" filter="url(#ind-jade-texture)" opacity="0.45" />
+
+            <!-- 顶部柔光：温润油脂反光 -->
+            <rect x="0" y="0" width="1000" height="96" fill="url(#ind-jade-sheen)" clip-path="url(#ind-bamboo-clip)" opacity="0.65" />
+
+            <!-- 蜡质高光：柔和光斑 -->
+            <ellipse cx="280" cy="20" rx="240" ry="12" fill="url(#ind-jade-spec)" opacity="0.38" />
+            <ellipse cx="700" cy="22" rx="190" ry="11" fill="url(#ind-jade-spec)" opacity="0.30" />
+
+            <!-- 竹节环：位置与新关节对齐，弱化融入竹身 -->
+            <g class="ind-bamboo-nodes">
+                <rect x="66" y="6" width="7" height="84" rx="3.5" fill="url(#ind-node-ring)" opacity="0.78" />
+                <rect x="196" y="8" width="6" height="80" rx="3" fill="url(#ind-node-ring)" opacity="0.68" />
+                <rect x="359" y="5" width="7" height="86" rx="3.5" fill="url(#ind-node-ring)" opacity="0.76" />
+                <rect x="470" y="7" width="6" height="82" rx="3" fill="url(#ind-node-ring)" opacity="0.70" />
+                <rect x="626" y="4" width="7" height="88" rx="3.5" fill="url(#ind-node-ring)" opacity="0.80" />
+                <rect x="755" y="7" width="6" height="82" rx="3" fill="url(#ind-node-ring)" opacity="0.70" />
+                <rect x="927" y="5" width="7" height="86" rx="3.5" fill="url(#ind-node-ring)" opacity="0.76" />
+            </g>
+        `;
+        dock.appendChild(svg);
+
         const handle = document.createElement('div');
         handle.className = 'ind-dock-handle';
         handle.title = t('drag_move');
@@ -6095,7 +6344,7 @@ body.cyber-active {
             '<div class="neu-panel-header">' +
                 '<div class="neu-header-brand">' +
                     '<div class="neu-brand-icon">\u2744</div>' +
-                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.25</span></div>' +
+                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.26</span></div>' +
                 '</div>' +
                 '<div class="neu-header-actions">' +
                     '<button class="neu-action-btn" id="neu-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
@@ -6220,7 +6469,7 @@ body.cyber-active {
                     // Color Selection
                     '<div class="neu-setting-row"><label class="neu-setting-label">' + t('color') + '</label>' +
                         '<div class="neu-radio-group" role="radiogroup" aria-label="' + t('color') + '">' +
-                            COLOR_WHITELIST.map(c => '<button class="neu-radio-btn'+(c==='aurora'?' active':'')+'" data-color="'+c+'" role="radio">'+c.charAt(0).toUpperCase()+c.slice(1)+'</button>').join('') +
+                            COLOR_WHITELIST.map(c => '<button class="neu-radio-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'" role="radio">'+c.charAt(0).toUpperCase()+c.slice(1)+'</button>').join('') +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -6228,7 +6477,7 @@ body.cyber-active {
             // Footer
             '<footer class="neu-panel-footer">' +
                 '<div class="neu-footer-left"><span class="neu-status-dot"></span><span id="np-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.25 Build 2026.06.22</span>' +
+                '<span>v3.26 Build 2026.06.23</span>' +
             '</footer>';
 
         // 绑定关闭按钮
@@ -6320,11 +6569,11 @@ body.cyber-active {
             '</div></div>' +
             // 模块3: VFD Progress Bars
             '<div class="retro-section retro-panel-vfd-grid"><div class="retro-progress-group">' +
-                '<div class="reto-progress-item"><div class="reto-progress-header"><span class="reto-progress-label">' + t('gpu') + ' ' + t('load') + '</span><span class="reto-progress-value" id="rp-gpu-val">--%</span></div><div class="reto-vfd-track"><div class="reto-vfd-fill" id="rp-gpu-pb" style="width:0%"></div></div></div>' +
-                '<div class="reto-progress-item"><div class="reto-progress-header"><span class="reto-progress-label">' + t('vram') + '</span><span class="reto-progress-value" id="rp-vram-val">--%</span></div><div class="reto-vfd-track"><div class="reto-vfd-fill" id="rp-vram-pb" style="width:0%"></div></div></div>' +
-                '<div class="reto-progress-item"><div class="reto-progress-header"><span class="reto-progress-label">' + t('cpu') + ' ' + t('usage_rate') + '</span><span class="reto-progress-value" id="rp-cpu-val">--%</span></div><div class="reto-vfd-track"><div class="reto-vfd-fill" id="rp-cpu-pb" style="width:0%"></div></div></div>' +
-                '<div class="reto-progress-item"><div class="reto-progress-header"><span class="reto-progress-label">' + t('ram') + '</span><span class="reto-progress-value" id="rp-ram-val">--%</span></div><div class="reto-vfd-track"><div class="reto-vfd-fill" id="rp-ram-pb" style="width:0%"></div></div></div>' +
-                '<div class="reto-progress-item"><div class="reto-progress-header"><span class="reto-progress-label">' + t('swap') + '</span><span class="reto-progress-value" id="rp-swap-val">--%</span></div><div class="reto-vfd-track"><div class="reto-vfd-fill" id="rp-swap-pb" style="width:0%"></div></div></div>' +
+                '<div class="retro-progress-item"><div class="retro-progress-header"><span class="retro-progress-label">' + t('gpu') + ' ' + t('load') + '</span><span class="retro-progress-value" id="rp-gpu-val">--%</span></div><div class="retro-vfd-track"><div class="retro-vfd-fill" id="rp-gpu-pb" style="width:0%"></div></div></div>' +
+                '<div class="retro-progress-item"><div class="retro-progress-header"><span class="retro-progress-label">' + t('vram') + '</span><span class="retro-progress-value" id="rp-vram-val">--%</span></div><div class="retro-vfd-track"><div class="retro-vfd-fill" id="rp-vram-pb" style="width:0%"></div></div></div>' +
+                '<div class="retro-progress-item"><div class="retro-progress-header"><span class="retro-progress-label">' + t('cpu') + ' ' + t('usage_rate') + '</span><span class="retro-progress-value" id="rp-cpu-val">--%</span></div><div class="retro-vfd-track"><div class="retro-vfd-fill" id="rp-cpu-pb" style="width:0%"></div></div></div>' +
+                '<div class="retro-progress-item"><div class="retro-progress-header"><span class="retro-progress-label">' + t('ram') + '</span><span class="retro-progress-value" id="rp-ram-val">--%</span></div><div class="retro-vfd-track"><div class="retro-vfd-fill" id="rp-ram-pb" style="width:0%"></div></div></div>' +
+                '<div class="retro-progress-item"><div class="retro-progress-header"><span class="retro-progress-label">' + t('swap') + '</span><span class="retro-progress-value" id="rp-swap-val">--%</span></div><div class="retro-vfd-track"><div class="retro-vfd-fill" id="rp-swap-pb" style="width:0%"></div></div></div>' +
             '</div></div>' +
             // 模块4: I/O Cards
             '<div class="retro-section"><div class="retro-io-grid">' +
@@ -6334,7 +6583,7 @@ body.cyber-active {
             // 模块5: Control Toggles
             '<div class="retro-section"><div class="retro-control-row" style="display:flex;align-items:center;justify-content:center;gap:24px;"><label class="retro-control-label">' + t('sound_alert') + '</label><button class="retro-toggle-switch active" id="retro-soundToggle" role="switch" aria-checked="true"><span class="retro-toggle-thumb"></span></button><label class="retro-control-label">' + t('drag_mode') + '</label><button class="retro-toggle-switch" id="retro-dragToggle" role="switch" aria-checked="false"><span class="retro-toggle-thumb"></span></button></div></div>' +
             // V19 Footer
-            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.25</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.22</div></div>' +
+            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.26</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.23</div></div>' +
             '<div class="retro-source-text" id="retro-source-text">[ AMD SMI ]</div>' +
             '</div></div>';
 
@@ -6391,7 +6640,7 @@ body.cyber-active {
     /** 构建Lux Panel内容 */
     function buildLuxPanel(panel) {
         panel.innerHTML =
-            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.25</span></div>' +
+            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.26</span></div>' +
                 '<div class="lux-header-actions"><button class="lux-action-btn lux-close-btn" title="' + t('close') + '">&times;</button></div></div>' +
             '<div class="lux-metrics-grid"><div class="lux-metric-card"><div class="lux-metric-label">' + t('gpu') + ' ' + t('load') + '</div><div class="lux-metric-value"><span id="lp-gpu-val">--</span>%</div></div>' +
                 '<div class="lux-metric-card"><div class="lux-metric-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="lux-metric-value"><span id="lp-cpu-val">--</span>%</div></div>' +
@@ -6418,7 +6667,7 @@ body.cyber-active {
                 VALID_STYLES.map(s => '<button class="lux-style-chip'+(s==='lux'?' active':'')+'" data-target="'+s+'">'+s.charAt(0).toUpperCase()+s.slice(1)+'</button>').join('') +
             '</div>' +
             '<div class="lux-color-chips" style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">' +
-                COLOR_WHITELIST.map(c => '<button class="lux-style-chip'+(c==='aurora'?' active':'')+'" data-color="'+c+'" style="font-size:10px;padding:4px 10px;background:'+COLOR_MAPS[c].base+';color:#4a5568;border-radius:8px;border:none;cursor:pointer;font-weight:600;">'+c.charAt(0).toUpperCase()+c.slice(1)+'</button>').join('') +
+                COLOR_WHITELIST.map(c => '<button class="lux-style-chip'+(c==='forest'?' active':'')+'" data-color="'+c+'" style="font-size:10px;padding:4px 10px;background:'+COLOR_MAPS[c].base+';color:#4a5568;border-radius:8px;border:none;cursor:pointer;font-weight:600;">'+c.charAt(0).toUpperCase()+c.slice(1)+'</button>').join('') +
             '</div></div>' +
             '<div class="lux-settings-area" style="margin-top:8px;"><div style="display:flex;flex-direction:column;gap:10px;">' +
                 '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(212,175,55,0.08);border-radius:10px;border:1px solid rgba(212,175,55,0.2);"><span style="color:#d4af37;font-size:11px;font-weight:600;">' + t('sound_alert') + '</span>' +
@@ -6428,7 +6677,7 @@ body.cyber-active {
                     '<button class="lux-toggle-switch" id="lux-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="lux-toggle-thumb"></span></button>' +
                 '</div>' +
             '</div></div>' +
-            '<footer class="lux-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.25 Build 2026.06.22</span></footer>';
+            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.26 Build 2026.06.23</span></footer>';
 
         panel.querySelector('.lux-close-btn').addEventListener('click', () => togglePanel('lux'));
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -6528,7 +6777,7 @@ body.cyber-active {
                 VALID_STYLES.map(s => '<button class="cyber-mode-btn'+(s==='cyber'?' active':'')+'" data-target="'+s+'">'+s.toUpperCase()+'</button>').join('') +
             '</div>' +
             '<div class="cyber-color-bar"><span class="cyber-mode-label">' + t('color') + ':</span>' +
-                COLOR_WHITELIST.map(c => '<button class="cyber-color-btn'+(c==='aurora'?' active':'')+'" data-color="'+c+'" style="--chip-color:'+(cyberChipColors[c] || '#00f0ff')+'">'+c.toUpperCase()+'</button>').join('') +
+                COLOR_WHITELIST.map(c => '<button class="cyber-color-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'" style="--chip-color:'+(cyberChipColors[c] || '#00f0ff')+'">'+c.toUpperCase()+'</button>').join('') +
             '</div>' +
             '<div class="cyber-controls-section"><div class="cyber-control-group">' +
                 '<div class="cyber-control-row"><label class="cyber-control-label" for="cyber-soundToggle">' + t('sound_alert') + '</label>' +
@@ -6538,7 +6787,7 @@ body.cyber-active {
                     '<button class="cyber-toggle-switch" id="cyber-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="cyber-toggle-thumb"></span></button>' +
                 '</div>' +
             '</div></div>' +
-            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.25 Build 2026.06.22</span></div>';
+            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.26 Build 2026.06.23</span></div>';
 
         // 主题切换按钮
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -6607,7 +6856,7 @@ body.cyber-active {
     function buildIndPanel(panel) {
         panel.innerHTML =
             '<div class="ind-panel-header">' +
-                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.25</span></div>' +
+                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.26</span></div>' +
                 '<div class="ind-header-actions">' +
                     '<button class="ind-action-btn" id="ind-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="ind-action-btn" id="ind-closeBtn" title="' + t('close') + '">&times;</button>' +
@@ -6646,16 +6895,16 @@ body.cyber-active {
                     '<div class="ind-setting-row"><label class="ind-setting-label" for="ind-soundToggle">' + t('sound_alert') + '</label><button class="ind-toggle-switch active" id="ind-soundToggle" role="switch" aria-checked="true" aria-label="' + t('sound_alert') + '"><span class="ind-toggle-thumb"></span></button></div>' +
                     '<div class="ind-setting-row"><label class="ind-setting-label" for="ind-dragToggle">' + t('drag_mode') + '</label><button class="ind-toggle-switch" id="ind-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="ind-toggle-thumb"></span></button></div>' +
                     '<div class="ind-setting-row" style="flex-direction:column;align-items:flex-start;"><label class="ind-setting-label">' + t('theme') + '</label><div class="ind-radio-group">' +
-                        VALID_STYLES.map(s => '<button class="ind-radio-btn'+(s==='ind'?' active':'')+'" data-target="'+s+'">'+s.toUpperCase()+'</button>').join('') +
+                        VALID_STYLES.map(s => '<button class="ind-radio-btn'+(s==='ind'?' active':'')+'" data-target="'+s+'">'+(THEME_CLASS_MAP[s]?.name || s.toUpperCase())+'</button>').join('') +
                     '</div></div>' +
                     '<div class="ind-setting-row" style="flex-direction:column;align-items:flex-start;"><label class="ind-setting-label">' + t('color') + '</label><div class="ind-radio-group">' +
-                        COLOR_WHITELIST.map(c => '<button class="ind-radio-btn'+(c==='aurora'?' active':'')+'" data-color="'+c+'">'+c.toUpperCase()+'</button>').join('') +
+                        COLOR_WHITELIST.map(c => '<button class="ind-radio-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'">'+c.toUpperCase()+'</button>').join('') +
                     '</div></div>' +
                 '</div>' +
             '</div>' +
             '<footer class="ind-panel-footer">' +
                 '<div><span class="ind-status-dot"></span><span id="gp-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.25 Build 2026.06.22</span>' +
+                '<span>v3.26 Build 2026.06.23</span>' +
             '</footer>';
 
         const closeBtn = panel.querySelector('#ind-closeBtn');
@@ -7041,12 +7290,14 @@ body.cyber-active {
         // Source text
         updateSourceText('np-source-text', data);
 
-        // 声音警报：GPU>90% 或 温度>85°C 时播放警告音
-        if ((gpu !== null && gpu > 90) || (temp !== null && temp > 85)) {
+        // 声音警报：GPU>90% 或 温度>85°C 时播放警告音（仅在从非报警状态进入时触发一次）
+        const shouldAlarm = (gpu !== null && gpu > 90) || (temp !== null && temp > 85);
+        if (shouldAlarm && !alarmActive) {
             if (typeof window.FxMonitorSound !== 'undefined') {
                 window.FxMonitorSound.play();
             }
         }
+        alarmActive = shouldAlarm;
     }
 
     /** 渲染数据到Retro风格DOM */
@@ -7481,7 +7732,7 @@ body.cyber-active {
     let updateTimer = null;
 
     /**
-     * 主更新循环 — Premium UI v3.25
+     * 主更新循环 — Premium UI v3.26
      * 使用 renderToCurrentTheme(data) 替代旧的 updateAllCapsules(data)
      */
     async function mainUpdateLoop() {
@@ -7509,11 +7760,11 @@ body.cyber-active {
     }
 
     // ============================================================
-    // 初始化 — Premium UI v3.25 启动流程
+    // 初始化 — Premium UI v3.26 启动流程
     // ============================================================
 
     /**
-     * 初始化并启动监测器（Premium UI v3.25）
+     * 初始化并启动监测器（Premium UI v3.26）
      *
      * 启动流程：
      * 1. 注入CSS
@@ -7525,7 +7776,7 @@ body.cyber-active {
      * 7. 初始化拖拽
      */
     async function init() {
-        console.log('[飞雪监测器] 🚀 Premium UI v3.25 启动...');
+        console.log('[飞雪监测器] 🚀 Premium UI v3.26 启动...');
         try {
             // 1. 注入新CSS
             injectPremiumCSS();
@@ -7541,11 +7792,13 @@ body.cyber-active {
             migrateV3Config();
 
             // 4. 恢复并切换到默认主题
-            const savedStyle = localStorage.getItem('fxm_current_style') || 'neu';
+            let savedStyle = localStorage.getItem('fxm_current_style') || 'neu';
+            if (!VALID_STYLES.includes(savedStyle)) savedStyle = 'neu';
             switchStyle(savedStyle);
 
             // 5. 恢复颜色方案
-            const savedColor = localStorage.getItem('fxm_current_color') || 'aurora';
+            let savedColor = localStorage.getItem('fxm_current_color') || 'forest';
+            if (!COLOR_WHITELIST.includes(savedColor)) savedColor = 'forest';
             switchColor(savedColor);
 
             // 6. 如果有缓存数据，立即渲染一次
@@ -7568,7 +7821,7 @@ body.cyber-active {
                 }).observe(document.body, { childList: true, subtree: true });
             }
 
-            console.log('[飞雪监测器] ✅ Premium UI v3.25 initialized successfully!');
+            console.log('[飞雪监测器] ✅ Premium UI v3.26 initialized successfully!');
         } catch(e) {
             console.error('[飞雪监测器] ❌ Init failed:', e);
         }
@@ -7713,6 +7966,22 @@ body.cyber-active {
      */
     function unbindDrag() {
         isDragging = false;
+
+        if (dragMouseMoveHandler) {
+            document.removeEventListener('mousemove', dragMouseMoveHandler);
+            dragMouseMoveHandler = null;
+        }
+        if (dragMouseUpHandler) {
+            document.removeEventListener('mouseup', dragMouseUpHandler);
+            dragMouseUpHandler = null;
+        }
+        if (boundDragHandle && dragMouseDownHandler) {
+            boundDragHandle.removeEventListener('mousedown', dragMouseDownHandler);
+            dragMouseDownHandler = null;
+        }
+
+        boundDragHandle = null;
+        boundDragDock = null;
     }
 
     /**
@@ -7722,6 +7991,9 @@ body.cyber-active {
      */
     function bindDragToDock(dockEl, styleName) {
         if (!dockEl) return;
+
+        // 先解绑旧监听器，避免主题切换时重复注册导致泄漏
+        unbindDrag();
 
         // 从 localStorage 恢复位置
         const dragKey = 'fxm_drag_pos_' + styleName;
@@ -7791,9 +8063,20 @@ body.cyber-active {
             dockEl.style.transition = '';
             // Drag Mode 关闭时不保存位置，避免恢复时被移动过的位置
             if (isDragEnabled && savedBarLeft !== null && savedBarTop !== null) {
-                localStorage.setItem(dragKey, JSON.stringify({ left: savedBarLeft, top: savedBarTop }));
+                try {
+                    localStorage.setItem(dragKey, JSON.stringify({ left: savedBarLeft, top: savedBarTop }));
+                } catch (e) {
+                    console.warn('[飞雪监测器] 拖拽位置保存失败:', e);
+                }
             }
         }
+
+        // 保存处理器引用，便于主题切换时解绑
+        dragMouseDownHandler = onMouseDown;
+        dragMouseMoveHandler = onMouseMove;
+        dragMouseUpHandler = onMouseUp;
+        boundDragHandle = dragHandle;
+        boundDragDock = dockEl;
 
         dragHandle.addEventListener('mousedown', onMouseDown);
         // 根据全局 Drag Mode 状态初始化拖拽手柄 pointer-events
@@ -7833,11 +8116,11 @@ body.cyber-active {
         setStyle: switchStyle,
         switchColor: switchColor,
         togglePanel: togglePanel,
-        refresh: () => fetchFromBackend().then(d => renderToCurrentTheme(d)),
+        refresh: () => collectSystemData().then(d => renderToCurrentTheme(d)),
         getSnapshot: () => fetchFromBackend()
     };
 
-    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.25)');
+    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.26)');
 
     // ============================================================
     // ComfyUI 工作流完成/出错声音提示

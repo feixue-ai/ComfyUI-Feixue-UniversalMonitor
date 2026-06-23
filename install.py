@@ -47,13 +47,13 @@ def install_windows():
     """Windows 平台依赖安装"""
     print("[飞雪监测器] 检测到 Windows 系统")
 
-    deps = {
-        "pynvml-amd-windows": "pynvml-amd-windows (ADLX GPU 温度/利用率)",
-        "wmi": "wmi (Windows 系统信息)",
-    }
+    deps = [
+        ("pynvml-amd-windows", "pynvml", "pynvml-amd-windows (ADLX GPU 温度/利用率)"),
+        ("wmi", "wmi", "wmi (Windows 系统信息)"),
+    ]
 
-    for pkg, desc in deps.items():
-        if _is_installed(pkg):
+    for pkg, import_name, desc in deps:
+        if _is_installed(import_name):
             print(f"  [跳过] {desc} 已安装")
         else:
             _pip_install([pkg], desc)
@@ -63,19 +63,34 @@ def install_linux():
     """Linux 平台依赖安装"""
     print("[飞雪监测器] 检测到 Linux 系统")
 
-    # amdsmi 是 pip 包，但底层需要系统包 amd-smi-lib
+    # amdsmi 是 pip 包，但底层需要系统包 amd-smi-lib / rocm-smi
     if _is_installed("amdsmi"):
         print("  [跳过] amdsmi (AMD GPU 监控) 已安装")
     else:
         _pip_install(["amdsmi"], "amdsmi (AMD GPU 监控)")
 
-    # 检查底层 C 库
+    # 检查底层 C 库是否可用
+    has_amd_smi_lib = False
     try:
-        subprocess.check_output(
-            ["ldconfig", "-p"], stderr=subprocess.DEVNULL
+        output = subprocess.check_output(
+            ["ldconfig", "-p"], stderr=subprocess.DEVNULL, text=True
         )
+        has_amd_smi_lib = "libamd_smi.so" in output
     except Exception:
         pass
+
+    has_rocm_smi = False
+    try:
+        subprocess.check_call(
+            ["rocm-smi", "--showid"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        has_rocm_smi = True
+    except Exception:
+        pass
+
+    if not has_amd_smi_lib and not has_rocm_smi:
+        print("  [警告] 未检测到系统级 ROCm/amdsmi 库（libamd_smi.so / rocm-smi）")
+        print("         AMD GPU 监控可能无法正常工作，请安装 ROCm 或 amd-smi-lib")
 
 
 def install_darwin():
@@ -86,7 +101,7 @@ def install_darwin():
 
 def main():
     print("=" * 55)
-    print("  飞雪监测器 (Feixue Universal Monitor) v3.0")
+    print("  飞雪监测器 (Feixue Universal Monitor) v3.26")
     print("  依赖安装脚本")
     print("=" * 55)
 
@@ -94,6 +109,11 @@ def main():
     print(f"  系统: {system} ({platform.machine()})")
     print(f"  Python: {sys.version.split()[0]}")
     print()
+
+    # 安装基础依赖
+    req_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
+    if os.path.exists(req_file):
+        _pip_install(["-r", req_file], "基础依赖 (requirements.txt)")
 
     if system == "Windows":
         install_windows()

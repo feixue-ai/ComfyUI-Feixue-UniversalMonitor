@@ -214,6 +214,7 @@ class FeixueHardwareInfo:
         self._ema_gpu_util: float = 0.0      # GPU 利用率平滑值
         self._ema_gpu_temp: float = 0.0       # 温度平滑值
         self._ema_alpha: float = 0.25          # 平滑因子（越小越平滑，响应越慢）
+        self._ema_lock = threading.Lock()     # 保护 EMA 状态
 
         # 统计信息
         self._stats = {
@@ -268,9 +269,14 @@ class FeixueHardwareInfo:
         """初始化 amdsmi 数据源（ROCm 7.2+ 官方推荐）"""
         try:
             import amdsmi
+        except ImportError:
+            logger.debug("amdsmi: 库未安装 (pip install amdsmi)")
+            return False
 
-            logger.info("尝试初始化 amdsmi (ROCm 7.2+)...")
+        logger.info("尝试初始化 amdsmi (ROCm 7.2+)...")
+        init_succeeded = False
 
+        try:
             # amdsmi_init() 是 void 函数，直接调用即可
             # 它会返回 None，这是正常的
             try:
@@ -344,16 +350,20 @@ class FeixueHardwareInfo:
                     logger.warning(f"获取设备[{i}]名称失败: {e}")
 
             logger.info(f"✅ amdsmi 初始化成功: {self._device_count}个GPU设备")
+            init_succeeded = True
             return True
 
-        except ImportError:
-            logger.debug("amdsmi: 库未安装 (pip install amdsmi)")
-            return False
         except Exception as e:
             logger.error(f"amdsmi 初始化异常: {e}")
             import traceback
             logger.debug(traceback.format_exc())
             return False
+        finally:
+            if not init_succeeded:
+                try:
+                    amdsmi.amdsmi_shutdown()
+                except Exception:
+                    pass
 
     def _init_rocm_smi(self) -> bool:
         """初始化 rocm_smi 数据源（ROCm 5.x 兼容层）"""
@@ -370,6 +380,7 @@ class FeixueHardwareInfo:
             logger.debug("rocm_smi: library not installed")
             return False
 
+        init_succeeded = False
         try:
             # 初始化
             if hasattr(rsmi_module, 'rocm_smi_init'):
@@ -402,11 +413,19 @@ class FeixueHardwareInfo:
                 except Exception:
                     self._device_names.append(f"AMD Device {i}")
 
+            init_succeeded = True
             return True
 
         except Exception as e:
             logger.debug(f"rocm_smi initialization failed: {e}")
             return False
+        finally:
+            if not init_succeeded:
+                try:
+                    if hasattr(rsmi_module, 'rocm_smi_shutdown'):
+                        rsmi_module.rocm_smi_shutdown()
+                except Exception:
+                    pass
 
     def _init_sysfs(self) -> bool:
         """初始化 sysfs 数据源（零依赖回退）"""
@@ -652,7 +671,8 @@ class FeixueHardwareInfo:
 
         # ---- 第3步：尝试 nvidia-ml-py（第三方兼容层）----
         try:
-            import nvidia.ml.py as nvidia_ml_py
+            # nvidia-ml-py 通常仍安装为 pynvml，此处避免使用非法的 nvidia.ml.py 导入
+            import nvidia_ml_py
 
             # nvidia-ml-py 的 API 与 pynvml 略有不同
             nvidia_ml_py.nvmlInit()
@@ -1051,11 +1071,12 @@ class FeixueHardwareInfo:
                         0
                     )
                     # EMA 指数移动平均：alpha=0.25，约 4 个采样周期达到稳态
-                    if self._ema_gpu_util == 0:
-                        self._ema_gpu_util = float(raw_util)
-                    else:
-                        self._ema_gpu_util = self._ema_alpha * float(raw_util) + (1 - self._ema_alpha) * self._ema_gpu_util
-                    gpu_data['gpu_utilization'] = int(round(self._ema_gpu_util))
+                    with self._ema_lock:
+                        if self._ema_gpu_util == 0:
+                            self._ema_gpu_util = float(raw_util)
+                        else:
+                            self._ema_gpu_util = self._ema_alpha * float(raw_util) + (1 - self._ema_alpha) * self._ema_gpu_util
+                        gpu_data['gpu_utilization'] = int(round(self._ema_gpu_util))
                 else:
                     gpu_data['gpu_utilization'] = 0
             except Exception as e:
@@ -1088,7 +1109,7 @@ class FeixueHardwareInfo:
             try:
                 # 注意：amdsmi_get_power_measurements() 在 v26.2.2 中不存在
                 # 应使用 get_gpu_metrics_info() 的 average_socket_power 字段
-                if 'metrics_info' not in dir():
+                if 'metrics_info' not in locals():
                     metrics_info = lib.amdsmi_get_gpu_metrics_info(handle)
 
                 if metrics_info:
@@ -1161,11 +1182,12 @@ class FeixueHardwareInfo:
             util_result = self._call_rsmi_method(rsmi, ['getGpuUse', 'get_gpu_use'], device_id)
             if util_result is not None:
                 raw_util = int(float(util_result)) if isinstance(util_result, (int, float, str)) else 0
-                if self._ema_gpu_util == 0:
-                    self._ema_gpu_util = float(raw_util)
-                else:
-                    self._ema_gpu_util = self._ema_alpha * raw_util + (1 - self._ema_alpha) * self._ema_gpu_util
-                gpu_utilization = int(round(self._ema_gpu_util))
+                with self._ema_lock:
+                    if self._ema_gpu_util == 0:
+                        self._ema_gpu_util = float(raw_util)
+                    else:
+                        self._ema_gpu_util = self._ema_alpha * raw_util + (1 - self._ema_alpha) * self._ema_gpu_util
+                    gpu_utilization = int(round(self._ema_gpu_util))
         except Exception as e:
             logger.debug(f"rocm_smi gpu_util failed: {e}")
 
@@ -2098,6 +2120,7 @@ class _MonitorWrapper:
         self._config = {'refresh_interval': 0.5}
         self.status = {'running': False}
         self._latest_snapshot = None
+        self._snapshot_lock = threading.Lock()
         self._start_time = time.time()  # 记录启动时间用于 uptime 计算
 
         # 检查硬件信息是否成功初始化（通过 _active_source 判断）
@@ -2117,7 +2140,9 @@ class _MonitorWrapper:
         def _collection_loop():
             while not self._stop_event.is_set():
                 try:
-                    self._latest_snapshot = self._hw.get_snapshot()
+                    snapshot = self._hw.get_snapshot()
+                    with self._snapshot_lock:
+                        self._latest_snapshot = snapshot
                 except Exception as e:
                     logger.error(f"数据采集异常: {e}")
 
@@ -2133,8 +2158,9 @@ class _MonitorWrapper:
 
     def get_snapshot(self):
         """获取最新快照（优先返回缓存的实时数据）"""
-        if self._latest_snapshot:
-            return self._latest_snapshot
+        with self._snapshot_lock:
+            if self._latest_snapshot:
+                return self._latest_snapshot
         return self._hw.get_snapshot()
 
     def shutdown(self):

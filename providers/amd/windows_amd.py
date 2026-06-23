@@ -150,6 +150,7 @@ class AMDWindowsProvider(BaseGPUProvider):
         self._active_sources: List[str] = []
         self._wmi_available: bool = False
         self._pytorch_available: bool = False
+        self._pytorch_backend: str = "cuda"  # 'cuda' or 'directml'
         self._psutil_available: bool = False
 
         # WMI connection object (initialized during _init_wmi)
@@ -165,6 +166,7 @@ class AMDWindowsProvider(BaseGPUProvider):
         self._last_driver_check: float = 0.0
         self._driver_healthy: bool = True
         self._consecutive_failures: int = 0
+        self._source_failures: Dict[str, int] = {}
         self._max_consecutive_failures: int = self.MAX_CONSECUTIVE_FAILURES
 
         # Sleep/wakeup detection
@@ -372,13 +374,20 @@ class AMDWindowsProvider(BaseGPUProvider):
         # Release WMI connection
         if hasattr(self, '_wmi_conn') and self._wmi_conn is not None:
             try:
-                # WMI objects don't always have an explicit close method,
-                # but we should delete the reference to allow garbage collection
-                del self._wmi_conn
-                self._wmi_conn = None
-                logger.debug("WMI connection released")
+                # Try explicit close methods if available
+                for method_name in ('close', 'terminate', 'stop'):
+                    method = getattr(self._wmi_conn, method_name, None)
+                    if callable(method):
+                        try:
+                            method()
+                        except Exception:
+                            pass
+                        break
             except Exception as e:
                 logger.warning(f"Error releasing WMI connection: {e}")
+            finally:
+                self._wmi_conn = None
+                logger.debug("WMI connection released")
 
         # Clear state
         self._active_sources = []
@@ -695,48 +704,76 @@ class AMDWindowsProvider(BaseGPUProvider):
         try:
             import torch
 
-            # Check CUDA availability
-            if not torch.cuda.is_available():
+            # Check CUDA availability first
+            if torch.cuda.is_available():
+                device_count = torch.cuda.device_count()
+                if device_count == 0:
+                    logger.warning("PyTorch reports CUDA available but 0 devices found")
+                    return False
+
+                self._pytorch_available = True
+                self._pytorch_backend = "cuda"
+
+                # Update device count and names if not already set by WMI
+                if self._device_count == 0:
+                    self._device_count = device_count
+
+                for i in range(device_count):
+                    try:
+                        device_name = torch.cuda.get_device_name(i)
+                        if i >= len(self._device_names):
+                            self._device_names.append(device_name)
+                        logger.debug(f"PyTorch device {i}: {device_name}")
+                    except Exception as e:
+                        logger.debug(f"Failed to get PyTorch device {i} name: {e}")
+                        if i >= len(self._device_names):
+                            self._device_names.append(f"CUDA Device {i}")
+
+                # Detect backend type
+                backend_info = ""
+                if hasattr(torch.version, 'hip'):
+                    backend_info = "HIP/ROCm"
+                elif hasattr(torch.version, 'cuda'):
+                    cuda_version = getattr(torch.version, 'cuda', 'unknown')
+                    backend_info = f"CUDA {cuda_version}"
+
                 logger.info(
-                    "PyTorch installed but no CUDA/DirectML GPU detected. "
-                    "PyTorch data source will be disabled."
+                    f"PyTorch GPU backend available: {device_count} device(s) ({backend_info})"
                 )
-                return False
+                return True
 
-            device_count = torch.cuda.device_count()
-            if device_count == 0:
-                logger.warning("PyTorch reports CUDA available but 0 devices found")
-                return False
-
-            self._pytorch_available = True
-
-            # Update device count and names if not already set by WMI
-            if self._device_count == 0:
-                self._device_count = device_count
-
-            for i in range(device_count):
-                try:
-                    device_name = torch.cuda.get_device_name(i)
-                    if i >= len(self._device_names):
-                        self._device_names.append(device_name)
-                    logger.debug(f"PyTorch device {i}: {device_name}")
-                except Exception as e:
-                    logger.debug(f"Failed to get PyTorch device {i} name: {e}")
-                    if i >= len(self._device_names):
-                        self._device_names.append(f"CUDA Device {i}")
-
-            # Detect backend type
-            backend_info = ""
-            if hasattr(torch.version, 'hip'):
-                backend_info = "HIP/ROCm"
-            elif hasattr(torch.version, 'cuda'):
-                cuda_version = getattr(torch.version, 'cuda', 'unknown')
-                backend_info = f"CUDA {cuda_version}"
+            # Fallback: check for DirectML backend (AMD on Windows)
+            try:
+                import torch_directml
+                device_count = torch_directml.device_count()
+                if device_count > 0:
+                    self._pytorch_available = True
+                    self._pytorch_backend = "directml"
+                    if self._device_count == 0:
+                        self._device_count = device_count
+                    for i in range(device_count):
+                        try:
+                            device_name = torch_directml.device_name(i)
+                            if i >= len(self._device_names):
+                                self._device_names.append(device_name)
+                        except Exception as e:
+                            logger.debug(f"Failed to get DirectML device {i} name: {e}")
+                            if i >= len(self._device_names):
+                                self._device_names.append(f"DirectML Device {i}")
+                    logger.info(
+                        f"PyTorch DirectML backend available: {device_count} device(s)"
+                    )
+                    return True
+            except ImportError:
+                pass
+            except Exception as e:
+                logger.debug(f"DirectML check failed: {e}")
 
             logger.info(
-                f"PyTorch GPU backend available: {device_count} device(s) ({backend_info})"
+                "PyTorch installed but no CUDA/DirectML GPU detected. "
+                "PyTorch data source will be disabled."
             )
-            return True
+            return False
 
         except ImportError:
             logger.debug("PyTorch not installed")
@@ -775,6 +812,25 @@ class AMDWindowsProvider(BaseGPUProvider):
 
         data: Dict[str, Any] = {}
 
+        # ---- DirectML backend path ----
+        if self._pytorch_backend == "directml":
+            try:
+                import torch_directml
+                data['device_name'] = torch_directml.device_name(device_id)
+            except Exception:
+                data['device_name'] = f"DirectML Device {device_id}"
+            # DirectML does not expose VRAM/utilization via torch APIs; leave for WMI/psutil
+            data['vram_used'] = 0
+            data['vram_reserved'] = 0
+            data['vram_total'] = 0
+            data['gpu_utilization'] = None
+            data['temperature'] = None
+            data['power_usage'] = None
+            data['clock_speed'] = None
+            data['driver_version'] = ""
+            return data
+
+        # ---- CUDA backend path ----
         # ---- Memory Information (Most Reliable Part) ----
         try:
             # Allocated memory (actual usage by tensors)
@@ -787,7 +843,7 @@ class AMDWindowsProvider(BaseGPUProvider):
 
             # Total memory
             props = torch.cuda.get_device_properties(device_id)
-            data['vram_total'] = props.total_mem // (1024 * 1024)
+            data['vram_total'] = getattr(props, 'total_memory', getattr(props, 'total_mem', 0)) // (1024 * 1024)
 
         except Exception as mem_e:
             logger.debug(f"PyTorch memory query failed: {mem_e}")
@@ -795,7 +851,7 @@ class AMDWindowsProvider(BaseGPUProvider):
             data['vram_reserved'] = 0
             data['vram_total'] = 0
 
-        # ---- GPU Utilization (May Fail on DirectML) ----
+        # ---- GPU Utilization ----
         try:
             util_value = torch.cuda.utilization(device_id)
             data['gpu_utilization'] = float(util_value)
@@ -808,7 +864,7 @@ class AMDWindowsProvider(BaseGPUProvider):
                 data['gpu_utilization'] = min(100, max(0, data['gpu_utilization']))
 
         except Exception as util_e:
-            logger.debug(f"PyTorch utilization query failed (normal on DirectML): {util_e}")
+            logger.debug(f"PyTorch utilization query failed: {util_e}")
             data['gpu_utilization'] = None
 
         # ---- Device Name ----
@@ -1186,7 +1242,7 @@ class AMDWindowsProvider(BaseGPUProvider):
             # Non-Windows fallback
             try:
                 import psutil
-                return psutil.boot_time()
+                return time.time() - psutil.boot_time()
             except Exception:
                 return 0.0
 
@@ -1420,12 +1476,13 @@ class AMDWindowsProvider(BaseGPUProvider):
         Args:
             source_name: Name of the failing data source ('wmi', 'pytorch', etc.)
         """
-        self._consecutive_failures += 1
+        self._source_failures[source_name] = self._source_failures.get(source_name, 0) + 1
+        failures = self._source_failures[source_name]
 
-        if self._consecutive_failures >= self._max_consecutive_failures:
+        if failures >= self._max_consecutive_failures:
             logger.error(
                 f"[DEGRADATION] Data source '{source_name}' has failed "
-                f"{self._consecutive_failures} times consecutively. "
+                f"{failures} times consecutively. "
                 f"Disabling this source to prevent further resource waste."
             )
 
@@ -1436,7 +1493,7 @@ class AMDWindowsProvider(BaseGPUProvider):
                 )
 
             # Reset counter after degradation action
-            self._consecutive_failures = 0
+            self._source_failures[source_name] = 0
 
             # Critical warning if no sources remain
             if len(self._active_sources) == 0:

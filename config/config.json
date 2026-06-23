@@ -2,7 +2,7 @@
   "refresh_interval": 1.0,
   "prediction_enabled": true,
   "ui": {
-    "theme": "cyberpunk-dark",
+    "theme": "neu",
     "position": {"x": 20, "y": 20},
     "show_on_startup": true
   },

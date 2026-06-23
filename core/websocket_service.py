@@ -72,7 +72,7 @@ class FeixueMonitorService:
         Args:
             rate: 初始刷新率（秒），范围 [MIN_RATE, MAX_RATE]
         """
-        self.rate = self._clamp_rate(rate)
+        self._rate = self._clamp_rate(rate)
 
         # 状态标志
         self._stop_event: Optional[asyncio.Event] = None
@@ -92,6 +92,11 @@ class FeixueMonitorService:
         logger.info(
             f"[飞雪] FeixueMonitorService initialized with rate={self.rate}s"
         )
+
+    @property
+    def rate(self) -> float:
+        """当前刷新率（秒），读取线程安全"""
+        return self._rate
 
     async def start_monitor_loop(self) -> None:
         """
@@ -190,11 +195,14 @@ class FeixueMonitorService:
                     f"took {elapsed*1000:.1f}ms"
                 )
 
+        except asyncio.CancelledError:
+            # 任务取消时重新抛出，避免阻止服务正常停止
+            raise
         except Exception as e:
-            # 极端情况下的异常保护
+            # 极端情况下的异常保护：记录错误但不向上抛出，
+            # 确保外层监控循环不会因单次采集/推送失败而退出。
             self._stats['errors'] += 1
-            logger.error(f"[飞雪] 数据采集/推送失败: {e}")
-            raise  # 向上层抛出以触发重试逻辑
+            logger.error(f"[飞雪] 数据采集/推送失败: {e}", exc_info=True)
 
     async def send_message(self, data: Dict[str, Any]) -> bool:
         """
@@ -280,7 +288,7 @@ class FeixueMonitorService:
             service.set_rate(5.0)
         """
         old_rate = self.rate
-        self.rate = self._clamp_rate(rate)
+        self._rate = self._clamp_rate(rate)
 
         logger.info(
             f"[飞雪] 刷新率已调整: {old_rate}s -> {self.rate}s "

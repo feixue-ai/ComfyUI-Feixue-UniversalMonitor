@@ -28,6 +28,7 @@ from __future__ import annotations
 import abc
 import os
 import re
+import threading
 import time
 import logging
 from pathlib import Path
@@ -69,6 +70,7 @@ class BatchSysfsReader:
         self._last_read_time: float = 0.0
         self._read_count: int = 0
         self._cache_hit_count: int = 0
+        self._lock = threading.Lock()  # 保护可变状态
 
     def read_single(self, relative_path: str) -> Optional[str]:
         """
@@ -80,14 +82,15 @@ class BatchSysfsReader:
         Returns:
             File content as string, or None if read fails.
         """
-        now = time.time()
+        with self._lock:
+            now = time.time()
 
-        # Check cache first
-        if relative_path in self._cache:
-            cached_value, cache_time = self._cache[relative_path]
-            if now - cache_time < self._cache_ttl:
-                self._cache_hit_count += 1
-                return cached_value
+            # Check cache first
+            if relative_path in self._cache:
+                cached_value, cache_time = self._cache[relative_path]
+                if now - cache_time < self._cache_ttl:
+                    self._cache_hit_count += 1
+                    return cached_value
 
         # Actual filesystem read
         full_path = self._base_path / relative_path
@@ -95,9 +98,10 @@ class BatchSysfsReader:
             if full_path.exists():
                 with open(full_path, 'r') as f:
                     data = f.read().strip()
-                self._cache[relative_path] = (data, now)
-                self._read_count += 1
-                self._last_read_time = now
+                with self._lock:
+                    self._cache[relative_path] = (data, time.time())
+                    self._read_count += 1
+                    self._last_read_time = time.time()
                 return data
         except (IOError, OSError) as e:
             logger.debug(f"sysfs read error: {full_path}: {e}")
@@ -121,19 +125,21 @@ class BatchSysfsReader:
 
     def invalidate_cache(self) -> None:
         """Clear all cached values."""
-        self._cache.clear()
+        with self._lock:
+            self._cache.clear()
 
     @property
     def cache_stats(self) -> Dict[str, Any]:
         """Return cache performance statistics."""
-        total = self._read_count + self._cache_hit_count
-        hit_rate = self._cache_hit_count / total if total > 0 else 0.0
-        return {
-            "total_reads": self._read_count,
-            "cache_hits": self._cache_hit_count,
-            "hit_rate": round(hit_rate, 3),
-            "cached_keys": len(self._cache),
-        }
+        with self._lock:
+            total = self._read_count + self._cache_hit_count
+            hit_rate = self._cache_hit_count / total if total > 0 else 0.0
+            return {
+                "total_reads": self._read_count,
+                "cache_hits": self._cache_hit_count,
+                "hit_rate": round(hit_rate, 3),
+                "cached_keys": len(self._cache),
+            }
 
 
 # ============================================================================
@@ -329,46 +335,56 @@ class AMDLinuxProvider(BaseGPUProvider):
                 logger.error(f"amdsmi: init timed out or failed: {timeout_result.error}")
                 return False
 
-            # Get processor handles and filter GPU devices
-            handles = amdsmi.amdsmi_get_processor_handles()
-            gpu_handles = []
-            for handle in handles:
-                try:
-                    info = amdsmi.amdsmi_get_processor_info(handle)
-                    if hasattr(info, 'device_type'):
-                        # Check if it's a GPU device
-                        if str(info.device_type).endswith('GPU') or info.device_type == 2:
+            # 初始化成功后，后续任何失败路径都必须执行 shutdown，避免资源泄漏。
+            init_succeeded = False
+            try:
+                # Get processor handles and filter GPU devices
+                handles = amdsmi.amdsmi_get_processor_handles()
+                gpu_handles = []
+                for handle in handles:
+                    try:
+                        info = amdsmi.amdsmi_get_processor_info(handle)
+                        if hasattr(info, 'device_type'):
+                            # Check if it's a GPU device
+                            if str(info.device_type).endswith('GPU') or info.device_type == 2:
+                                gpu_handles.append(handle)
+                        else:
+                            # Fallback: assume all are GPUs if device_type not available
                             gpu_handles.append(handle)
-                    else:
-                        # Fallback: assume all are GPUs if device_type not available
-                        gpu_handles.append(handle)
-                except Exception as e:
-                    logger.debug(f"amdsmi: skipping handle due to error: {e}")
+                    except Exception as e:
+                        logger.debug(f"amdsmi: skipping handle due to error: {e}")
 
-            if not gpu_handles:
-                logger.warning("amdsmi: No GPU devices found")
-                return False
+                if not gpu_handles:
+                    logger.warning("amdsmi: No GPU devices found")
+                    return False
 
-            self._device_count = len(gpu_handles)
-            self._source_instance = {
-                'lib': amdsmi,
-                'gpu_handles': gpu_handles,
-            }
+                self._device_count = len(gpu_handles)
+                self._source_instance = {
+                    'lib': amdsmi,
+                    'gpu_handles': gpu_handles,
+                }
 
-            # Get device names
-            self._device_names = []
-            for i, handle in enumerate(gpu_handles):
-                try:
-                    info = amdsmi.amdsmi_get_processor_info(handle)
-                    name = getattr(info, 'market_name', None) or f"AMD Device {i}"
-                    self._device_names.append(str(name))
-                except Exception:
-                    self._device_names.append(f"AMD Device {i}")
+                # Get device names
+                self._device_names = []
+                for i, handle in enumerate(gpu_handles):
+                    try:
+                        info = amdsmi.amdsmi_get_processor_info(handle)
+                        name = getattr(info, 'market_name', None) or f"AMD Device {i}"
+                        self._device_names.append(str(name))
+                    except Exception:
+                        self._device_names.append(f"AMD Device {i}")
 
-            logger.info(
-                f"amdsmi initialized successfully: {self._device_count} GPU device(s)"
-            )
-            return True
+                logger.info(
+                    f"amdsmi initialized successfully: {self._device_count} GPU device(s)"
+                )
+                init_succeeded = True
+                return True
+            finally:
+                if not init_succeeded:
+                    try:
+                        amdsmi.amdsmi_shutdown()
+                    except Exception:
+                        pass
 
         except ImportError as e:
             logger.error(f"amdsmi: import failed: {e}")
@@ -444,8 +460,8 @@ class AMDLinuxProvider(BaseGPUProvider):
             power_raw = getattr(power_info, 'power_draw', None) or getattr(power_info, 'average_power', None)
             if power_raw is not None:
                 power_float = float(power_raw)
-                # May be in microwatts (>1000) or watts
-                power_usage = power_float / 1_000_000.0 if power_float > 1000 else power_float
+                # May be in microwatts (>=1_000_000) or watts
+                power_usage = power_float / 1_000_000.0 if power_float >= 1_000_000 else power_float
         except Exception as e:
             logger.debug(f"amdsmi: get_power_measurements failed for device {device_id}: {e}")
 
