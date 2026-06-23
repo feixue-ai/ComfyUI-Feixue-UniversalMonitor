@@ -6125,12 +6125,12 @@ body.cyber-active {
                     <stop offset="100%" stop-color="transparent" />
                 </radialGradient>
 
-                <!-- 顶部柔光：大面积温润油脂光，非镜面 -->
+                <!-- 顶部柔光：仅覆盖上半部分，避免底部边缘在暗背景下出现白条虚影 -->
                 <linearGradient id="ind-jade-sheen" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="rgba(255,255,255,0.38)" />
-                    <stop offset="28%" stop-color="rgba(255,255,255,0.12)" />
-                    <stop offset="55%" stop-color="rgba(255,255,255,0.03)" />
-                    <stop offset="100%" stop-color="transparent" />
+                    <stop offset="22%" stop-color="rgba(255,255,255,0.10)" />
+                    <stop offset="45%" stop-color="rgba(255,255,255,0.02)" />
+                    <stop offset="70%" stop-color="transparent" />
                 </linearGradient>
 
                 <!-- 蜡质高光：软边、低对比，更接近玉的温润 -->
@@ -6178,8 +6178,8 @@ body.cyber-active {
             <!-- 云絮纹理层：增加天然棉絮/杂质感 -->
             <use href="#ind-bamboo-shape" fill="url(#ind-jade-cyl)" filter="url(#ind-jade-texture)" opacity="0.45" />
 
-            <!-- 顶部柔光：温润油脂反光 -->
-            <rect x="0" y="0" width="1000" height="96" fill="url(#ind-jade-sheen)" clip-path="url(#ind-bamboo-clip)" opacity="0.65" />
+            <!-- 顶部柔光：温润油脂反光，rect 高度缩短到底部 75% 处，避免暗背景底部白条 -->
+            <rect x="0" y="0" width="1000" height="72" fill="url(#ind-jade-sheen)" clip-path="url(#ind-bamboo-clip)" opacity="0.65" />
 
             <!-- 蜡质高光：柔和光斑 -->
             <ellipse cx="280" cy="20" rx="240" ry="12" fill="url(#ind-jade-spec)" opacity="0.38" />
