@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.29-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-3.29.1-red" alt="Version" />
   <img src="https://img.shields.io/badge/Styles-5_Colors_%C3%97_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
@@ -20,7 +20,7 @@
 
 ## Preview
 
-![Feixue Universal Monitor Premium UI v3.29](screenshot.png)
+![Feixue Universal Monitor Premium UI v3.29.1](screenshot.png)
 
 > The screenshot above shows the Premium UI **Neu** style monitor bar — a white neumorphic design with medical-instrument-style recessed windows, precise groove bases, and soft embossed shadows. It displays six real-time metrics: GPU / VRAM / CPU / RAM / SWAP / TEMP.
 >
@@ -116,7 +116,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # Configuration management
 ├── fxm_utils/               # Platform detection, thread safety, performance optimization
 ├── web/
-│   └── extension.js         # Frontend UI (Premium UI v3.29)
+│   └── extension.js         # Frontend UI (Premium UI v3.29.1)
 ├── docs/
 │   └── index.html           # Online appearance demo (GitHub Pages)
 └── tests/                   # Unit tests
@@ -149,7 +149,7 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.29 — Zero-Dependency Native Monitoring Refactor (Current)
+### v3.29.1 — Zero-Dependency Native Monitoring Refactor (Current)
 
 - **Zero pip dependency on Windows**: GPU monitoring now uses native driver DLLs — `atiadlxx.dll` for AMD, `nvml.dll` for NVIDIA, and `pdh.dll` as a system-level fallback
 - **Removed inaccurate legacy methods**: WMI and `pynvml-amd-windows` fallbacks have been completely removed
@@ -158,7 +158,7 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 - **Data source quality indicator**: Added `data_source_quality` field (`full` / `limited` / `minimal`) and one-time log warnings when running in fallback mode
 - **WebSocket delta crash fix**: Fixed `KeyError: 'percent'` in `_dict_delta` caused by missing fan-speed data
 - **Icon refresh**: Updated ComfyUI registry icon and added promotional poster asset
-- **Version unification**: All code, panel, package metadata, and snapshot format unified to v3.29
+- **Version unification**: All code, panel, package metadata, and snapshot format unified to v3.29.1
 
 ### v3.28 — Smart Memory Cleanup + Stability Hardening
 

@@ -9,10 +9,10 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 - WebSocket / HTTP 双通道实时数据推送
 
 作者: Feixue Team
-版本: 3.29 (Zero-Dependency Native Monitoring)
+版本: 3.29.1 (Zero-Dependency Native Monitoring)
 """
 
-__version__ = "3.29"
+__version__ = "3.29.1"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -20,7 +20,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.29 零依赖原生硬件监测)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.29.1 零依赖原生硬件监测)")
 
 # ============================================================================
 # 获取插件根目录（用于导入 core 模块）
