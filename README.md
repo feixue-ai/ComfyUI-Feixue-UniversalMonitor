@@ -149,7 +149,14 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.29.2 — Zero-Dependency Native Monitoring Refactor (Current)
+### v3.30 — PDH VRAM Fix + Capsule Bounce Fix (Current)
+
+- **VRAM display fix (Windows AMD)**: Fixed PDH counter enumeration bug — `PdhEnumObjectItemsW` first call returns `PDH_MORE_DATA` which was incorrectly treated as failure, causing VRAM to always show 0. Now correctly handles the two-call enumeration pattern
+- **Unicode buffer parsing fix**: Replaced `instance_buf.raw` (not available on `create_unicode_buffer`) with character-by-character iteration for proper instance name parsing
+- **Capsule bounce fix**: Changed `.fx-capsule-dock` CSS transition from `all 0.4s ease` to `box-shadow, border-color` to prevent container size animation during high-load data updates
+- **Version unification**: All code, panel, package metadata, and snapshot format unified to v3.30
+
+### v3.29.2 — Zero-Dependency Native Monitoring Refactor
 
 - **Zero pip dependency on Windows**: GPU monitoring now uses native driver DLLs — `atiadlxx.dll` for AMD, `nvml.dll` for NVIDIA, and `pdh.dll` as a system-level fallback
 - **Removed inaccurate legacy methods**: WMI and `pynvml-amd-windows` fallbacks have been completely removed

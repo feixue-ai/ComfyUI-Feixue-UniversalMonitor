@@ -21,8 +21,11 @@ Author: Feixue Team
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import platform
+import re
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from collectors.base import BaseGPUProvider
@@ -159,13 +162,21 @@ class AMDADLXProvider(BaseGPUProvider):
         temperature = self._read_metric(metrics, "GPUTemperature", "GPUTemperature")
         power = self._read_metric(metrics, "GPUPower", "GPUChipPower")
 
-        vram_used, vram_total = self._read_vram(metrics)
+        # ADLX VRAM 数据（如果可用）
+        adlx_vram_used, adlx_vram_total = self._read_vram(metrics)
 
-        # PyTorch VRAM 作为补充校验
-        torch_total, torch_used = self._get_pytorch_vram(device_id)
-        if torch_total > 0:
-            vram_total = torch_total
-        if torch_used > 0:
+        # VRAM 总量：优先 ADLX，回退 PyTorch 设备属性
+        torch_total, _ = self._get_pytorch_vram(device_id)
+        vram_total = adlx_vram_total if adlx_vram_total else torch_total
+
+        # VRAM 已用：优先 PDH 系统计数器（真实占用），其次 ADLX，最后 PyTorch
+        pdh_vram = self._get_pdh_vram_used(device_id)
+        if pdh_vram is not None:
+            vram_used = pdh_vram
+        elif adlx_vram_used is not None:
+            vram_used = adlx_vram_used
+        else:
+            _, torch_used = self._get_pytorch_vram(device_id)
             vram_used = torch_used
 
         return GPUMetrics(
@@ -251,6 +262,130 @@ class AMDADLXProvider(BaseGPUProvider):
                 continue
 
         return vram_used_mb, vram_total_mb
+
+    def _get_pdh_vram_used(self, device_id: int) -> Optional[int]:
+        """通过 PDH 系统计数器获取 VRAM 占用（MB）。
+
+        枚举 GPU Process Memory 的所有实例，用 pid(\\d+)_phys_(\\d+) 正则
+        匹配出属于 device_id 对应物理 GPU 的实例，查询 Dedicated Usage 并求和。
+        """
+        if platform.system() != "Windows":
+            return None
+
+        try:
+            pdh = ctypes.CDLL("pdh.dll")
+
+            # ---- 1. 枚举 GPU Process Memory 的所有实例名 ----
+            PDH_MORE_DATA = 0x800007D2
+
+            counter_size = ctypes.c_ulong(0)
+            instance_size = ctypes.c_ulong(0)
+
+            # 第一次调用：获取所需缓冲区大小（返回 PDH_MORE_DATA 是正常的）
+            pdh.PdhEnumObjectItemsW(
+                None, None, "GPU Process Memory",
+                None, ctypes.byref(counter_size),
+                None, ctypes.byref(instance_size),
+                0, 0,
+            )
+
+            if instance_size.value == 0:
+                return None
+
+            instance_buf = ctypes.create_unicode_buffer(instance_size.value)
+            counter_buf = ctypes.create_unicode_buffer(counter_size.value if counter_size.value > 0 else 1)
+
+            status = pdh.PdhEnumObjectItemsW(
+                None, None, "GPU Process Memory",
+                counter_buf, ctypes.byref(counter_size),
+                instance_buf, ctypes.byref(instance_size),
+                0, 0,
+            )
+            if status != 0:
+                return None
+
+            # 解析多字符串（以 \0 分隔，以 \0\0 结尾）
+            instances: list[str] = []
+            i = 0
+            buf_len = len(instance_buf)
+            while i < buf_len:
+                end = i
+                while end < buf_len and instance_buf[end] != '\0':
+                    end += 1
+                if end == i:
+                    break
+                instances.append(instance_buf[i:end])
+                i = end + 1
+
+            if not instances:
+                return None
+
+            # ---- 2. 按 phys_(\d+) 筛选 device_id 对应的实例 ----
+            inst_re = re.compile(r'phys_(\d+)')
+            device_instances: list[str] = []
+            for inst in instances:
+                m = inst_re.search(inst)
+                if m and int(m.group(1)) == device_id:
+                    device_instances.append(inst)
+
+            if not device_instances:
+                return None
+
+            # ---- 3. 打开 PDH 查询，添加计数器 ----
+            query = ctypes.c_void_p()
+            status = pdh.PdhOpenQueryW(None, 0, ctypes.byref(query))
+            if status != 0:
+                return None
+
+            try:
+                counter_handles: list[ctypes.c_void_p] = []
+                for inst in device_instances:
+                    path = f"\\GPU Process Memory({inst})\\Dedicated Usage"
+                    handle = ctypes.c_void_p()
+                    st = pdh.PdhAddCounterW(query, path, 0, ctypes.byref(handle))
+                    if st == 0:
+                        counter_handles.append(handle)
+
+                if not counter_handles:
+                    return None
+
+                # ---- 4. 两次采样（间隔 0.05s） ----
+                status = pdh.PdhCollectQueryData(query)
+                if status != 0:
+                    return None
+
+                time.sleep(0.05)
+
+                status = pdh.PdhCollectQueryData(query)
+                if status != 0:
+                    return None
+
+                # ---- 5. 读取每个计数器的值并求和 ----
+                PDH_FMT_DOUBLE = 0x00000200
+
+                class PDH_FMT_COUNTERVALUE(ctypes.Structure):
+                    _fields_ = [
+                        ("CStatus", ctypes.c_ulong),
+                        ("doubleValue", ctypes.c_double),
+                    ]
+
+                total_bytes = 0.0
+                for handle in counter_handles:
+                    value = PDH_FMT_COUNTERVALUE()
+                    st = pdh.PdhGetFormattedCounterValue(
+                        handle, PDH_FMT_DOUBLE, None, ctypes.byref(value),
+                    )
+                    if st == 0 and value.CStatus == 0:
+                        total_bytes += value.doubleValue
+
+                # 字节 → MB
+                return int(total_bytes / (1024 * 1024))
+
+            finally:
+                pdh.PdhCloseQuery(query)
+
+        except Exception:
+            return None
 
     def _extract_gpu_list(self, gpu_holder: Any) -> List[Any]:
         """从 GPUHolder / GPUList 对象中提取 GPU 实例列表。"""

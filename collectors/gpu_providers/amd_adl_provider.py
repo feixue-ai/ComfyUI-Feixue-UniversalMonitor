@@ -20,8 +20,11 @@ Author: Feixue Team
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import platform
+import re
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from collectors.base import BaseGPUProvider
@@ -270,6 +273,7 @@ class AMDADLProvider(BaseGPUProvider):
         super().__init__(name="amd-adl", priority=0, config=config)
         self._adl: Optional[_ADLWrapper] = None
         self._adapters: List[Dict[str, Any]] = []
+        self._pdh_vram_cache: Optional[Dict[int, List[str]]] = None
 
     @property
     def priority(self) -> int:
@@ -334,6 +338,131 @@ class AMDADLProvider(BaseGPUProvider):
             return self._device_names[device_id]
         return f"AMD GPU {device_id}"
 
+    def _get_pdh_vram_used(self, device_id: int) -> Optional[int]:
+        """通过 PDH 系统计数器获取真实 VRAM 已用量（MB）。"""
+        try:
+            if platform.system() != "Windows":
+                return None
+
+            # 加载 pdh.dll
+            pdh = ctypes.CDLL("pdh.dll")
+
+            # 枚举 GPU Process Memory 实例（使用缓存避免重复枚举）
+            if self._pdh_vram_cache is None:
+                PdhEnumObjectItemsW = pdh.PdhEnumObjectItemsW
+
+                counter_size = ctypes.c_ulong(0)
+                instance_size = ctypes.c_ulong(0)
+
+                # 第一次调用获取缓冲区大小
+                ret = PdhEnumObjectItemsW(
+                    None, None, "GPU Process Memory",
+                    None, ctypes.byref(counter_size),
+                    None, ctypes.byref(instance_size),
+                    0, 0
+                )
+
+                if instance_size.value == 0:
+                    return None
+
+                # 实例名缓冲区
+                instance_buf = ctypes.create_unicode_buffer(instance_size.value)
+                counter_buf = ctypes.create_unicode_buffer(counter_size.value)
+
+                ret = PdhEnumObjectItemsW(
+                    None, None, "GPU Process Memory",
+                    counter_buf, ctypes.byref(counter_size),
+                    instance_buf, ctypes.byref(instance_size),
+                    0, 0
+                )
+
+                if ret != 0:
+                    return None
+
+                # 解析 MULTI_SZ 格式的实例名列表
+                instances: List[str] = []
+                i = 0
+                buf_len = len(instance_buf)
+                while i < buf_len:
+                    end = i
+                    while end < buf_len and instance_buf[end] != "\0":
+                        end += 1
+                    if end == i:
+                        break
+                    instances.append(instance_buf[i:end])
+                    i = end + 1
+
+                # 按 phys_N 分组（与 windows_pdh_provider.py 一致）
+                groups: Dict[int, List[str]] = {}
+                for inst in instances:
+                    m = re.search(r"_phys_(\d+)", inst)
+                    if m:
+                        idx = int(m.group(1))
+                    else:
+                        idx = 0
+                    groups.setdefault(idx, []).append(inst)
+
+                self._pdh_vram_cache = groups
+
+            # 获取 device_id 对应的实例列表
+            target_instances = self._pdh_vram_cache.get(device_id, [])
+            if not target_instances:
+                return None
+
+            # 查询每个实例的 Dedicated Usage 计数器（使用单个 query，批量添加 counter）
+            PdhOpenQueryW = pdh.PdhOpenQueryW
+            PdhAddCounterW = pdh.PdhAddCounterW
+            PdhCollectQueryData = pdh.PdhCollectQueryData
+            PdhGetFormattedCounterValue = pdh.PdhGetFormattedCounterValue
+            PdhCloseQuery = pdh.PdhCloseQuery
+
+            class PDH_FMT_COUNTERVALUE(ctypes.Structure):
+                _fields_ = [("CStatus", ctypes.c_ulong), ("doubleValue", ctypes.c_double)]
+
+            query = ctypes.c_void_p()
+            ret = PdhOpenQueryW(None, None, ctypes.byref(query))
+            if ret != 0:
+                return None
+
+            counters: List[ctypes.c_void_p] = []
+            try:
+                for inst in target_instances:
+                    counter_path = f"\\GPU Process Memory({inst})\\Dedicated Usage"
+                    counter = ctypes.c_void_p()
+                    ret = PdhAddCounterW(query, counter_path, None, ctypes.byref(counter))
+                    if ret == 0:
+                        counters.append(counter)
+
+                if not counters:
+                    return None
+
+                # 第一次采集建立基线
+                PdhCollectQueryData(query)
+                time.sleep(0.05)
+                # 第二次采集获取实际值
+                PdhCollectQueryData(query)
+
+                total_bytes = 0.0
+                has_value = False
+                for counter in counters:
+                    value = PDH_FMT_COUNTERVALUE()
+                    ret = PdhGetFormattedCounterValue(counter, 0x00000200, None, ctypes.byref(value))
+                    if ret == 0 and value.CStatus == 0:
+                        total_bytes += value.doubleValue
+                        has_value = True
+
+                if not has_value:
+                    return None
+
+                # 转换为 MB
+                return int(total_bytes / (1024 * 1024))
+            finally:
+                PdhCloseQuery(query)
+
+        except Exception as e:
+            logger.debug("amd-adl: PDH VRAM read failed: %s", e)
+            return None
+
     def get_metrics(self, device_id: int = 0) -> GPUMetrics:
         if not self._initialized or device_id >= len(self._adapters) or self._adl is None:
             return GPUMetrics(
@@ -350,10 +479,17 @@ class AMDADLProvider(BaseGPUProvider):
         gpu_util = self._adl.get_activity(adapter_index)
         temperature = self._adl.get_temperature(adapter_index)
 
-        # ADL 不直接暴露精确的已用 VRAM；用 PyTorch 补充。
-        torch_total, torch_used = self._get_pytorch_vram(device_id)
+        # VRAM 总量：PyTorch 设备属性（物理显存大小，准确）
+        torch_total, _ = self._get_pytorch_vram(device_id)
         vram_total = torch_total
-        vram_used = torch_used
+
+        # VRAM 已用：优先 PDH 系统计数器（真实占用），回退 PyTorch
+        pdh_vram = self._get_pdh_vram_used(device_id)
+        if pdh_vram is not None:
+            vram_used = pdh_vram
+        else:
+            _, torch_used = self._get_pytorch_vram(device_id)
+            vram_used = torch_used
 
         return GPUMetrics(
             gpu_utilization=float(gpu_util or 0),
