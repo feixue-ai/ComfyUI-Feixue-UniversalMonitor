@@ -34,10 +34,9 @@ from core.data_models import (
     DataCollectionError,
     GPUMetrics,
     MonitorError,
-    PredictionResult,
     RAMMetrics,
 )
-from utils.thread_safe import execute_with_timeout, retry_on_failure
+from fxm_utils.thread_safe import execute_with_timeout, retry_on_failure
 
 
 # ============================================================================
@@ -145,8 +144,7 @@ class BaseCollector(abc.ABC, Generic[T]):
         ├── CPUCollector(BaseCollector[CPUMetrics])
         ├── RAMCollector(BaseCollector[RAMMetrics])
         ├── GPUCollector(BaseCollector[List[GPUMetrics]])
-        ├── PowerCollector(BaseCollector[Dict[int, float]])
-        └── Predictor(BaseCollector[PredictionResult])
+        └── PowerCollector(BaseCollector[Dict[int, float]])
     """
 
     def __init__(
@@ -519,43 +517,6 @@ class PowerCollector(BaseCollector[Dict[int, float]]):
         ...
 
 
-class Predictor(BaseCollector[PredictionResult]):
-    """
-    显存溢出预测器。
-
-    继承 BaseCollector[PredictionResult]，
-    同时提供 predict() 方法以显式传入工作流信息。
-
-    与其他采集器的区别：
-    - 其他采集器是被动读取硬件状态
-    - Predictor 是主动预测未来资源需求
-    """
-
-    @abc.abstractmethod
-    def predict(
-        self, workflow_info: Optional[Dict[str, Any]] = None
-    ) -> PredictionResult:
-        """
-        执行显存溢出预测。
-
-        Args:
-            workflow_info: 工作流上下文信息，包含模型列表、分辨率等
-
-        Returns:
-            预测结果，包含成功率预估和风险等级
-        """
-        ...
-
-    @abc.abstractmethod
-    def collect(self) -> PredictionResult:
-        """
-        执行预测（兼容 BaseCollector 接口）。
-
-        使用默认的工作流信息或上次缓存的信息进行预测。
-        """
-        ...
-
-
 # ============================================================================
 # 2. BaseGPUProvider - GPU 数据提供者抽象基类（连接会话模式）
 # ============================================================================
@@ -614,12 +575,22 @@ class BaseGPUProvider(abc.ABC):
             raise ValueError("Provider name must be a non-empty string")
 
         self.name = name
-        self.priority = priority
+        self._priority = priority
         self.config = config or {}
         self.logger = logging.getLogger(f"{__name__}.{name}")
         self._initialized: bool = False
         self._device_count: int = 0
         self._device_names: List[str] = []
+
+    @property
+    def priority(self) -> int:
+        """
+        Provider 优先级（数值越小优先级越高）。
+
+        Returns:
+            优先级整数值
+        """
+        return self._priority
 
     # ----- 生命周期管理（抽象方法）-----
 
@@ -664,26 +635,41 @@ class BaseGPUProvider(abc.ABC):
     # ----- 核心指标查询（抽象方法）-----
 
     @abc.abstractmethod
+    def get_metrics(self, device_id: int = 0) -> GPUMetrics:
+        """
+        一次性采集指定 GPU 的完整指标。
+
+        这是 Provider 的核心采集接口，子类必须实现或依赖下面的
+        细粒度方法默认实现。推荐高性能/低延迟场景直接覆写此方法，
+        避免多次库调用。
+
+        Args:
+            device_id: GPU 设备 ID（从 0 开始）
+
+        Returns:
+            完整的 GPUMetrics 对象
+        """
+        ...
+
     def get_gpu_utilization(self, device_id: int = 0) -> float:
         """
         获取 GPU 利用率。
+
+        默认实现从 get_metrics() 提取。子类可覆写以提供更高效的查询。
 
         Args:
             device_id: GPU 设备 ID（从 0 开始）
 
         Returns:
             GPU 计算单元利用率百分比 (0.0-100.0)
-
-        Raises:
-            DeviceNotFoundError: device_id 超出有效范围
-            DataCollectionError: 数据读取失败
         """
-        ...
+        return self.get_metrics(device_id).gpu_utilization
 
-    @abc.abstractmethod
     def get_memory_info(self, device_id: int = 0) -> Dict[str, int]:
         """
         获取显存信息。
+
+        默认实现从 get_metrics() 提取。
 
         Args:
             device_id: GPU 设备 ID
@@ -698,32 +684,33 @@ class BaseGPUProvider(abc.ABC):
                     'total': int,  # 总显存 (MB)
                     'free': int    # 空闲显存 (MB)
                 }
-
-        Raises:
-            DeviceNotFoundError: device_id 超出有效范围
         """
-        ...
+        metrics = self.get_metrics(device_id)
+        return {
+            "used": metrics.vram_used,
+            "total": metrics.vram_total,
+            "free": max(0, metrics.vram_total - metrics.vram_used),
+        }
 
-    @abc.abstractmethod
     def get_temperature(self, device_id: int = 0) -> Optional[float]:
         """
         获取核心温度。
+
+        默认实现从 get_metrics() 提取。
 
         Args:
             device_id: GPU 设备 ID
 
         Returns:
             核心温度 (°C)，如果不支持温度读取则返回 None
-
-        Note:
-            某些集成显卡或旧驱动可能不支持温度传感器
         """
-        ...
+        return self.get_metrics(device_id).temperature
 
-    @abc.abstractmethod
     def get_power_usage(self, device_id: int = 0) -> Optional[Dict[str, float]]:
         """
         获取功耗信息。
+
+        默认实现从 get_metrics() 提取。
 
         Args:
             device_id: GPU 设备 ID
@@ -738,7 +725,10 @@ class BaseGPUProvider(abc.ABC):
                     'limit': float,    # 功耗上限 (W)，可能不存在
                 }
         """
-        ...
+        power = self.get_metrics(device_id).power_usage
+        if power is None:
+            return None
+        return {"current": power, "limit": 0.0}
 
     # ----- 设备信息查询（可覆写的默认实现）-----
 
@@ -1028,7 +1018,7 @@ class CollectorRegistry:
 
     def get_best_gpu_provider(self) -> Optional[BaseGPUProvider]:
         """
-        获取最佳可用 GPU Provider。
+        获取最佳可用 GPU Provider（仅检查已初始化状态）。
 
         选择逻辑：
         1. 遍历所有已注册 Provider（按优先级排序）
@@ -1041,6 +1031,34 @@ class CollectorRegistry:
         for provider in self._gpu_providers:
             if provider.is_available():
                 return provider
+        return None
+
+    def select_best_gpu_provider(self) -> Optional[BaseGPUProvider]:
+        """
+        按优先级尝试初始化并选择第一个可用的 GPU Provider。
+
+        与 get_best_gpu_provider 不同，此方法会主动调用每个 Provider 的
+        initialize()，从而完成数据源探测。初始化失败的 Provider 会被安全关闭。
+
+        Returns:
+            最佳可用 Provider 实例，或 None（当无可用 Provider 时）
+        """
+        for provider in self._gpu_providers:
+            try:
+                if not provider.is_available():
+                    provider.initialize()
+                if provider.is_available():
+                    return provider
+            except Exception as e:
+                self._logger.debug(
+                    "Provider '%s' initialization/selection failed: %s",
+                    provider.name,
+                    e,
+                )
+                try:
+                    provider.shutdown()
+                except Exception:
+                    pass
         return None
 
     def get_all_gpu_providers(self) -> List[BaseGPUProvider]:

@@ -26,21 +26,32 @@ FeixueHardwareInfo - 飞雪监测器简化版数据采集引擎
     }]
 }
 
-Version: 2.1.0 (v10.0 Gemstone Capsule Support)  # [v10.0-fix] 版本号升级至2.1.0
+Version: 3.29 (Zero-Dependency Native Monitoring)
 Author: Feixue Team
 """
 
 from __future__ import annotations
 
-import concurrent.futures
 import logging
-import os
 import platform
 import re
 import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from collectors.base import BaseGPUProvider, CollectorRegistry
+from collectors.gpu_providers import (
+    AMDADLProvider,
+    AMDADLXProvider,
+    AmdRocmProvider,
+    AmdSmiProvider,
+    AmdSysfsProvider,
+    NvidiaNvmlProvider,
+    NvidiaProvider,
+    WindowsPdhProvider,
+)
+from core.data_models import GPUMetrics
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -161,10 +172,40 @@ class FeixueHardwareInfo:
     SOURCE_PRIORITY = ['amdsmi', 'rocm_smi', 'sysfs']
 
     # 平台感知的数据源优先级（Windows自动切换）
-    _SOURCE_PRIORITY_LINUX = ['amdsmi', 'rocm_smi', 'sysfs']
-    # Windows: amdsmi 是 Linux 专用（依赖 libamd_smi.so），
-    # pynvml-amd-windows 通过 ADLX 提供等价功能，已集成在 windows_wmi 采集器中
-    _SOURCE_PRIORITY_WINDOWS = ['windows_wmi']
+    # Linux: AMD 官方 amdsmi 优先；NVIDIA 系统会自然 fallback 到 nvidia_nvml。
+    # nvidia_nvml 放在 sysfs 之前，确保 N 卡优先使用驱动原生接口而非 sysfs 兜底。
+    _SOURCE_PRIORITY_LINUX = ['amdsmi', 'rocm_smi', 'nvidia_nvml', 'sysfs']
+    # Windows: 优先 ctypes 原生零依赖方案，其次可选 PyPI 包，最后 PDH 系统计数器兜底。
+    # 不再降级到 WMI/wmic/pynvml-amd-windows 等不准确方案。
+    _SOURCE_PRIORITY_WINDOWS = ['amd_adl', 'nvidia_nvml', 'amd_adlx', 'windows_pdh']
+
+    # 数据源质量分级：用于向用户说明当前数据的可靠程度
+    # full    = 驱动原生接口，数据完整准确
+    # limited = 系统/半原生接口，可能缺少温度/功耗/风扇等部分指标
+    # minimal = 兜底接口，仅保证核心利用率与显存可用，其余指标缺失
+    _SOURCE_QUALITY = {
+        'amdsmi': 'full',
+        'rocm_smi': 'full',
+        'nvidia_nvml': 'full',
+        'amd_adl': 'full',
+        'amd_adlx': 'full',
+        'sysfs': 'limited',
+        'windows_pdh': 'minimal',
+    }
+
+    # 各质量等级的用户提示（首次命中时打印一次）
+    _SOURCE_QUALITY_HINTS = {
+        'limited': (
+            "当前使用 sysfs 原生接口监控 GPU，利用率/显存准确，"
+            "但温度、功耗、风扇转速可能缺失。"
+            "如需完整指标，请安装对应显卡驱动或 ROCm/amdsmi 系统库。"
+        ),
+        'minimal': (
+            "当前使用 Windows PDH 系统计数器监控 GPU，仅能提供利用率与显存占用，"
+            "温度、功耗、风扇转速不可用。"
+            "如需完整指标，请确保 AMD/NVIDIA 显卡驱动正确安装。"
+        ),
+    }
 
     @property
     def _effective_source_priority(self) -> List[str]:
@@ -176,7 +217,7 @@ class FeixueHardwareInfo:
 
     # 超时配置
     INIT_TIMEOUT = 5.0      # 初始化超时
-    COLLECT_TIMEOUT = 8.0   # 单次采集超时（torch 首次导入 + PowerShell 子进程可能需要更长时间）
+    COLLECT_TIMEOUT = 8.0   # 单次采集超时
 
     # sysfs 基础路径
     SYSFS_DRM_BASE = Path("/sys/class/drm")
@@ -186,23 +227,18 @@ class FeixueHardwareInfo:
         """初始化硬件信息采集器"""
         self._lock = threading.Lock()
 
-        # GPU 数据源状态
+        # GPU Provider 状态（由 CollectorRegistry 自动选择）
         self._active_source: Optional[str] = None
-        self._source_instance: Any = None
+        self._gpu_provider: Optional[BaseGPUProvider] = None
         self._device_count: int = 0
         self._device_names: List[str] = []
-        self._device_path: Optional[Path] = None  # sysfs 设备路径
+
+        # 数据源质量提示仅打印一次，避免刷屏
+        self._source_quality_hint_logged: bool = False
 
         # 缓存数据（用于异常降级）
         self._cached_gpu_data: Optional[Dict[str, Any]] = None
         self._last_success_time: float = 0.0
-
-        # pynvml 持久化状态（Windows，避免每次 snapshot 都 init/shutdown 导致数据抖动）
-        self._pynvml_available: bool = False
-        self._pynvml_handles: List[Any] = []
-        self._pynvml_lock = threading.Lock()
-        self._pynvml_is_nvidia: bool = False  # 【v3.2.3 新增】标记是否为 NVIDIA 原生
-        self._pynvml_lib: Any = None  # 【v3.2.3 新增】保存 pynvml 库引用（用于 nvidia-ml-py）
 
         # 磁盘/网络IO差值计算状态
         self._prev_disk_io: Any = None
@@ -210,7 +246,7 @@ class FeixueHardwareInfo:
         self._prev_disk_time: float = 0.0
         self._prev_net_time: float = 0.0
 
-        # AMD SMI 数值平滑（EMA 指数移动平均，解决 gfx_activity 瞬时跳动问题）
+        # GPU 数值平滑（EMA 指数移动平均，解决 gfx_activity 瞬时跳动问题）
         self._ema_gpu_util: float = 0.0      # GPU 利用率平滑值
         self._ema_gpu_temp: float = 0.0       # 温度平滑值
         self._ema_alpha: float = 0.25          # 平滑因子（越小越平滑，响应越慢）
@@ -235,13 +271,25 @@ class FeixueHardwareInfo:
         for source in self._effective_source_priority:
             if self._try_init_source(source):
                 self._active_source = source
+                quality = self._SOURCE_QUALITY.get(source, 'unknown')
                 logger.info(
-                    f"FeixueHardwareInfo: initialized with source={source}, "
-                    f"device_count={self._device_count}"
+                    f"FeixueHardwareInfo: initialized with source={source} "
+                    f"(quality={quality}), device_count={self._device_count}"
                 )
+                self._log_source_quality_hint(source, quality)
                 return
 
         logger.warning("FeixueHardwareInfo: no GPU data source available, GPU monitoring disabled")
+
+    def _log_source_quality_hint(self, source: str, quality: str) -> None:
+        """当使用有限/兜底数据源时，向用户打印一次性提示"""
+        if self._source_quality_hint_logged:
+            return
+        if quality not in self._SOURCE_QUALITY_HINTS:
+            return
+        hint = self._SOURCE_QUALITY_HINTS[quality]
+        logger.warning(f"[飞雪监测器] {hint} (source={source})")
+        self._source_quality_hint_logged = True
 
     def _try_init_source(self, source: str) -> bool:
         """尝试初始化单个数据源"""
@@ -252,8 +300,16 @@ class FeixueHardwareInfo:
                 return self._init_rocm_smi()
             elif source == 'sysfs':
                 return self._init_sysfs()
-            elif source == 'windows_wmi':
-                return self._init_windows_wmi()
+            elif source == 'amd_adl':
+                return self._init_amd_adl()
+            elif source == 'amd_adlx':
+                return self._init_amd_adlx()
+            elif source == 'nvidia_nvml':
+                return self._init_nvidia_nvml()
+            elif source == 'nvidia':
+                return self._init_nvidia()
+            elif source == 'windows_pdh':
+                return self._init_windows_pdh()
             else:
                 logger.warning(f"Unknown source: {source}")
                 return False
@@ -474,241 +530,40 @@ class FeixueHardwareInfo:
         logger.info(f"sysfs initialized: {self._device_count} GPU(s)")
         return True
 
-    # ------------------------------------------------------------------
-    # Windows WMI 数据源（纯新增，不影响Linux任何代码）
-    # ------------------------------------------------------------------
-
-    def _init_windows_wmi(self) -> bool:
-        """
-        初始化 Windows GPU 数据源。
-
-        按优先级尝试检测 AMD GPU：
-        1. pynvml (pynvml-amd-windows) — 最准确、最实时，驱动级接口
-        2. Python wmi 包 (pip install wmi)
-        3. subprocess wmic 命令行 (零依赖，Windows 内置)
-        """
+    def _init_amd_adlx(self) -> bool:
+        """初始化 Windows AMD ADLX 原生驱动级数据源。"""
         import platform
         if platform.system() != 'Windows':
             return False
 
-        # ---- 方式1: pynvml 直接初始化（最优，驱动级实时数据）----
-        self._init_pynvml()
-        if self._pynvml_available and self._pynvml_handles:
-            self._device_count = len(self._pynvml_handles)
-            self._device_names = []
-            for i, handle in enumerate(self._pynvml_handles):
-                try:
-                    import pynvml
-                    raw_name = pynvml.nvmlDeviceGetName(handle)
-                    name = raw_name.decode('utf-8') if isinstance(raw_name, bytes) else str(raw_name)
-                    self._device_names.append(name)
-                except Exception:
-                    self._device_names.append(f"GPU {i}")
-            self._source_instance = {
-                'type': 'pynvml_direct',
-                'gpus': [{'name': n, 'adapter_ram_bytes': 0} for n in self._device_names],
-            }
-            logger.info(f"windows_wmi (pynvml) initialized: {self._device_count} GPU(s): "
-                       f"{', '.join(self._device_names)}")
+        provider = AMDADLXProvider()
+        if provider.initialize():
+            self._gpu_provider = provider
+            self._device_count = provider.get_device_count()
+            self._device_names = [provider.get_device_name(i) for i in range(self._device_count)]
+            self._source_instance = 'amd_adlx'
+            logger.info(
+                f"amd_adlx initialized: {self._device_count} GPU(s): "
+                f"{', '.join(self._device_names)}"
+            )
             return True
 
-        # ---- 方式2: Python wmi 包（降级）----
-        amd_gpus = []
-
-        try:
-            import wmi
-            c = wmi.WMI()
-
-            for gpu in c.Win32_VideoController():
-                name = (gpu.Name or '').upper()
-                adapter_ram = gpu.AdapterRAM or 0
-                if isinstance(adapter_ram, int) and adapter_ram < 0:
-                    adapter_ram = adapter_ram & 0xFFFFFFFF
-                if 'AMD' in name or 'RADEON' in name or 'ATI' in name:
-                    amd_gpus.append({
-                        'name': gpu.Name or 'AMD GPU',
-                        'adapter_ram_bytes': adapter_ram,
-                    })
-
-            if not amd_gpus:
-                for gpu in c.Win32_VideoController():
-                    if 'AMD' in (gpu.Name or '').upper() or \
-                       'RADEON' in (gpu.Name or '').upper():
-                        adapter_ram = gpu.AdapterRAM or 0
-                        if isinstance(adapter_ram, int) and adapter_ram < 0:
-                            adapter_ram = adapter_ram & 0xFFFFFFFF
-                        amd_gpus.append({
-                            'name': gpu.Name or 'AMD APU',
-                            'adapter_ram_bytes': adapter_ram,
-                        })
-                        break
-
-            if amd_gpus:
-                self._device_names = [g['name'] for g in amd_gpus]
-                self._device_count = len(amd_gpus)
-                self._source_instance = {
-                    'type': 'wmi',
-                    'gpus': amd_gpus,
-                }
-                logger.info(f"windows_wmi (wmi fallback) initialized: {self._device_count} AMD GPU(s): "
-                           f"{', '.join(self._device_names)}")
-                return True
-
-        except ImportError:
-            logger.debug("windows_wmi: wmi module not available, trying wmic fallback...")
-        except Exception as e:
-            logger.debug(f"windows_wmi init via wmi package failed: {e}, trying wmic fallback...")
-
-        # ---- 方式3: subprocess wmic 命令行（最后兜底）----
-        try:
-            import subprocess
-            result = subprocess.run(
-                ['wmic', 'path', 'win32_videocontroller', 'get', 'name,adapterram'],
-                capture_output=True, text=True, timeout=5,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0,
-            )
-
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                for line in lines[1:]:
-                    if not line.strip():
-                        continue
-                    parts = line.rsplit(None, 1)
-                    if len(parts) >= 2:
-                        try:
-                            ram_bytes = int(parts[1])
-                        except ValueError:
-                            ram_bytes = 0
-                        gpu_name = parts[0].strip()
-                        if 'AMD' in gpu_name.upper() or 'RADEON' in gpu_name.upper() or 'ATI' in gpu_name.upper():
-                            amd_gpus.append({
-                                'name': gpu_name,
-                                'adapter_ram_bytes': ram_bytes,
-                            })
-
-            if amd_gpus:
-                self._device_names = [g['name'] for g in amd_gpus]
-                self._device_count = len(amd_gpus)
-                self._source_instance = {
-                    'type': 'wmic',
-                    'gpus': amd_gpus,
-                }
-                logger.info(f"windows_wmi (wmic fallback) initialized: {self._device_count} AMD GPU(s): "
-                           f"{', '.join(self._device_names)}")
-                return True
-
-        except Exception as e:
-            logger.debug(f"windows_wmi wmic fallback also failed: {e}")
-
-        logger.debug("windows_wmi: no GPU found via any method")
         return False
 
-    def _init_pynvml(self) -> None:
-        """
-        一次性初始化 pynvml（避免每次 snapshot 都 init/shutdown 导致数据抖动）
-
-        【v3.2.3 完善】支持多种 pynvml 实现的完整检测链：
-        1. pynvml (NVIDIA 官方原版) — 用于原生 NVIDIA GPU ★★★★★
-        2. pynvml-amd-windows (AMD ADLX 封装) — 用于 AMD GPU on Windows ★★★★☆
-        3. nvidia-ml-py (第三方兼容层) — 备选方案 ★★★☆☆
-
-        每个步骤都有独立的 try-except 和日志输出，
-        确保在任何环境下都不会因 import 错误而崩溃。
-        """
-        import warnings
-
-        # ---- 第1步：尝试导入 NVIDIA 官方原版 pynvml ----
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', message='.*pynvml.*deprecated.*', category=FutureWarning)
-                import pynvml as nvml_native
-
-            # 测试是否是 NVIDIA 原版（检查 NVML 特有常量）
-            if hasattr(nvml_native, 'NVML_TEMPERATURE_GPU'):
-                logger.info("检测到 NVIDIA 官方原版 pynvml")
-                nvml_native.nvmlInit()
-                count = nvml_native.nvmlDeviceGetCount()
-
-                if count > 0:
-                    self._pynvml_handles = [nvml_native.nvmlDeviceGetHandleByIndex(i) for i in range(count)]
-                    self._pynvml_available = True
-                    self._pynvml_is_nvidia = True  # 【新增】标记为 NVIDIA 原生
-                    logger.info(f"NVIDIA pynvml 初始化成功: {len(self._pynvml_handles)} 个设备")
-                else:
-                    logger.warning("NVIDIA pynvml 可用但未检测到 GPU 设备")
-                    self._pynvml_available = False
-                return  # 成功则直接返回
-
-        except ImportError:
-            logger.debug("NVIDIA 官方 pynvml 未安装 (pip install nvidia-ml-py 或 pip install pynvml)")
-        except Exception as e:
-            logger.debug(f"NVIDIA pynvml 初始化失败: {e}")
-
-        # ---- 第2步：尝试导入 pynvml-amd-windows（AMD ADLX 封装）----
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', message='.*pynvml.*deprecated.*', category=FutureWarning)
-                import pynvml as amd_pynvml
-
-            # 验证是否是 AMD 版本（通过缺少某些 NVIDIA 特有属性判断）
-            amd_pynvml.nvmlInit()
-            count = amd_pynvml.nvmlDeviceGetCount()
-
-            if count > 0:
-                self._pynvml_handles = [amd_pynvml.nvmlDeviceGetHandleByIndex(i) for i in range(count)]
-                self._pynvml_available = True
-                self._pynvml_is_nvidia = False  # 【新增】标记为 AMD 兼容层
-                logger.info(f"AMD pynvml-amd-windows 初始化成功: {len(self._pynvml_handles)} 个设备")
-            else:
-                logger.debug("AMD pynvml 可用但未检测到 GPU 设备")
-                self._pynvml_available = False
-            return  # 成功则直接返回
-
-        except ImportError:
-            logger.debug("pynvml-amd-windows 未安装 (pip install pynvml-amd-windows)")
-        except Exception as e:
-            logger.debug(f"AMD pynvml 初始化失败: {e}")
-
-        # ---- 第3步：尝试 nvidia-ml-py（第三方兼容层）----
-        try:
-            # nvidia-ml-py 通常仍安装为 pynvml，此处避免使用非法的 nvidia.ml.py 导入
-            import nvidia_ml_py
-
-            # nvidia-ml-py 的 API 与 pynvml 略有不同
-            nvidia_ml_py.nvmlInit()
-            count = nvidia_ml_py.nvmlDeviceGetCount()
-
-            if count > 0:
-                # 转换句柄格式以适配现有接口
-                self._pynvml_handles = [nvidia_ml_py.nvmlDeviceGetHandleByIndex(i) for i in range(count)]
-                self._pynvml_available = True
-                self._pynvml_is_nvidia = True
-                self._pynvml_lib = nvidia_ml_py  # 【新增】保存库引用
-                logger.info(f"nvidia-ml-py 初始化成功: {len(self._pynvml_handles)} 个设备")
-            else:
-                logger.debug("nvidia-ml-py 可用但未检测到 GPU 设备")
-                self._pynvml_available = False
-            return
-
-        except ImportError:
-            logger.debug("nvidia-ml-py 未安装 (pip install nvidia-ml-py)")
-        except Exception as e:
-            logger.debug(f"nvidia-ml-py 初始化失败: {e}")
-
-        # ---- 所有方案均失败 ----
-        self._pynvml_available = False
-        self._pynvml_is_nvidia = False
-        logger.info("pynvml/NVIDIA 检测完成：所有方案均不可用，将使用其他数据源或降级显示")
-
-    def _shutdown_pynvml(self) -> None:
-        """关闭 pynvml（在 shutdown 时调用）"""
-        if self._pynvml_available:
-            try:
-                # pynvml_amd_windows hooks into pynvml module
-                import pynvml
-                pynvml.nvmlShutdown()
-            except Exception:
-                pass
+    def _init_nvidia(self) -> bool:
+        """初始化 NVIDIA NVML 原生驱动级数据源。"""
+        provider = NvidiaProvider()
+        if provider.initialize():
+            self._gpu_provider = provider
+            self._device_count = provider.get_device_count()
+            self._device_names = [provider.get_device_name(i) for i in range(self._device_count)]
+            self._source_instance = 'nvidia'
+            logger.info(
+                f"nvidia initialized: {self._device_count} GPU(s): "
+                f"{', '.join(self._device_names)}"
+            )
+            return True
+        return False
 
     def _extract_device_name_from_sysfs(self, device_link: Path) -> str:
         """从 sysfs 提取设备名称"""
@@ -784,7 +639,10 @@ class FeixueHardwareInfo:
                 },
                 'gpus': gpu_data,
                 'data_source': self._active_source or 'none',
-                'version': '2.1.0',   # 【v10.0】版本号升级（添加swap支持）
+                'data_source_quality': self._SOURCE_QUALITY.get(
+                    self._active_source, 'unknown'
+                ),
+                'version': '3.29',
             }
 
             # 辅助指标采集（每个独立try-except，单个失败不影响整体）
@@ -796,10 +654,6 @@ class FeixueHardwareInfo:
                 snapshot['network_io'] = self._collect_network()
             except Exception:
                 snapshot['network_io'] = None
-            try:
-                snapshot['fan_speed'] = self._collect_fan()
-            except Exception:
-                snapshot['fan_speed'] = None
 
             self._stats['successful_collections'] += 1
             return snapshot
@@ -817,9 +671,17 @@ class FeixueHardwareInfo:
             import psutil
             utilization = int(psutil.cpu_percent())
             return {'utilization': max(0, min(100, utilization))}
-        except Exception as e:
-            logger.debug(f"CPU collection failed: {e}")
-            return {'utilization': 0}
+        except Exception:
+            pass
+
+        # psutil 不可用时，Linux 通过 /proc/stat 计算总利用率
+        if platform.system() == "Linux":
+            try:
+                return {'utilization': self._calc_cpu_percent_from_proc_stat()}
+            except Exception as e:
+                logger.debug(f"/proc/stat CPU collection failed: {e}")
+
+        return {'utilization': 0}
 
     def _safe_get_ram(self) -> Dict[str, Any]:
         """安全获取内存使用情况"""
@@ -831,9 +693,26 @@ class FeixueHardwareInfo:
                 'used_gb': round(mem.used / (1024 ** 3), 1),
                 'percent': int(mem.percent),
             }
-        except Exception as e:
-            logger.debug(f"RAM collection failed: {e}")
-            return {'total_gb': 0.0, 'used_gb': 0.0, 'percent': 0}
+        except Exception:
+            pass
+
+        if platform.system() == "Linux":
+            try:
+                meminfo = self._read_proc_meminfo()
+                total_kb = meminfo.get("memtotal", 0)
+                free_kb = meminfo.get("memfree", 0)
+                buffers_kb = meminfo.get("buffers", 0)
+                cached_kb = meminfo.get("cached", 0)
+                sreclaimable_kb = meminfo.get("sreclaimable", 0)
+                used_kb = max(0, total_kb - free_kb - buffers_kb - cached_kb - sreclaimable_kb)
+                total_gb = round(total_kb / (1024 * 1024), 1)
+                used_gb = round(used_kb / (1024 * 1024), 1)
+                percent = int(used_kb / total_kb * 100) if total_kb else 0
+                return {'total_gb': total_gb, 'used_gb': used_gb, 'percent': percent}
+            except Exception as e:
+                logger.debug(f"/proc/meminfo RAM collection failed: {e}")
+
+        return {'total_gb': 0.0, 'used_gb': 0.0, 'percent': 0}
 
     def _safe_get_swap(self) -> Dict[str, Any]:
         """
@@ -854,9 +733,59 @@ class FeixueHardwareInfo:
                 'used_gb': round(swap.used / (1024 ** 3), 2),
                 'percent': int(swap.percent),
             }
-        except Exception as e:
-            logger.debug(f"Swap collection failed: {e}")
-            return {'total_gb': 0.0, 'used_gb': 0.0, 'percent': 0}
+        except Exception:
+            pass
+
+        if platform.system() == "Linux":
+            try:
+                meminfo = self._read_proc_meminfo()
+                total_kb = meminfo.get("swaptotal", 0)
+                free_kb = meminfo.get("swapfree", 0)
+                used_kb = max(0, total_kb - free_kb)
+                total_gb = round(total_kb / (1024 * 1024), 2)
+                used_gb = round(used_kb / (1024 * 1024), 2)
+                percent = int(used_kb / total_kb * 100) if total_kb else 0
+                return {'total_gb': total_gb, 'used_gb': used_gb, 'percent': percent}
+            except Exception as e:
+                logger.debug(f"/proc/meminfo swap collection failed: {e}")
+
+        return {'total_gb': 0.0, 'used_gb': 0.0, 'percent': 0}
+
+    def _read_proc_meminfo(self) -> Dict[str, int]:
+        """读取 /proc/meminfo，返回 key(kB) 的字典。"""
+        result: Dict[str, int] = {}
+        with open("/proc/meminfo", "r") as f:
+            for line in f:
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    result[key.strip().lower()] = int(value.strip().split()[0])
+        return result
+
+    def _calc_cpu_percent_from_proc_stat(self) -> int:
+        """通过 /proc/stat 计算总 CPU 使用率（单次采样，基于系统启动以来的累计值需要两次读）。"""
+        import time
+
+        def read_stat():
+            with open("/proc/stat", "r") as f:
+                line = f.readline()
+            parts = line.split()
+            if parts[0] != "cpu" or len(parts) < 8:
+                return None
+            values = [int(x) for x in parts[1:8]]
+            idle = values[3] + values[4]  # idle + iowait
+            total = sum(values)
+            return total, idle
+
+        first = read_stat()
+        time.sleep(0.1)
+        second = read_stat()
+        if first is None or second is None:
+            return 0
+        total_delta = second[0] - first[0]
+        idle_delta = second[1] - first[1]
+        if total_delta <= 0:
+            return 0
+        return max(0, min(100, int((1 - idle_delta / total_delta) * 100)))
 
     # ------------------------------------------------------------------
     # 辅助指标采集方法（磁盘IO、网络IO、风扇转速）
@@ -936,32 +865,6 @@ class FeixueHardwareInfo:
             logger.debug(f"Network IO collection failed: {e}")
             return None
 
-    def _collect_fan(self):
-        """
-        采集 GPU 风扇转速。
-
-        使用已初始化的 pynvml（通过 _init_pynvml() 初始化的持久化连接）。
-        读取第一个 GPU 的风扇转速百分比，加锁保护 pynvml 调用。
-
-        Returns:
-            {'rpm': None, 'percent': int}，pynvml不可用或异常时返回 None
-        """
-        try:
-            if not self._pynvml_available or not self._pynvml_handles:
-                return None
-
-            with self._pynvml_lock:
-                handle = self._pynvml_handles[0]
-                import pynvml
-                fan_percent = pynvml.nvmlDeviceGetFanSpeed(handle)
-                return {
-                    'rpm': None,
-                    'percent': int(fan_percent),
-                }
-        except Exception as e:
-            logger.debug(f"Fan speed collection failed: {e}")
-            return None
-
     def _safe_get_gpu_all(self) -> List[Dict[str, Any]]:
         """
         安全获取所有 GPU 数据（核心方法）。
@@ -1018,8 +921,10 @@ class FeixueHardwareInfo:
                 return self._collect_rocm_smi_gpu(device_id)
             elif self._active_source == 'sysfs':
                 return self._collect_sysfs_gpu(device_id)
-            elif self._active_source == 'windows_wmi':
-                return self._collect_windows_wmi_gpu(device_id)
+            elif self._active_source == 'amd_adlx':
+                return self._collect_amd_adlx_gpu(device_id)
+            elif self._active_source == 'nvidia':
+                return self._collect_nvidia_gpu(device_id)
             else:
                 return self._get_default_gpu_data(device_id)
         except Exception as e:
@@ -1320,6 +1225,40 @@ class FeixueHardwareInfo:
             'device_name': self._get_device_name(device_id),
         }
 
+    def _collect_amd_adlx_gpu(self, device_id: int = 0) -> Dict[str, Any]:
+        """通过 AMD ADLX 原生接口采集 GPU 数据（Windows）。"""
+        if self._gpu_provider is None or device_id >= self._device_count:
+            return self._get_default_gpu_data(device_id)
+
+        metrics = self._gpu_provider.get_metrics(device_id)
+
+        return {
+            'gpu_utilization': int(metrics.gpu_utilization),
+            'vram_used_mb': int(metrics.vram_used),
+            'vram_total_mb': int(metrics.vram_total),
+            'vram_percent': self._calculate_vram_percent(metrics.vram_used, metrics.vram_total),
+            'gpu_temperature': metrics.temperature,
+            'power_draw': metrics.power_usage,
+            'device_name': metrics.device_name or self._get_device_name(device_id),
+        }
+
+    def _collect_nvidia_gpu(self, device_id: int = 0) -> Dict[str, Any]:
+        """通过 NVIDIA NVML 原生接口采集 GPU 数据。"""
+        if self._gpu_provider is None or device_id >= self._device_count:
+            return self._get_default_gpu_data(device_id)
+
+        metrics = self._gpu_provider.get_metrics(device_id)
+
+        return {
+            'gpu_utilization': int(metrics.gpu_utilization),
+            'vram_used_mb': int(metrics.vram_used),
+            'vram_total_mb': int(metrics.vram_total),
+            'vram_percent': self._calculate_vram_percent(metrics.vram_used, metrics.vram_total),
+            'gpu_temperature': metrics.temperature,
+            'power_draw': metrics.power_usage,
+            'device_name': metrics.device_name or self._get_device_name(device_id),
+        }
+
     # ------------------------------------------------------------------
     # 辅助方法
     # ------------------------------------------------------------------
@@ -1448,425 +1387,6 @@ class FeixueHardwareInfo:
         # 关键：上限钳位到 100%，这样爆显存时显示具体数值而非异常
         return min(100, max(0, percent))
 
-    # ------------------------------------------------------------------
-    # Windows WMI GPU 采集（纯新增，不影响Linux任何代码）
-    # ------------------------------------------------------------------
-
-    def _collect_windows_wmi_gpu(self, device_id: int = 0) -> Dict[str, Any]:
-        """
-        通过 Windows WMI + PyTorch + PowerShell + pynvml 采集 AMD GPU 数据。
-
-        多源数据融合策略（优先级从高到低）：
-        1. pynvml (pynvml-amd-windows): 温度、GPU利用率、显存利用率 ★★★★★
-        2. PyTorch: VRAM 已用量/总量（最精确）
-        3. PowerShell Get-Counter: GPU 利用率（pynvml 不可用时）
-        4. WMI: 显卡名称、VRAM 回退
-
-        【v3.2.3 修复】所有阻塞操作均在线程池中独立执行，带8秒超时保护：
-        - 使用 concurrent.futures.ThreadPoolExecutor 管理线程
-        - 每个子操作（PowerShell、WMI、pynvml）独立超时
-        - 超时后返回缓存的上次成功数据，而非 None 或异常
-        - COM 初始化在独立线程中完成，避免阻塞主线程
-
-        pynvml-amd-windows 是 AMD 官方 ADLX 的 pynvml 兼容封装，
-        通过 pip install pynvml-amd-windows 安装，无需额外 SDK。
-        它能提供温度、利用率和显存利用率等 WMI 无法获取的指标。
-        """
-        import platform
-        if platform.system() != 'Windows':
-            return self._get_default_gpu_data(device_id)
-
-        # 【新增】Windows 专用线程池（避免 COM 线程冲突）
-        _wmi_executor = getattr(self, '_wmi_executor', None)
-        if _wmi_executor is None:
-            self._wmi_executor = concurrent.futures.ThreadPoolExecutor(
-                max_workers=2,
-                thread_name_prefix='FxWinWMI'
-            )
-            _wmi_executor = self._wmi_executor
-
-        try:
-            # --- 数据源 1: pynvml (pynvml-amd-windows) 优先 ---
-            # 【修复】在线程池中执行，避免 pynvml ADLX 调用阻塞主线程
-            pynvml_data = self._windows_get_pynvml_gpu_safe(device_id, _wmi_executor)
-
-            # --- 数据源 2: PyTorch VRAM（作为 pynvml VRAM 的补充/验证）---
-            # 【修复】PyTorch CUDA 调用可能阻塞（首次加载CUDA驱动时），加入超时保护
-            pytorch_vram_total, pytorch_vram_used = self._windows_get_pytorch_vram_safe(device_id, _wmi_executor)
-
-            # --- 数据融合 ---
-            vram_total_mb = 0
-            vram_used_mb = 0
-
-            # VRAM 总量：优先 PyTorch（最精确），其次 pynvml
-            if pytorch_vram_total > 0:
-                vram_total_mb = pytorch_vram_total
-            elif pynvml_data and pynvml_data.get('vram_total_mb', 0) > 0:
-                vram_total_mb = pynvml_data['vram_total_mb']
-
-            # VRAM 已用：优先 PyTorch，其次 pynvml
-            if pytorch_vram_used > 0:
-                vram_used_mb = pytorch_vram_used
-            elif pynvml_data and pynvml_data.get('vram_used_mb', 0) > 0:
-                vram_used_mb = pynvml_data['vram_used_mb']
-
-            # 如果两者都不可用，回退 WMI
-            if vram_total_mb <= 0:
-                gpus = self._source_instance.get('gpus', [])
-                if device_id < len(gpus):
-                    vram_total_bytes = gpus[device_id].get('adapter_ram_bytes', 0)
-                    vram_total_mb = vram_total_bytes // (1024 * 1024) if vram_total_bytes > 0 else 0
-            if vram_used_mb <= 0:
-                wmi_used = self._windows_get_vram_used_safe(device_id, _wmi_executor)
-                if wmi_used > 0:
-                    vram_used_mb = wmi_used
-                elif vram_total_mb > 0:
-                    vram_used_mb = max(0, int(vram_total_mb * 0.3))
-
-            # 计算百分比
-            vram_percent = int((vram_used_mb / vram_total_mb * 100)) \
-                if vram_total_mb > 0 else 0
-            vram_percent = min(100, max(0, vram_percent))
-
-            # GPU 利用率：优先 pynvml，其次 PowerShell
-            if pynvml_data and pynvml_data.get('gpu_utilization', 0) > 0:
-                gpu_util = pynvml_data['gpu_utilization']
-            else:
-                # 【修复】PowerShell Get-Counter 在线程池中执行，避免阻塞
-                gpu_util = self._windows_get_gpu_utilization_powershell_safe(_wmi_executor)
-
-            # GPU 温度：优先 pynvml（ADLX 提供精确温度），其次 WMI
-            if pynvml_data and pynvml_data.get('gpu_temperature', 0) > 0:
-                temperature = pynvml_data['gpu_temperature']
-            else:
-                temperature = self._windows_get_gpu_temperature_safe(_wmi_executor)
-
-            return {
-                'gpu_utilization': gpu_util,
-                'vram_used_mb': vram_used_mb,
-                'vram_total_mb': vram_total_mb,
-                'vram_percent': vram_percent,
-                'gpu_temperature': temperature,
-                'power_draw': 0.0,  # pynvml-amd-windows 暂不支持功耗
-                'device_name': self._get_device_name(device_id),
-            }
-
-        except Exception as e:
-            logger.debug(f"windows_wmi GPU collection error: {e}")
-            return self._get_default_gpu_data(device_id)
-
-    def _windows_get_pynvml_gpu(self, device_id: int = 0) -> Optional[Dict[str, Any]]:
-        """
-        通过持久化的 pynvml 连接获取 AMD GPU 数据（Windows）。
-
-        与之前的 static 版本不同，此方法使用初始化时缓存的 pynvml handles，
-        避免每次调用都 init/shutdown 导致的数据抖动（隔会显示 -- 的问题）。
-
-        pynvml-amd-windows 是专为 ComfyUI-Crystools 设计的 drop-in 替换库，
-        将 pynvml 调用透明重定向到 AMD ADLX 后端，无需安装 ADLX SDK。
-
-        Returns:
-            包含 GPU 指标的字典，失败时返回 None
-        """
-        if not self._pynvml_available:
-            return None
-
-        try:
-            with self._pynvml_lock:
-                if device_id >= len(self._pynvml_handles):
-                    return None
-
-                import pynvml
-                handle = self._pynvml_handles[device_id]
-                data = {}
-
-                # GPU 名称
-                try:
-                    name = pynvml.nvmlDeviceGetName(handle)
-                    data['device_name'] = name.decode('utf-8') \
-                        if isinstance(name, bytes) else name
-                except Exception:
-                    pass
-
-                # 温度
-                try:
-                    temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
-                    if temp > 0:
-                        data['gpu_temperature'] = float(temp)
-                except Exception:
-                    pass
-
-                # GPU 利用率
-                try:
-                    util = pynvml.nvmlDeviceGetUtilizationRates(handle)
-                    data['gpu_utilization'] = int(util.gpu)
-                    data['memory_utilization'] = int(util.memory)
-                except Exception:
-                    pass
-
-                # VRAM
-                try:
-                    mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
-                    data['vram_total_mb'] = mem.total // (1024 * 1024)
-                    data['vram_used_mb'] = mem.used // (1024 * 1024)
-                except Exception:
-                    pass
-
-                return data if data else None
-
-        except Exception as e:
-            logger.debug(f"pynvml query failed: {e}")
-            return None
-
-    # ------------------------------------------------------------------
-    # 【v3.2.3 新增】Windows WMI 线程安全包装方法
-    # 所有阻塞操作均在线程池中执行，带8秒超时保护
-    # ------------------------------------------------------------------
-
-    def _windows_get_pynvml_gpu_safe(self, device_id: int, executor: concurrent.futures.ThreadPoolExecutor) -> Optional[Dict[str, Any]]:
-        """
-        线程安全版本的 pynvml 查询（带超时保护）。
-
-        在线程池中执行 pynvml ADLX 调用，避免 COM 线程冲突。
-        超时后返回 None（上层会使用缓存数据）。
-
-        Args:
-            device_id: GPU 设备ID
-            executor: Windows 专用线程池实例
-
-        Returns:
-            GPU 数据字典，失败或超时时返回 None
-        """
-        try:
-            future = executor.submit(self._windows_get_pynvml_gpu, device_id)
-            return future.result(timeout=6)  # 6秒超时（pynvml ADLX 可能较慢）
-        except concurrent.futures.TimeoutError:
-            logger.warning(f"pynvml query timeout (device {device_id}), using cached data")
-            return None
-        except Exception as e:
-            logger.debug(f"pynvml safe query failed: {e}")
-            return None
-
-    def _windows_get_pytorch_vram_safe(self, device_id: int, executor: concurrent.futures.ThreadPoolExecutor) -> Tuple[int, int]:
-        """
-        线程安全版本的 PyTorch VRAM 查询（带超时保护）。
-
-        PyTorch CUDA 首次调用可能阻塞数秒（加载驱动），必须在线程池中执行。
-
-        Args:
-            device_id: GPU 设备ID
-            executor: Windows 专用线程池实例
-
-        Returns:
-            (vram_total_mb, vram_used_mb): 元组，失败或超时时返回 (0, 0)
-        """
-        try:
-            future = executor.submit(self._windows_get_pytorch_vram, device_id)
-            return future.result(timeout=5)  # 5秒超时
-        except concurrent.futures.TimeoutError:
-            logger.warning("PyTorch VRAM query timeout, using fallback")
-            return (0, 0)
-        except Exception as e:
-            logger.debug(f"PyTorch VRAM safe query failed: {e}")
-            return (0, 0)
-
-    @staticmethod
-    def _windows_get_gpu_utilization_powershell_safe(executor: concurrent.futures.ThreadPoolExecutor) -> int:
-        """
-        线程安全版本的 PowerShell GPU 利用率查询（带超时保护）。
-
-        PowerShell Get-Counter 命令可能阻塞，必须在独立线程中执行。
-
-        Args:
-            executor: Windows 专用线程池实例
-
-        Returns:
-            GPU 利用率百分比 (0-100)，失败或超时时返回 0
-        """
-        try:
-            future = executor.submit(FeixueHardwareInfo._windows_get_gpu_utilization_powershell)
-            return future.result(timeout=3)  # 3秒超时（PowerShell 启动慢）
-        except concurrent.futures.TimeoutError:
-            logger.warning("PowerShell GPU utilization timeout")
-            return 0
-        except Exception as e:
-            logger.debug(f"PowerShell safe query failed: {e}")
-            return 0
-
-    @staticmethod
-    def _windows_get_gpu_temperature_safe(executor: concurrent.futures.ThreadPoolExecutor) -> float:
-        """
-        线程安全版本的 WMI 温度查询（带超时保护）。
-
-        Args:
-            executor: Windows 专用线程池实例
-
-        Returns:
-            温度值（摄氏度），失败或超时时返回 0.0
-        """
-        try:
-            future = executor.submit(FeixueHardwareInfo._windows_get_gpu_temperature)
-            return future.result(timeout=3)  # 3秒超时
-        except concurrent.futures.TimeoutError:
-            logger.warning("WMI temperature query timeout")
-            return 0.0
-        except Exception as e:
-            logger.debug(f"WMI temperature safe query failed: {e}")
-            return 0.0
-
-    def _windows_get_vram_used_safe(self, device_id: int, executor: concurrent.futures.ThreadPoolExecutor) -> int:
-        """
-        线程安全版本的 WMI VRAM 已用量查询（带超时保护）。
-
-        Args:
-            device_id: GPU 设备ID
-            executor: Windows 专用线程池实例
-
-        Returns:
-            VRAM 已用量（MB），失败或超时时返回 0
-        """
-        try:
-            future = executor.submit(self._windows_get_vram_used, device_id)
-            return future.result(timeout=3)  # 3秒超时
-        except concurrent.futures.TimeoutError:
-            logger.warning("WMI VRAM used query timeout")
-            return 0
-        except Exception as e:
-            logger.debug(f"WMI VRAM safe query failed: {e}")
-            return 0
-
-    @staticmethod
-    def _windows_get_pytorch_vram(device_id: int = 0) -> Tuple[int, int]:
-        """
-        通过 PyTorch CUDA 接口获取精确 VRAM 数据。
-
-        这是 Windows 下最准确的 VRAM 数据源，因为：
-        - WMI AdapterRAM 对 AMD 显卡经常少报
-        - PyTorch 直接与 AMD HIP/ROCm 驱动通信
-
-        Returns:
-            (vram_total_mb, vram_used_mb): 元组，失败时返回 (0, 0)
-        """
-        try:
-            import torch
-            if not torch.cuda.is_available():
-                return (0, 0)
-
-            device_count = torch.cuda.device_count()
-            if device_id >= device_count:
-                return (0, 0)
-
-            # VRAM 总量：从 device properties 获取
-            props = torch.cuda.get_device_properties(device_id)
-            # 兼容不同 torch 版本的属性名 (total_mem vs total_memory)
-            total_mem = getattr(props, 'total_memory', None) or getattr(props, 'total_mem', 0)
-            vram_total_mb = total_mem // (1024 * 1024)
-
-            # VRAM 已用量：从当前 CUDA context 获取
-            vram_used_mb = torch.cuda.memory_allocated(device_id) // (1024 * 1024)
-
-            logger.debug(
-                f"PyTorch VRAM: {vram_used_mb}/{vram_total_mb} MB "
-                f"(device {device_id}: {props.name})"
-            )
-            return (vram_total_mb, vram_used_mb)
-
-        except ImportError:
-            logger.debug("PyTorch not available for VRAM reading")
-            return (0, 0)
-        except Exception as e:
-            logger.debug(f"PyTorch VRAM query failed: {e}")
-            return (0, 0)
-
-    @staticmethod
-    def _windows_get_gpu_utilization_powershell() -> int:
-        """
-        通过 PowerShell Get-Counter 获取 GPU 引擎利用率。
-
-        使用 perf counter 路径: \\GPU Engine(*engtype_3D)\\Utilization Percentage
-        这是 Windows 下非 WMI 方式获取 GPU 利用率的最可靠方法。
-
-        Returns:
-            GPU 利用率百分比 (0-100)，失败时返回 0
-        """
-        try:
-            import subprocess
-            result = subprocess.run(
-                [
-                    'powershell', '-NoProfile', '-Command',
-                    '(Get-Counter "\\GPU Engine(*engtype_3D)\\Utilization Percentage" -ErrorAction SilentlyContinue).CounterSamples '
-                    '| Where-Object { $_.CookedValue -gt 0 } '
-                    '| Measure-Object -Property CookedValue -Maximum '
-                    '| Select-Object -ExpandProperty Maximum'
-                ],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0,
-            )
-
-            if result.returncode == 0 and result.stdout.strip():
-                gpu_util = round(float(result.stdout.strip()))
-                return max(0, min(100, gpu_util))
-
-            return 0
-
-        except Exception as e:
-            logger.debug(f"PowerShell GPU utilization query failed: {e}")
-            return 0
-
-    @staticmethod
-    def _windows_get_vram_used(device_id: int = 0) -> int:
-        """Windows: 通过 WMI 获取 VRAM 已用 MB（回退方案）"""
-        try:
-            import wmi
-            conn = wmi.WMI()
-            # 方法: 通过 CIM_GPUMemory 类（Windows 10 1703+ / Server 2016+）
-            try:
-                for mem in conn.CIM_GPUMemory():
-                    if hasattr(mem, 'UsedMemory') and mem.UsedMemory is not None:
-                        return int(mem.UsedMemory / (1024 * 1024))
-            except (AttributeError, Exception):
-                pass
-            return 0
-        except Exception:
-            return 0
-
-    @staticmethod
-    def _windows_get_gpu_temperature() -> float:
-        """Windows: 通过 WMI 获取 GPU 温度"""
-        try:
-            import wmi
-            conn = wmi.WMI()
-            # MSAcpi_ThermalZoneTemperature (需要管理员权限)
-            temps = []
-            for zone in conn.MSAcpi_ThermalZoneTemperature():
-                if zone.CurrentTemperature is not None:
-                    # 温度单位是摄氏度 * 10
-                    celsius = zone.CurrentTemperature / 10.0
-                    if 20 < celsius < 110:  # 合理温度范围
-                        temps.append(celsius)
-
-            if temps:
-                return round(max(temps), 1)
-            return 0.0
-        except Exception:
-            return 0.0
-
-    @staticmethod
-    def _windows_get_gpu_utilization(wmi_conn) -> int:
-        """Windows: 通过 WMI 获取 GPU 利用率（精度有限）"""
-        try:
-            # Win32_Processor.LoadPercentage 包含整体负载
-            # 对于独立 GPU，这个值不准确，仅作参考
-            procs = list(wmi_conn.Win32_Processor())
-            if procs and procs[0].LoadPercentage is not None:
-                # 返回一个保守估计值（实际GPU利用率可能不同）
-                return min(100, max(0, int(procs[0].LoadPercentage)))
-            return 0
-        except Exception:
-            return 0
-
     def _get_device_name(self, device_id: int) -> str:
         """获取 GPU 设备名称"""
         if 0 <= device_id < len(self._device_names):
@@ -1907,10 +1427,10 @@ class FeixueHardwareInfo:
             'swap': {'total_gb': 0.0, 'used_gb': 0.0, 'percent': 0},   # 【v10.0】新增
             'gpus': [self._get_default_gpu_data()],
             'data_source': 'error_fallback',
-            'version': '2.1.0',   # 【v10.0】版本号升级
+            'data_source_quality': 'unknown',
+            'version': '3.29',
             'disk_io': None,
             'network_io': None,
-            'fan_speed': None,
         }
 
     @staticmethod
@@ -1989,9 +1509,12 @@ class FeixueHardwareInfo:
                     except Exception as e:
                         logger.warning(f"rocm_smi shutdown error: {e}")
 
-            # Windows WMI 无需特殊清理（WMI 连接自动释放）
-            # 但 pynvml 持久化连接需要关闭
-            self._shutdown_pynvml()
+            # 关闭 GPU provider（ADLX 等需要显式释放资源）
+            if self._gpu_provider is not None:
+                try:
+                    self._gpu_provider.shutdown()
+                except Exception as e:
+                    logger.warning(f"GPU provider shutdown error: {e}")
 
         except Exception as e:
             logger.warning(f"Shutdown error: {e}")
@@ -1999,6 +1522,7 @@ class FeixueHardwareInfo:
         # 重置状态
         self._active_source = None
         self._source_instance = None
+        self._gpu_provider = None
         self._cached_gpu_data = None
 
         logger.info("FeixueHardwareInfo shutdown complete")
@@ -2018,7 +1542,7 @@ class FeixueHardwareInfo:
             'last_success_time': self._last_success_time,
             'has_cached_data': self._cached_gpu_data is not None,
             'stats': self._stats.copy(),
-            'version': '2.1.0',   # [v10.0-fix] 统一版本号为2.1.0
+            'version': '3.29',
         }
 
     @property

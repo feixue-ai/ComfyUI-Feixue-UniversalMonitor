@@ -2,18 +2,37 @@
 ComfyUI-Feixue-UniversalMonitor 安装脚本
 ========================================
 
-Cross-platform 自动依赖安装：
-  - Windows: pynvml-amd-windows (ADLX GPU监控), wmi (系统信息)
-  - Linux:   amdsmi (AMD GPU监控), 无需额外依赖
+平台 + 硬件感知的按需依赖安装：
+
+  优先使用系统原生接口（零 pip 依赖）：
+    - Windows AMD: atiadlxx.dll / atiadlxy.dll (ctypes ADL)
+    - Windows NVIDIA: nvml.dll (ctypes NVML)
+    - Windows 兜底: pdh.dll (系统性能计数器)
+    - Linux AMD: /sys/class/drm (sysfs), amdsmi（仅在系统 C 库已存在时安装 Python 绑定）
+    - Linux NVIDIA: libnvidia-ml.so (ctypes NVML)
+
+  不再安装以下不准确或不必要的包：
+    - pynvml-amd-windows（第三方“破解”式 N 卡方案）
+    - wmi（不准确、资源占用高）
+    - ADLXPybind（Windows A 卡已可通过 atiadlxx.dll 原生驱动接口获取）
+
+安装原则：
+  1. 检测环境需要不需要依赖
+  2. 缺就安装，不缺就不安装
+  3. 能用原生 DLL 就不用 pip 包
+  4. 数据不准的方案直接弃用，不存在“降级造假”
 
 ComfyUI Manager 会在安装节点时自动调用此脚本，
 用户也可手动运行: python install.py
 """
 
+from __future__ import annotations
+
+import os
+import platform
 import subprocess
 import sys
-import platform
-import os
+from typing import Optional, Set
 
 
 def _get_pip_cmd() -> list:
@@ -22,7 +41,7 @@ def _get_pip_cmd() -> list:
 
 
 def _is_installed(package_name: str) -> bool:
-    """检查包是否已安装"""
+    """检查 Python 包是否已安装"""
     try:
         __import__(package_name)
         return True
@@ -31,7 +50,7 @@ def _is_installed(package_name: str) -> bool:
 
 
 def _pip_install(packages: list, desc: str) -> bool:
-    """安装 pip 包，返回是否成功"""
+    """安装 pip 包，失败不阻塞插件运行"""
     print(f"  [安装] {desc}...")
     try:
         cmd = _get_pip_cmd() + list(packages)
@@ -39,78 +58,221 @@ def _pip_install(packages: list, desc: str) -> bool:
         print(f"  [OK] {desc} 安装成功")
         return True
     except subprocess.CalledProcessError:
-        print(f"  [警告] {desc} 安装失败，插件将以降级模式运行")
+        print(f"  [警告] {desc} 安装失败，将使用原生接口继续")
+        return False
+
+
+def _has_windows_dll(dll_name: str) -> bool:
+    """检测 Windows 系统是否已存在指定 DLL（显卡驱动自带）"""
+    import ctypes
+
+    try:
+        handle = ctypes.CDLL(dll_name)
+        return handle is not None
+    except OSError:
+        return False
+
+
+def _detect_windows_gpu_vendors() -> Set[str]:
+    """通过原生 DLL 检测 Windows GPU 厂商，零额外依赖"""
+    vendors: Set[str] = set()
+
+    # AMD 驱动自带 ADL DLL
+    if _has_windows_dll("atiadlxx.dll") or _has_windows_dll("atiadlxy.dll"):
+        vendors.add("amd")
+
+    # NVIDIA 驱动自带 NVML DLL
+    if _has_windows_dll("nvml.dll"):
+        vendors.add("nvidia")
+
+    # 兜底：通过系统路径显式再检查一次
+    if not vendors:
+        nvml_path = r"C:\Windows\System32\nvml.dll"
+        if os.path.exists(nvml_path):
+            vendors.add("nvidia")
+
+    return vendors
+
+
+def _read_file(path: str) -> Optional[str]:
+    """安全读取文件内容"""
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            return f.read().strip()
+    except Exception:
+        return None
+
+
+def _detect_linux_gpu_vendors() -> Set[str]:
+    """通过 sysfs / lspci 检测 Linux GPU 厂商，零额外依赖"""
+    vendors: Set[str] = set()
+
+    # 1. sysfs DRM vendor
+    drm_base = "/sys/class/drm"
+    if os.path.isdir(drm_base):
+        for entry in os.listdir(drm_base):
+            vendor_path = os.path.join(drm_base, entry, "device", "vendor")
+            vid = _read_file(vendor_path)
+            if vid:
+                vid_lower = vid.lower()
+                if vid_lower == "0x1002":
+                    vendors.add("amd")
+                elif vid_lower == "0x10de":
+                    vendors.add("nvidia")
+
+    # 2. lspci 兜底
+    if not vendors:
+        try:
+            result = subprocess.run(
+                ["lspci", "-nn"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            output = result.stdout.lower()
+            if any(k in output for k in ("amd", "ati", "radeon")):
+                vendors.add("amd")
+            if "nvidia" in output:
+                vendors.add("nvidia")
+        except Exception:
+            pass
+
+    return vendors
+
+
+def _linux_has_amd_smi_lib() -> bool:
+    """检测系统级 AMD SMI C 库是否存在"""
+    try:
+        output = subprocess.check_output(
+            ["ldconfig", "-p"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=5,
+        )
+        return "libamd_smi.so" in output
+    except Exception:
+        # ldconfig 不可用时尝试直接找库文件
+        for path in (
+            "/opt/rocm/lib/libamd_smi.so",
+            "/opt/rocm/lib/libamd_smi.so.1",
+            "/usr/lib/x86_64-linux-gnu/libamd_smi.so",
+            "/usr/lib64/libamd_smi.so",
+        ):
+            if os.path.exists(path):
+                return True
+        return False
+
+
+def _linux_has_rocm_smi() -> bool:
+    """检测 rocm-smi 系统工具是否存在"""
+    try:
+        subprocess.check_call(
+            ["rocm-smi", "--showid"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _linux_has_nvidia_driver() -> bool:
+    """检测 NVIDIA 驱动/库是否存在"""
+    for path in (
+        "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1",
+        "/usr/lib64/libnvidia-ml.so.1",
+        "/usr/lib/libnvidia-ml.so.1",
+    ):
+        if os.path.exists(path):
+            return True
+    try:
+        subprocess.run(
+            ["nvidia-smi", "-L"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+        return True
+    except Exception:
         return False
 
 
 def install_windows():
-    """Windows 平台依赖安装"""
-    print("[飞雪监测器] 检测到 Windows 系统")
+    """Windows 平台：原生 DLL 优先，不装不准确包"""
+    print("[飞雪监测器] Windows 平台")
 
-    deps = [
-        ("pynvml-amd-windows", "pynvml", "pynvml-amd-windows (ADLX GPU 温度/利用率)"),
-        ("wmi", "wmi", "wmi (Windows 系统信息)"),
-    ]
+    vendors = _detect_windows_gpu_vendors()
+    if not vendors:
+        print("  [信息] 未检测到 AMD/NVIDIA 显卡驱动 DLL，跳过 GPU 依赖安装")
+        print("         安装对应显卡驱动后将自动使用原生接口监控")
+        return
 
-    for pkg, import_name, desc in deps:
-        if _is_installed(import_name):
-            print(f"  [跳过] {desc} 已安装")
-        else:
-            _pip_install([pkg], desc)
+    print(f"  [信息] 检测到 GPU 厂商: {', '.join(sorted(vendors)).upper()}")
+
+    if "amd" in vendors:
+        print("  [跳过] AMD ADL 原生驱动接口可用（atiadlxx.dll），无需 pip 依赖")
+
+    if "nvidia" in vendors:
+        print("  [跳过] NVIDIA NVML 原生驱动接口可用（nvml.dll），无需 pip 依赖")
+
+    print("  [信息] Windows GPU 监控使用系统原生接口，零 pip 依赖")
 
 
 def install_linux():
-    """Linux 平台依赖安装"""
-    print("[飞雪监测器] 检测到 Linux 系统")
+    """Linux 平台：系统库存在才安装 Python 绑定，否则用 sysfs"""
+    print("[飞雪监测器] Linux 平台")
 
-    # amdsmi 是 pip 包，但底层需要系统包 amd-smi-lib / rocm-smi
-    if _is_installed("amdsmi"):
-        print("  [跳过] amdsmi (AMD GPU 监控) 已安装")
-    else:
-        _pip_install(["amdsmi"], "amdsmi (AMD GPU 监控)")
+    vendors = _detect_linux_gpu_vendors()
+    if not vendors:
+        print("  [信息] 未检测到 AMD/NVIDIA GPU，跳过 GPU 依赖安装")
+        return
 
-    # 检查底层 C 库是否可用
-    has_amd_smi_lib = False
-    try:
-        output = subprocess.check_output(
-            ["ldconfig", "-p"], stderr=subprocess.DEVNULL, text=True
-        )
-        has_amd_smi_lib = "libamd_smi.so" in output
-    except Exception:
-        pass
+    print(f"  [信息] 检测到 GPU 厂商: {', '.join(sorted(vendors)).upper()}")
 
-    has_rocm_smi = False
-    try:
-        subprocess.check_call(
-            ["rocm-smi", "--showid"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        has_rocm_smi = True
-    except Exception:
-        pass
+    if "amd" in vendors:
+        has_amd_smi_lib = _linux_has_amd_smi_lib()
+        has_rocm_smi = _linux_has_rocm_smi()
 
-    if not has_amd_smi_lib and not has_rocm_smi:
-        print("  [警告] 未检测到系统级 ROCm/amdsmi 库（libamd_smi.so / rocm-smi）")
-        print("         AMD GPU 监控可能无法正常工作，请安装 ROCm 或 amd-smi-lib")
+        if has_amd_smi_lib:
+            if not _is_installed("amdsmi"):
+                _pip_install(["amdsmi"], "amdsmi (AMD GPU 监控 Python 绑定)")
+            else:
+                print("  [跳过] amdsmi 已安装")
+        else:
+            print("  [信息] 未检测到系统级 AMD SMI 库，不安装 amdsmi pip 包")
+            print("         将使用 /sys/class/drm (sysfs) 原生接口监控 AMD GPU")
+
+        if has_rocm_smi:
+            print("  [跳过] rocm-smi 系统工具可用")
+        else:
+            print("  [信息] rocm-smi 系统工具未安装（非必需，有 sysfs 兜底）")
+
+    if "nvidia" in vendors:
+        if _linux_has_nvidia_driver():
+            print("  [跳过] NVIDIA 驱动/NVML 已安装，无需 pip 依赖")
+        else:
+            print("  [警告] 未检测到 NVIDIA 驱动，NVIDIA GPU 监控可能不可用")
 
 
 def install_darwin():
-    """macOS 平台依赖安装"""
-    print("[飞雪监测器] 检测到 macOS 系统")
-    print("  [信息] macOS 无需额外依赖 (使用 sysfs 基础模式)")
+    """macOS 平台：无 GPU 监控依赖需求"""
+    print("[飞雪监测器] macOS 平台")
+    print("  [信息] macOS 无原生 GPU 监控依赖需求")
 
 
 def main():
-    print("=" * 55)
-    print("  飞雪监测器 (Feixue Universal Monitor) v3.28")
-    print("  依赖安装脚本")
-    print("=" * 55)
+    print("=" * 60)
+    print("  飞雪监测器 (Feixue Universal Monitor)")
+    print("  平台 + 硬件感知按需依赖安装")
+    print("=" * 60)
 
     system = platform.system()
     print(f"  系统: {system} ({platform.machine()})")
     print(f"  Python: {sys.version.split()[0]}")
     print()
 
-    # 安装基础依赖
+    # 安装基础依赖（仅 psutil 等真正跨平台通用包）
     req_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
     if os.path.exists(req_file):
         _pip_install(["-r", req_file], "基础依赖 (requirements.txt)")
@@ -125,9 +287,9 @@ def main():
         print(f"  [警告] 未知系统: {system}，跳过依赖安装")
 
     print()
-    print("=" * 55)
-    print("  安装完成！重启 ComfyUI 即可使用。")
-    print("=" * 55)
+    print("=" * 60)
+    print("  安装完成。重启 ComfyUI 即可使用。")
+    print("=" * 60)
 
 
 if __name__ == "__main__":

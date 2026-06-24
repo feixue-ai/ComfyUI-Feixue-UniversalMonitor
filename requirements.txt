@@ -1,6 +1,12 @@
 # 飞雪监测器 - 跨平台基础依赖
-# 平台特定依赖 (Windows: pynvml-amd-windows/wmi, Linux: amdsmi)
-# 由 install.py 自动处理，无需手动管理
+#
+# 设计原则：
+#   - 平台/硬件专属依赖由 install.py 按需处理，不写入本文件
+#   - torch 由 ComfyUI 自身管理，本插件不强制安装
+#   - GPU 监控优先使用系统原生接口（Windows: atiadlxx.dll/nvml.dll/pdh.dll,
+#     Linux: sysfs/libnvidia-ml.so），无需额外 pip 包
+
 psutil>=5.9.0
-torch>=2.5.0
-orjson>=3.9.0
+
+# orjson 为可选高性能 JSON 库，未安装时自动回退到标准库 json
+# orjson>=3.9.0

@@ -21,7 +21,6 @@ ComfyUI-Feixue-UniversalMonitor - 核心数据模型定义
 
 from __future__ import annotations
 
-import copy
 import dataclasses
 import enum
 import logging
@@ -150,21 +149,6 @@ class MetricType(enum.Enum):
     # 功耗
     POWER_DRAW = "power_draw"
     POWER_LIMIT = "power_limit"
-
-    # 预测
-    PRED_SUCCESS_RATE = "pred_success_rate"
-    PRED_PEAK_VRAM = "pred_peak_vram"
-
-
-class RiskLevel(enum.Enum):
-    """风险等级枚举
-
-    预测结果的风险分类，用于 UI 展示和决策建议。
-    """
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
 
 
 # ============================================================================
@@ -930,266 +914,6 @@ class PowerMetrics:
 
 
 # ============================================================================
-# 复合数据类 - 预测结果
-# ============================================================================
-
-@dataclasses.dataclass
-class PredictionResult:
-    """显存溢出预测结果数据类
-
-    封装预测算法的输出，包括成功率预估、风险等级和建议。
-
-    风险等级划分标准（基于成功率）：
-    - low: >= 90% (成功概率高，可正常执行)
-    - medium: 70-89% (资源偏紧，需关注运行状态)
-    - high: 40-69% (有明显 OOM 风险)
-    - critical: < 40% (几乎确定会 OOM)
-
-    Attributes:
-        success_rate: 成功率预测 (0-100%)
-        risk_level: 风险等级字符串
-        peak_vram_estimate: 峰值显存预估 (MB)
-        recommendations: 优化建议列表
-        model_info: 相关模型信息字典
-        confidence: 预测置信度 (0-1)
-    """
-
-    success_rate: float             # 成功率预测 (0-100%)
-    risk_level: str                 # 风险等级: "low" | "medium" | "high" | "critical"
-    peak_vram_estimate: int         # 峰值显存预估 (MB)
-    recommendations: List[str]      # 优化建议列表
-    model_info: Dict[str, Any]      # 相关模型信息
-    confidence: float               # 预测置信度 (0-1)
-
-    # 类常量：风险等级阈值定义
-    RISK_THRESHOLDS: ClassVar[Dict[str, float]] = {
-        "low": 90.0,
-        "medium": 70.0,
-        "high": 40.0,
-        "critical": 0.0,
-    }
-
-    # 有效风险等级集合
-    VALID_RISK_LEVELS: ClassVar[set] = {"low", "medium", "high", "critical"}
-
-    @classmethod
-    def calculate_risk_level(cls, success_rate: float) -> str:
-        """根据成功率自动计算风险等级
-
-        使用 RISK_THRESHOLDS 中定义的阈值进行分级。
-
-        Args:
-            success_rate: 成功率 (0-100)
-
-        Returns:
-            风险等级字符串
-
-        Examples:
-            >>> PredictionResult.calculate_risk_level(95)
-            'low'
-            >>> PredictionResult.calculate_risk_level(75)
-            'medium'
-            >>> PredictionResult.calculate_risk_level(50)
-            'high'
-            >>> PredictionResult.calculate_risk_level(20)
-            'critical'
-        """
-        if success_rate >= cls.RISK_THRESHOLDS["low"]:
-            return "low"
-        elif success_rate >= cls.RISK_THRESHOLDS["medium"]:
-            return "medium"
-        elif success_rate >= cls.RISK_THRESHOLDS["high"]:
-            return "high"
-        else:
-            return "critical"
-
-    @classmethod
-    def from_success_rate(
-        cls,
-        success_rate: float,
-        peak_vram_estimate: int,
-        model_info: Optional[Dict[str, Any]] = None,
-        recommendations: Optional[List[str]] = None,
-        confidence: float = 0.8,
-    ) -> "PredictionResult":
-        """工厂方法：根据成功率自动创建预测结果
-
-        自动计算风险等级，简化调用方代码。
-
-        Args:
-            success_rate: 成功率 (0-100)
-            peak_vram_estimate: 峰值显存预估 (MB)
-            model_info: 模型信息字典（可选）
-            recommendations: 建议列表（可选，如果不提供则自动生成）
-            confidence: 置信度 (0-1)，默认 0.8
-
-        Returns:
-            PredictionResult 实例
-
-        Examples:
-            >>> result = PredictionResult.from_success_rate(
-            ...     success_rate=85.5,
-            ...     peak_vram_estimate=8000,
-            ...     model_info={"model_count": 3}
-            ... )
-            >>> print(result.risk_level)
-            medium
-        """
-        risk_level = cls.calculate_risk_level(success_rate)
-
-        # 如果没有提供建议，根据风险等级自动生成默认建议
-        if recommendations is None:
-            recommendations = cls._generate_default_recommendations(risk_level, success_rate)
-
-        return cls(
-            success_rate=success_rate,
-            risk_level=risk_level,
-            peak_vram_estimate=peak_vram_estimate,
-            recommendations=recommendations,
-            model_info=model_info or {},
-            confidence=confidence,
-        )
-
-    @staticmethod
-    def _generate_default_recommendations(risk_level: str, success_rate: float) -> List[str]:
-        """根据风险等级生成默认建议
-
-        Args:
-            risk_level: 风险等级
-            success_rate: 成功率
-
-        Returns:
-            建议字符串列表
-        """
-        if risk_level == "low":
-            if success_rate > 98:
-                return [
-                    "显存充足，可以正常运行",
-                    "资源充裕，可考虑增大分辨率或批量大小",
-                ]
-            return ["显存充足，可以正常运行"]
-
-        elif risk_level == "medium":
-            recs = ["显存偏紧，建议关注运行时状态"]
-            if success_rate < 80:
-                recs.append("考虑降低分辨率或减少采样步数")
-            return recs
-
-        elif risk_level == "high":
-            return [
-                "警告：显存可能不足，有 OOM 风险！",
-                "建议：降低分辨率或减少采样步数",
-                "考虑使用 --lowvram 模式",
-            ]
-
-        else:  # critical
-            return [
-                "严重警告：几乎确定会发生 OOM！",
-                "必须采取行动：切换到更小的模型或降低分辨率",
-                "建议启用 --lowvram 或 --normalvram 模式",
-            ]
-
-    def to_dict(self) -> Dict[str, Any]:
-        """转换为字典格式
-
-        Returns:
-            包含所有预测结果的字典
-        """
-        return {
-            "success_rate": round(self.success_rate, 1),
-            "risk_level": self.risk_level,
-            "peak_vram_estimate": self.peak_vram_estimate,
-            "recommendations": list(self.recommendations),  # 创建副本
-            "model_info": dict(self.model_info),  # 创建副本
-            "confidence": round(self.confidence, 3),
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PredictionResult":
-        """从字典创建实例
-
-        Args:
-            data: 包含 PredictionResult 字段的字典
-
-        Returns:
-            PredictionResult 实例
-        """
-        required_fields = ["success_rate", "risk_level", "peak_vram_estimate", "confidence"]
-        for field in required_fields:
-            if field not in data:
-                raise KeyError(f"Missing required field: {field}")
-
-        return cls(
-            success_rate=float(data["success_rate"]),
-            risk_level=str(data["risk_level"]),
-            peak_vram_estimate=int(data["peak_vram_estimate"]),
-            recommendations=list(data.get("recommendations", [])),
-            model_info=dict(data.get("model_info", {})),
-            confidence=float(data["confidence"]),
-        )
-
-    def validate(self) -> bool:
-        """校验预测结果数据合理性
-
-        检查项目：
-        - 成功率在 0-100 范围
-        - 风险等级是有效值
-        - 置信度在 0-1 范围
-        - 显存预估非负
-
-        Returns:
-            True 如果数据合理
-        """
-        try:
-            # 成功率检查
-            if not 0 <= self.success_rate <= 100:
-                logger.warning(f"Success rate out of range: {self.success_rate}")
-                return False
-
-            # 风险等级检查
-            if self.risk_level not in self.VALID_RISK_LEVELS:
-                logger.warning(f"Invalid risk level: {self.risk_level}")
-                return False
-
-            # 一致性检查：风险等级应与成功率匹配
-            expected_level = self.calculate_risk_level(self.success_rate)
-            # 允许一定的容错（阈值边界处）
-            if self.risk_level != expected_level:
-                # 使用首次记录限制器，避免刷屏
-                log_key = f"risk_level_mismatch_{self.risk_level}_{expected_level}"
-                if _first_only_limiter.should_log(log_key):
-                    logger.warning(
-                        f"Risk level mismatch: got '{self.risk_level}', "
-                        f"expected '{expected_level}' for success_rate={self.success_rate}"
-                    )
-                # 不严格拒绝，但记录
-
-            # 置信度检查
-            if not 0 <= self.confidence <= 1:
-                logger.warning(f"Confidence out of range: {self.confidence}")
-                return False
-
-            # 显存预估检查
-            if self.peak_vram_estimate < 0:
-                logger.warning(f"Peak VRAM estimate is negative: {self.peak_vram_estimate}")
-                return False
-
-            return True
-
-        except (TypeError, AttributeError) as e:
-            logger.error(f"PredictionResult validation error: {e}")
-            return False
-
-    def copy(self) -> "PredictionResult":
-        """创建深拷贝"""
-        return dataclasses.replace(
-            self,
-            recommendations=list(self.recommendations),
-            model_info=copy.deepcopy(self.model_info),
-        )
-
-
-# ============================================================================
 # 复合数据类 - 系统监控快照
 # ============================================================================
 
@@ -1202,12 +926,11 @@ class MonitorSnapshot:
     这是整个监控系统最核心的数据结构，用于：
     1. 传递给前端展示层
     2. 写入历史数据库
-    3. 作为预测算法的输入
-    4. 导出为报告或日志
+    3. 导出为报告或日志
 
     设计特点：
     - timestamp 使用 Unix 时间戳，便于排序和比较
-    - gpu_metrics 和 prediction 标记为 Optional，适应无 GPU 场景
+    - gpu_metrics 标记为 Optional，适应无 GPU 场景
     - version 字段用于未来格式升级时的向后兼容处理
 
     Attributes:
@@ -1216,7 +939,6 @@ class MonitorSnapshot:
         cpu_metrics: CPU 指标（必须存在）
         ram_metrics: 内存指标（必须存在）
         power_metrics: 功耗指标（可选）
-        prediction: 预测结果（可选）
         data_source: 当前使用的 GPU 数据源标识
         version: 快照版本号，用于格式演进
     """
@@ -1226,7 +948,6 @@ class MonitorSnapshot:
     cpu_metrics: CPUMetrics
     ram_metrics: RAMMetrics
     power_metrics: Optional[PowerMetrics] = None
-    prediction: Optional[PredictionResult] = None
     data_source: str = ""           # 当前使用的 GPU 数据源标识
     version: str = "1.0.0"          # 快照版本号
 
@@ -1246,7 +967,6 @@ class MonitorSnapshot:
             "cpu": self.cpu_metrics.to_dict(),
             "ram": self.ram_metrics.to_dict(),
             "power": self.power_metrics.to_dict() if self.power_metrics else None,
-            "prediction": self.prediction.to_dict() if self.prediction else None,
         }
 
     def to_json(self) -> str:
@@ -1314,16 +1034,12 @@ class MonitorSnapshot:
         power_data = data.get("power") or data.get("power_metrics")
         power_metrics = PowerMetrics.from_dict(power_data) if power_data else None
 
-        pred_data = data.get("prediction")
-        prediction = PredictionResult.from_dict(pred_data) if pred_data else None
-
         return cls(
             timestamp=float(data["timestamp"]),
             gpu_metrics=gpu_metrics,
             cpu_metrics=cpu_metrics,
             ram_metrics=ram_metrics,
             power_metrics=power_metrics,
-            prediction=prediction,
             data_source=data.get("data_source", ""),
             version=version,
         )
@@ -1354,8 +1070,7 @@ class MonitorSnapshot:
         1. 时间戳合理性（不能是未来时间，不能太旧）
         2. CPU/RAM 必须存在且通过各自校验
         3. GPU 可选但如果存在则需要校验
-        4. Prediction 可选但如果存在则需要校验
-        5. 版本号格式检查
+        4. 版本号格式检查
 
         Returns:
             True 如果所有数据都合理
@@ -1401,12 +1116,6 @@ class MonitorSnapshot:
                     if _validation_limiter.should_log("power_metrics_validation_failed"):
                         logger.warning("Power metrics validation failed")
 
-            if self.prediction is not None:
-                if not self.prediction.validate():
-                    # 使用频率限制器，避免刷屏
-                    if _validation_limiter.should_log("prediction_validation_failed"):
-                        logger.warning("Prediction validation failed")
-
             # 版本号格式检查（简单的语义版本检查）
             parts = self.version.split(".")
             if len(parts) != 3 or not all(p.isdigit() for p in parts):
@@ -1430,7 +1139,6 @@ class MonitorSnapshot:
             cpu_metrics=self.cpu_metrics.copy(),
             ram_metrics=self.ram_metrics.copy(),
             power_metrics=self.power_metrics.copy() if self.power_metrics else None,
-            prediction=self.prediction.copy() if self.prediction else None,
             data_source=self.data_source,
             version=self.version,
         )
@@ -1455,12 +1163,6 @@ class MonitorSnapshot:
                 "gpu_temp": self.gpu_metrics.temperature,
             })
 
-        if self.prediction:
-            summary.update({
-                "pred_success_rate": self.prediction.success_rate,
-                "pred_risk_level": self.prediction.risk_level,
-            })
-
         return summary
 
 
@@ -1470,6 +1172,3 @@ class MonitorSnapshot:
 
 # SystemSnapshot 作为 MonitorSnapshot 的别名，确保现有代码无需修改
 SystemSnapshot = MonitorSnapshot
-
-# 为了兼容 collectors/predictor.py 中的用法，添加一些便捷属性
-# 这些将在后续重构中逐步移除

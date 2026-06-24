@@ -6,8 +6,15 @@
 
 from collectors.base import BaseCollector
 from core.data_models import RAMMetrics
-import psutil
 import logging
+import platform
+
+try:
+    import psutil
+    _HAS_PSUTIL = True
+except ImportError:
+    psutil = None  # type: ignore
+    _HAS_PSUTIL = False
 
 
 class RAMCollector(BaseCollector[RAMMetrics]):
@@ -74,19 +81,60 @@ class RAMCollector(BaseCollector[RAMMetrics]):
         Raises:
             DataCollectionError: 当 psutil 调用失败时（由基类 safe_collect 捕获）
         """
-        # 1. 物理内存信息
-        mem = psutil.virtual_memory()
+        if _HAS_PSUTIL:
+            mem = psutil.virtual_memory()
+            swap = psutil.swap_memory()
+            return RAMMetrics(
+                ram_used=int(mem.used // (1024 * 1024)),
+                ram_total=int(mem.total // (1024 * 1024)),
+                ram_percent=float(mem.percent),
+                swap_used=int(swap.used // (1024 * 1024)),
+                swap_total=int(swap.total // (1024 * 1024)),
+                cached=int(getattr(mem, 'cached', 0) // (1024 * 1024)),
+                available=int(mem.available // (1024 * 1024))
+            )
 
-        # 2. 交换分区信息
-        swap = psutil.swap_memory()
+        # psutil 不可用时，Linux 通过 /proc/meminfo 零依赖采集
+        if platform.system() == "Linux":
+            return self._collect_from_proc_meminfo()
 
-        # 3-4. 构造 RAMMetrics 对象（单位：bytes -> MB）
+        logging.warning("RAMCollector: psutil not available and no fallback for %s", platform.system())
+        return RAMMetrics(ram_used=0, ram_total=0, ram_percent=0.0,
+                          swap_used=0, swap_total=0, cached=0, available=0)
+
+    def _collect_from_proc_meminfo(self) -> RAMMetrics:
+        """从 /proc/meminfo 读取内存指标（无 psutil 时 Linux fallback）。"""
+        data: dict = {}
+        try:
+            with open("/proc/meminfo", "r") as f:
+                for line in f:
+                    if ":" in line:
+                        key, value = line.split(":", 1)
+                        data[key.strip().lower()] = int(value.strip().split()[0])  # kB
+        except Exception as e:
+            logging.warning("RAMCollector: failed to read /proc/meminfo: %s", e)
+            return RAMMetrics(ram_used=0, ram_total=0, ram_percent=0.0,
+                              swap_used=0, swap_total=0, cached=0, available=0)
+
+        total_kb = data.get("memtotal", 0)
+        free_kb = data.get("memfree", 0)
+        avail_kb = data.get("memavailable", free_kb)
+        buffers_kb = data.get("buffers", 0)
+        cached_kb = data.get("cached", 0)
+        sreclaimable_kb = data.get("sreclaimable", 0)
+        swaptotal_kb = data.get("swaptotal", 0)
+        swapfree_kb = data.get("swapfree", 0)
+
+        used_kb = total_kb - free_kb - buffers_kb - cached_kb - sreclaimable_kb
+        used_kb = max(0, used_kb)
+        percent = round(used_kb / total_kb * 100, 1) if total_kb else 0.0
+
         return RAMMetrics(
-            ram_used=int(mem.used // (1024 * 1024)),       # bytes → MB
-            ram_total=int(mem.total // (1024 * 1024)),
-            ram_percent=float(mem.percent),
-            swap_used=int(swap.used // (1024 * 1024)),
-            swap_total=int(swap.total // (1024 * 1024)),
-            cached=int(getattr(mem, 'cached', 0) // (1024 * 1024)),
-            available=int(mem.available // (1024 * 1024))
+            ram_used=used_kb // 1024,
+            ram_total=total_kb // 1024,
+            ram_percent=percent,
+            swap_used=(swaptotal_kb - swapfree_kb) // 1024,
+            swap_total=swaptotal_kb // 1024,
+            cached=(cached_kb + sreclaimable_kb) // 1024,
+            available=avail_kb // 1024,
         )

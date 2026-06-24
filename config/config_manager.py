@@ -9,7 +9,6 @@ DEFAULT_CONFIG_PATH = Path(__file__).parent / "config.json"
 
 DEFAULTS = {
     "refresh_interval": 1.0,
-    "prediction_enabled": True,
     "ui": {
         "theme": "neu",
         "position": {"x": 20, "y": 20},
@@ -17,13 +16,12 @@ DEFAULTS = {
     },
     "data_sources": {
         "linux_amd_priority": ["amdsmi", "rocm_smi_lib", "sysfs"],
-        "windows_amd_priority": ["wmi", "pytorch", "psutil"],
+        "windows_amd_priority": ["adlx"],
     },
 }
 
 TYPE_SCHEMA = {
     "refresh_interval": (float, int),
-    "prediction_enabled": bool,
     "ui.theme": str,
     "ui.position.x": (int, float),
     "ui.position.y": (int, float),

@@ -5,10 +5,18 @@ CPU 数据采集器模块。
 """
 
 from collectors.base import BaseCollector
+from collectors.proc_stat_collector import ProcStatCollector
 from core.data_models import CPUMetrics
-import psutil
 import logging
 import os
+from typing import List
+
+try:
+    import psutil
+    _HAS_PSUTIL = True
+except ImportError:
+    psutil = None  # type: ignore
+    _HAS_PSUTIL = False
 
 
 class CPUCollector(BaseCollector[CPUMetrics]):
@@ -62,7 +70,10 @@ class CPUCollector(BaseCollector[CPUMetrics]):
             retry_count=1
         )
         self._platform = None  # 延迟初始化，避免循环依赖
-        
+
+        # Linux 高精度 /proc/stat 采集器
+        self._proc_collector: ProcStatCollector | None = None
+
         # 🔧 P0 修复: CPU 预热机制
         self._warmed_up = False
         self._warmup_cpu_percent()  # 立即预热
@@ -70,43 +81,67 @@ class CPUCollector(BaseCollector[CPUMetrics]):
     def _warmup_cpu_percent(self):
         """
         CPU 采样预热（解决首次调用返回 0.0 的问题）。
-        
+
         技术原理：
-        - psutil.cpu_percent(interval=None) 使用非阻塞模式
-        - 首次调用时没有历史基准数据，必然返回 0.0
+        - psutil.cpu_percent(interval=None) 与 /proc/stat 非阻塞模式
+          首次调用时都没有历史基准数据，必然返回 0.0
         - 通过预采样建立基准点，后续调用可计算真实使用率
-        
+
         实现策略：
-        1. 调用一次 interval=None 建立基准（丢弃返回值）
-        2. 等待 100ms 让系统积累 CPU 时间统计
-        3. 再次调用获取真实使用率（验证预热成功）
-        
+        1. Linux 优先使用 /proc/stat：先建立基准，等待 100ms 后再采样一次
+        2. 非 Linux 或 /proc/stat 不可用时，回退到 psutil 预热
+        3. 如果预热值仍为 0，再额外等待并刷新一次
+
         注意：此方法在 __init__ 中调用，增加约 100-150ms 初始化时间，
               但确保后续所有采集都能获得准确的非零值。
         """
+        import time
+
         try:
-            import time
-            
-            # 步骤1: 第一次采样（建立基准，返回值无意义）
-            psutil.cpu_percent(interval=None)
-            
-            # 步骤2: 短暂等待让系统更新 CPU 统计
-            time.sleep(0.1)  # 100ms 通常足够
-            
-            # 步骤3: 第二次采样（此时应该有真实数据）
-            test_value = psutil.cpu_percent(interval=None)
-            
-            self._warmed_up = True
-            
-            if test_value == 0.0:
-                # 如果仍然是 0，可能系统真的空闲，再等待一会
-                time.sleep(0.2)
-                psutil.cpu_percent(interval=None)  # 再次刷新
-                
-            logging.debug(f"[CPU Collector] ✅ 预热完成 (初始值: {test_value}%)")
-            
+            if self._get_platform() == "linux":
+                self._proc_collector = ProcStatCollector()
+                if self._proc_collector.available:
+                    # 步骤1: 第一次采样（建立基准，返回值无意义）
+                    self._proc_collector.get_cpu_percent(interval=None)
+
+                    # 步骤2: 短暂等待让内核更新 CPU 统计
+                    time.sleep(0.1)
+
+                    # 步骤3: 第二次采样（此时应该有真实数据）
+                    test_value, _ = self._proc_collector.get_cpu_percent(interval=None)
+                    self._warmed_up = True
+
+                    if test_value == 0.0:
+                        # 如果仍然是 0，可能系统真的空闲，再等待一会
+                        time.sleep(0.2)
+                        self._proc_collector.get_cpu_percent(interval=None)  # 再次刷新
+
+                    logging.debug(
+                        "[CPU Collector] ✅ /proc/stat 预热完成 (初始值: %.2f%%)",
+                        test_value,
+                    )
+                    return
+
+            if _HAS_PSUTIL:
+                # 回退到 psutil 预热
+                psutil.cpu_percent(interval=None)
+                time.sleep(0.1)
+                test_value = psutil.cpu_percent(interval=None)
+                self._warmed_up = True
+
+                if test_value == 0.0:
+                    time.sleep(0.2)
+                    psutil.cpu_percent(interval=None)
+
+                logging.debug(
+                    "[CPU Collector] ✅ psutil 预热完成 (初始值: %.2f%%)",
+                    test_value,
+                )
+            else:
+                logging.warning("[CPU Collector] ⚠️ psutil 未安装，跳过预热")
+
         except Exception as e:
-            logging.warning(f"[CPU Collector] ⚠️ 预热失败: {e}")
+            logging.warning("[CPU Collector] ⚠️ 预热失败: %s", e)
             # 预热失败不影响运行，collect() 会处理
 
     def collect(self) -> CPUMetrics:
@@ -128,34 +163,79 @@ class CPUCollector(BaseCollector[CPUMetrics]):
             - 异常情况：如果返回 0.0 且未预热，自动降级为 interval=0.1（100ms 阻塞）
             - 这确保即使在极端情况下也能获得准确的非零值
         """
-        # 1. 总使用率（带智能降级策略）
-        if self._warmed_up:
-            # ✅ 已预热：使用快速非阻塞模式
-            cpu_percent = psutil.cpu_percent(interval=None)
-            
-            # 保护：如果仍然为 0，尝试一次阻塞式采集
-            if cpu_percent == 0.0:
-                logging.debug("[CPU Collector] ⚠️ 非阻塞模式返回 0，降级为阻塞模式")
-                cpu_percent = psutil.cpu_percent(interval=0.1)  # 100ms 阻塞
-        else:
-            # ❌ 未预热：使用阻塞模式确保准确性
-            logging.warning("[CPU Collector] ⚠️ 预热未完成，使用阻塞模式")
-            cpu_percent = psutil.cpu_percent(interval=0.1)  # 100ms 阻塞
+        # 1. 总使用率与每核使用率（Linux 优先 /proc/stat，其余平台用 psutil）
+        cpu_percent: float = 0.0
+        per_core_usage: List[float] = []
+        used_proc_stat = False
+
+        if (
+            self._get_platform() == "linux"
+            and self._proc_collector is not None
+            and self._proc_collector.available
+        ):
+            try:
+                if self._warmed_up:
+                    # ✅ 已预热：使用 /proc/stat 快速非阻塞模式
+                    cpu_percent, per_core_usage = self._proc_collector.get_cpu_percent(
+                        interval=None
+                    )
+
+                    # 保护：与 psutil 行为保持一致，若返回 0 则尝试一次阻塞采样
+                    if cpu_percent == 0.0:
+                        logging.debug(
+                            "[CPU Collector] ⚠️ /proc/stat 非阻塞模式返回 0，降级为阻塞模式"
+                        )
+                        cpu_percent, per_core_usage = self._proc_collector.get_cpu_percent(
+                            interval=0.1
+                        )
+                else:
+                    # ❌ 未预热：使用阻塞模式确保准确性
+                    logging.warning(
+                        "[CPU Collector] ⚠️ /proc/stat 预热未完成，使用阻塞模式"
+                    )
+                    cpu_percent, per_core_usage = self._proc_collector.get_cpu_percent(
+                        interval=0.1
+                    )
+
+                used_proc_stat = True
+            except Exception as e:
+                logging.debug(
+                    "[CPU Collector] ⚠️ /proc/stat 采集失败，回退到 psutil: %s", e
+                )
+
+        # /proc/stat 不可用或失败时，回退到 psutil（若可用）
+        if not used_proc_stat or not per_core_usage:
+            if _HAS_PSUTIL:
+                if self._warmed_up:
+                    cpu_percent = psutil.cpu_percent(interval=None)
+                    if cpu_percent == 0.0:
+                        logging.debug(
+                            "[CPU Collector] ⚠️ psutil 非阻塞模式返回 0，降级为阻塞模式"
+                        )
+                        cpu_percent = psutil.cpu_percent(interval=0.1)
+                else:
+                    logging.warning(
+                        "[CPU Collector] ⚠️ psutil 预热未完成，使用阻塞模式"
+                    )
+                    cpu_percent = psutil.cpu_percent(interval=0.1)
+
+                per_core_usage = psutil.cpu_percent(percpu=True, interval=None)
+            else:
+                logging.warning("[CPU Collector] ⚠️ /proc/stat 与 psutil 均不可用")
 
         # 2. 逻辑核心数
-        cpu_count = psutil.cpu_count(logical=True)
+        cpu_count = psutil.cpu_count(logical=True) if _HAS_PSUTIL else os.cpu_count()
 
         # 3. 平均频率 (MHz)
-        try:
-            freq = psutil.cpu_freq()
-            cpu_freq = freq.current if freq else 0.0
-        except Exception:
-            cpu_freq = 0.0
+        cpu_freq = 0.0
+        if _HAS_PSUTIL:
+            try:
+                freq = psutil.cpu_freq()
+                cpu_freq = freq.current if freq else 0.0
+            except Exception:
+                cpu_freq = 0.0
 
-        # 4. 每核心使用率 (非阻塞)
-        per_core_usage = psutil.cpu_percent(percpu=True, interval=None)
-
-        # 5. 平台特定指标
+        # 4. 平台特定指标
         load_avg_1m = None
         load_avg_5m = None
         context_switches = None
@@ -170,11 +250,25 @@ class CPUCollector(BaseCollector[CPUMetrics]):
                 pass
 
             # Linux 特有：上下文切换次数
-            try:
-                stats = psutil.cpu_stats()
-                context_switches = stats.ctx_switches
-            except Exception:
-                pass
+            if _HAS_PSUTIL:
+                try:
+                    stats = psutil.cpu_stats()
+                    context_switches = stats.ctx_switches
+                except Exception:
+                    pass
+
+        # 确保每核使用率长度与核心数一致（防御性处理）
+        if cpu_count and len(per_core_usage) != cpu_count:
+            if _HAS_PSUTIL:
+                logging.debug(
+                    "[CPU Collector] ⚠️ 每核使用率长度 (%d) 与核心数 (%d) 不一致，用 psutil 补齐",
+                    len(per_core_usage),
+                    cpu_count,
+                )
+                per_core_usage = psutil.cpu_percent(percpu=True, interval=None)
+            else:
+                # 无 psutil 时，用 0 补齐
+                per_core_usage = list(per_core_usage) + [0.0] * (cpu_count - len(per_core_usage))
 
         return CPUMetrics(
             cpu_utilization=float(cpu_percent),
@@ -183,7 +277,7 @@ class CPUCollector(BaseCollector[CPUMetrics]):
             per_core_usage=[float(x) for x in per_core_usage],
             load_average_1m=load_avg_1m,
             load_average_5m=load_avg_5m,
-            context_switches=context_switches
+            context_switches=context_switches,
         )
 
     def _get_platform(self):
@@ -199,6 +293,6 @@ class CPUCollector(BaseCollector[CPUMetrics]):
             str: 当前平台标识符 ('linux', 'windows', 'macos' 等)
         """
         if self._platform is None:
-            from utils.platform_detect import get_platform
+            from fxm_utils.platform_detect import get_platform
             self._platform = get_platform()
         return self._platform

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ComfyUI-Feixue-UniversalMonitor"
-version = "3.28"
+version = "3.29"
 description = "飞雪监测器 — Premium UI 实时硬件监测，AMD GPU 优化"
 readme = "README.md"
 license = {text = "MIT"}
@@ -14,8 +14,6 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "psutil>=5.9.0",
-    "torch>=2.5.0",
-    "orjson>=3.9.0",
 ]
 optional-dependencies = {dev = ["pytest>=7.0", "pytest-cov>=4.0"]}
 
@@ -23,13 +21,13 @@ optional-dependencies = {dev = ["pytest>=7.0", "pytest-cov>=4.0"]}
 Repository = "https://github.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor"
 
 [tool.setuptools.packages.find]
-include = ["core*", "collectors*", "providers*", "utils*", "config*"]
+include = ["core*", "collectors*", "fxm_utils*", "config*"]
 
 [tool.comfy]
 PublisherId = "feixue"
 DisplayName = "飞雪监测器 - Feixue Universal Monitor"
 Icon = "https://raw.githubusercontent.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor/main/feixue-icon.png"
-Description = "飞雪监测器 (Feixue Universal Monitor) — v3.28 5色×5风格实时硬件监测. Real-time hardware monitor for ComfyUI with 5 color themes × 5 style presets (Neu/Jade Bamboo/Retro/Lux/Cyber). Monitor GPU utilization, VRAM, CPU, RAM, swap memory, GPU temperature, disk I/O, and network speed. Features: premium UI design with 3D effects, multi-layer shadows, theme-adaptive colors, WebSocket real-time push, drag-to-reposition with position memory, smart memory cleanup. EMA smoothing for AMD SMI gfx_activity. Optimized for AMD/NVIDIA GPUs on Windows and Linux (amdsmi/ROCm/sysfs, pynvml/WMI). Keywords: feixue, monitor, hardware, gpu, vram, cpu, ram, temperature, system, resource, performance, amd, rocm, nvidia, widget, overlay, status, dashboard, swap, disk, network, style, theme, neu, jade, bamboo, retro, lux, cyber."
+Description = "飞雪监测器 (Feixue Universal Monitor) — v3.29 零依赖原生硬件监测. Real-time hardware monitor for ComfyUI. Monitor GPU utilization, VRAM, CPU, RAM, swap memory, GPU temperature, disk I/O, and network speed. Zero-dependency on Windows: uses AMD ADL (atiadlxx.dll), NVIDIA NVML (nvml.dll), and Windows PDH counters. On Linux: amdsmi/rocm-smi/sysfs for AMD, NVML for NVIDIA. Removed inaccurate fallback methods (WMI/pynvml-amd-windows) and fan monitoring. Features: premium UI design, WebSocket real-time push, position memory, smart memory cleanup. Keywords: feixue, monitor, hardware, gpu, vram, cpu, ram, temperature, system, resource, performance, amd, rocm, nvidia, widget, overlay, status, dashboard, swap, disk, network, style, theme."
 
 [tool.black]
 line-length = 100

@@ -210,8 +210,8 @@ def detect_gpu_vendor() -> VendorType:
            - ``0x1002`` = AMD
            - ``0x10de`` = NVIDIA
            - ``0x8086`` = Intel
-        2. **Windows WMI**: Query Win32_VideoController
-        3. **PyTorch fallback**: Keyword matching via ``torch.cuda.get_device_name(0)``
+        2. **Windows PyTorch**: Keyword matching via ``torch.cuda.get_device_name(0)``
+        3. **Environment variables**
         4. **lspci command** (Linux fallback)
 
     Returns:
@@ -237,23 +237,23 @@ def _detect_gpu_vendor_impl() -> VendorType:
         if vendor != "unknown":
             return vendor
 
-    # Priority 2: Windows WMI
-    if current_os == "windows":
-        vendor = _detect_vendor_windows_wmi()
-        if vendor != "unknown":
-            return vendor
-
-    # Priority 3: PyTorch device name keyword matching
+    # Priority 2: Windows PyTorch/device name keyword matching (replaces WMI)
+    # PyTorch is always present in ComfyUI; device name is authoritative.
     vendor = _detect_vendor_pytorch()
     if vendor != "unknown":
         return vendor
 
-    # Priority 4: Environment variables
+    # Priority 3: Environment variables
+    vendor = _detect_vendor_pytorch()
+    if vendor != "unknown":
+        return vendor
+
+    # Priority 3: Environment variables
     vendor = _detect_vendor_environment()
     if vendor != "unknown":
         return vendor
 
-    # Priority 5: lspci (Linux fallback)
+    # Priority 4: lspci (Linux fallback)
     if current_os == "linux":
         vendor = _detect_vendor_lspci()
         if vendor != "unknown":
@@ -307,47 +307,6 @@ def _detect_vendor_sysfs() -> VendorType:
                 continue
     except Exception as e:
         logger.debug(f"Sysfs vendor detection error: {e}")
-
-    return "unknown"
-
-
-def _detect_vendor_windows_wmi() -> VendorType:
-    """
-    Detect GPU vendor on Windows using WMI Win32_VideoController query.
-
-    Returns:
-        Vendor string or "unknown".
-    """
-    try:
-        result = subprocess.run(
-            ["wmic", "path", "win32_videocontroller", "get", "name"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
-        )
-        output = result.stdout.lower()
-
-        amd_keywords = ["amd", "radeon", "ati"]
-        nvidia_keywords = ["nvidia", "geforce", "rtx", "gtx", "tesla", "quadro"]
-        intel_keywords = ["intel", "uhd", "iris", "arc", "xe graphics"]
-
-        if any(kw in output for kw in amd_keywords):
-            logger.debug("WMI shows AMD GPU")
-            return "amd"
-        if any(kw in output for kw in nvidia_keywords):
-            logger.debug("WMI shows NVIDIA GPU")
-            return "nvidia"
-        if any(kw in output for kw in intel_keywords):
-            logger.debug("WMI shows Intel GPU")
-            return "intel"
-
-    except FileNotFoundError:
-        logger.debug("WMIC not available on this Windows system")
-    except subprocess.TimeoutExpired:
-        logger.warning("WMI query timed out after 10 seconds")
-    except Exception as e:
-        logger.debug(f"WMI vendor detection failed: {e}")
 
     return "unknown"
 
@@ -518,8 +477,7 @@ def get_gpu_device_name() -> str:
     Tries multiple sources in priority order:
         1. PyTorch ``torch.cuda.get_device_name(0)``
         2. Linux sysfs uevent/model files
-        3. Windows WMI adapter name
-        4. Fallback: "Unknown GPU"
+        3. Fallback: "Unknown GPU"
 
     Returns:
         Human-readable GPU model name string.
@@ -552,12 +510,6 @@ def _get_gpu_device_name_impl() -> str:
     current_os = get_platform()
     if current_os == "linux":
         name = _get_gpu_name_from_sysfs()
-        if name:
-            return name
-
-    # Try Windows WMI
-    if current_os == "windows":
-        name = _get_gpu_name_from_wmi()
         if name:
             return name
 
@@ -602,31 +554,6 @@ def _get_gpu_name_from_sysfs() -> Optional[str]:
     return None
 
 
-def _get_gpu_name_from_wmi() -> Optional[str]:
-    """
-    Extract GPU name from Windows WMI Win32_VideoController.
-
-    Returns:
-        Device name string or None if unavailable.
-    """
-    try:
-        result = subprocess.run(
-            ["wmic", "path", "win32_videocontroller", "get", "name"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
-        )
-        for line in result.stdout.splitlines():
-            line = line.strip()
-            if line and line.lower() not in ("name", ""):
-                return line
-    except Exception as e:
-        logger.debug(f"WMI device name query failed: {e}")
-
-    return None
-
-
 # ============================================================================
 # 3. ROCm Availability and Data Source Detection
 # ============================================================================
@@ -650,7 +577,7 @@ def detect_rocm_availability() -> Dict[str, Any]:
             }
 
     The priority list follows: ``["amdsmi", "rocm_smi_lib", "sysfs"]`` on Linux,
-    and ``["wmi", "pytorch", "psutil"]`` on Windows.
+    and ``["directml", "pytorch", "psutil"]`` on Windows.
     """
     cache_key = _get_cache_key("rocm_availability")
 
@@ -696,14 +623,11 @@ def _detect_rocm_availability_impl() -> Dict[str, Any]:
         }
 
     elif current_os == "windows":
-        wmi_avail = _check_wmi_available()
         directml_avail = _check_directml_available()
         pytorch_avail = _check_pytorch_cuda_available()
         psutil_avail = _check_psutil_available()
 
         win_priority: List[str] = []
-        if wmi_avail:
-            win_priority.append("wmi")
         if directml_avail:
             win_priority.append("directml")
         if pytorch_avail:
@@ -883,21 +807,6 @@ def _query_rocm_version() -> Optional[str]:
     return None
 
 
-def _check_wmi_available() -> bool:
-    """Check if WMI is available on Windows."""
-    try:
-        result = subprocess.run(
-            ["wmic", "path", "win32_videocontroller", "get", "name"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
-        )
-        return result.returncode == 0 and len(result.stdout.strip()) > 0
-    except Exception:
-        return False
-
-
 def _check_directml_available() -> bool:
     """Check if DirectML backend is available."""
     try:
@@ -958,7 +867,7 @@ def detect_windows_gpu_info() -> Dict[str, Any]:
     Collect comprehensive GPU information on Windows platforms.
 
     Gathers data from multiple sources:
-        - WMI Win32_VideoController (adapter name, RAM, driver version)
+        - PyTorch ``torch.cuda.get_device_name(0)`` (adapter name, vendor)
         - DirectML availability
         - Administrative privilege status
 
@@ -970,9 +879,8 @@ def detect_windows_gpu_info() -> Dict[str, Any]:
             {
                 "vendor": str,               # Detected vendor
                 "name": str,                 # Adapter/product name
-                "driver_version": str,       # Driver version string
+                "driver_version": str,       # Driver version string (empty)
                 "directml_available": bool,  # Whether DirectML is usable
-                "wmi_available": bool,       # Whether WMI queries succeeded
                 "admin_privileges": bool,    # Current process has admin rights
             }
 
@@ -997,7 +905,6 @@ def _detect_windows_gpu_info_impl() -> Dict[str, Any]:
         "name": "",
         "driver_version": "",
         "directml_available": False,
-        "wmi_available": False,
         "admin_privileges": False,
     }
 
@@ -1007,85 +914,26 @@ def _detect_windows_gpu_info_impl() -> Dict[str, Any]:
     result = default_result.copy()
     result["admin_privileges"] = is_admin()
 
-    # Query WMI for GPU information
-    wmi_data = _query_wmic_full_gpu_info()
-    if wmi_data:
-        result["wmi_available"] = True
-        result.update(wmi_data)
+    # Use PyTorch device name for vendor/name info; no WMI dependency.
+    try:
+        import torch
+        if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+            name = str(torch.cuda.get_device_name(0))
+            name_lower = name.lower()
+            if any(kw in name_lower for kw in ("amd", "radeon", "ati")):
+                result["vendor"] = "amd"
+            elif any(kw in name_lower for kw in ("nvidia", "geforce", "quadro", "rtx", "gtx", "tesla")):
+                result["vendor"] = "nvidia"
+            elif any(kw in name_lower for kw in ("intel", "uhd", "iris", "arc", "xe")):
+                result["vendor"] = "intel"
+            result["name"] = name
+    except Exception:
+        pass
 
     # Check DirectML
     result["directml_available"] = _check_directml_available()
 
     return result
-
-
-def _query_wmic_full_gpu_info() -> Optional[Dict[str, str]]:
-    """
-    Query WMI for detailed GPU adapter information.
-
-    Returns:
-        Dictionary with vendor, name, driver_version or None on failure.
-    """
-    try:
-        result = subprocess.run(
-            [
-                "wmic", "path", "win32_videocontroller", "get",
-                "name,adapterram,driverversion,pnpdeviceid", "/format:list"
-            ],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
-        )
-
-        output = result.stdout
-        if not output.strip():
-            return None
-
-        # Parse key=value format
-        current: Dict[str, str] = {}
-        for line in output.splitlines():
-            line = line.strip()
-            if not line:
-                if current.get("name"):
-                    break
-                current = {}
-                continue
-            if "=" in line:
-                key, value = line.split("=", 1)
-                current[key.strip().lower()] = value.strip()
-
-        if not current.get("name"):
-            return None
-
-        name = current.get("name", "")
-        name_lower = name.lower()
-
-        # Determine vendor from adapter name
-        if any(kw in name_lower for kw in ("amd", "radeon", "ati")):
-            vendor = "amd"
-        elif any(kw in name_lower for kw in ("nvidia", "geforce", "quadro")):
-            vendor = "nvidia"
-        elif any(kw in name_lower for kw in ("intel", "uhd", "iris", "arc")):
-            vendor = "intel"
-        else:
-            vendor = "unknown"
-
-        return {
-            "vendor": vendor,
-            "name": name,
-            "driver_version": current.get("driverversion", ""),
-        }
-
-    except subprocess.TimeoutExpired:
-        logger.warning("WMIC full GPU info query timed out")
-        return None
-    except FileNotFoundError:
-        logger.debug("WMIC not available")
-        return None
-    except Exception as e:
-        logger.debug(f"WMIC full GPU info query failed: {e}")
-        return None
 
 
 def is_admin() -> bool:

@@ -9,10 +9,10 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 - WebSocket / HTTP 双通道实时数据推送
 
 作者: Feixue Team
-版本: 3.28 (5 Colors × 5 Styles Real-time Hardware Monitor)
+版本: 3.29 (Zero-Dependency Native Monitoring)
 """
 
-__version__ = "3.28"
+__version__ = "3.29"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -20,15 +20,16 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.28 5色×5风格实时硬件监测)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.29 零依赖原生硬件监测)")
 
 # ============================================================================
 # 获取插件根目录（用于导入 core 模块）
 # ============================================================================
 import os
+import sys
 _FEIXUE_ROOT = os.path.dirname(os.path.abspath(__file__))
-if _FEIXUE_ROOT not in __import__('sys').path:
-    __import__('sys').path.insert(0, _FEIXUE_ROOT)
+if _FEIXUE_ROOT not in sys.path:
+    sys.path.insert(0, _FEIXUE_ROOT)
 
 # ============================================================================
 # 启动后端监控服务（非致命，失败不影响 ComfyUI 主流程）

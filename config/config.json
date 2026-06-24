@@ -1,6 +1,5 @@
 {
   "refresh_interval": 1.0,
-  "prediction_enabled": true,
   "ui": {
     "theme": "neu",
     "position": {"x": 20, "y": 20},
@@ -8,6 +7,6 @@
   },
   "data_sources": {
     "linux_amd_priority": ["amdsmi", "rocm_smi_lib", "sysfs"],
-    "windows_amd_priority": ["wmi", "pytorch", "psutil"]
+    "windows_amd_priority": ["adlx"]
   }
 }
