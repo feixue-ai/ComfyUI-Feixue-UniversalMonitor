@@ -50,15 +50,34 @@ def _is_installed(package_name: str) -> bool:
 
 
 def _pip_install(packages: list, desc: str) -> bool:
-    """安装 pip 包，失败不阻塞插件运行"""
+    """安装 pip 包，失败不阻塞插件运行，保留错误日志便于排障"""
     print(f"  [安装] {desc}...")
     try:
         cmd = _get_pip_cmd() + list(packages)
-        subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print(f"  [OK] {desc} 安装成功")
-        return True
-    except subprocess.CalledProcessError:
-        print(f"  [警告] {desc} 安装失败，将使用原生接口继续")
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode == 0:
+            print(f"  [OK] {desc} 安装成功")
+            return True
+        else:
+            # 记录错误日志（取最后 3 行，避免刷屏）
+            err_lines = result.stderr.strip().splitlines()[-3:]
+            for line in err_lines:
+                print(f"  [错误] {line}")
+            print(f"  [警告] {desc} 安装失败，将使用原生接口继续")
+            return False
+    except subprocess.TimeoutExpired:
+        print(f"  [警告] {desc} 安装超时（120s），将使用原生接口继续")
+        return False
+    except subprocess.CalledProcessError as e:
+        print(f"  [警告] {desc} 安装失败: {e}，将使用原生接口继续")
+        return False
+    except Exception as e:
+        print(f"  [警告] {desc} 安装异常: {e}，将使用原生接口继续")
         return False
 
 
