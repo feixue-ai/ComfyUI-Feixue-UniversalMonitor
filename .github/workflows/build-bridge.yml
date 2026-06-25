@@ -1,0 +1,122 @@
+# 构建 feixue_adlx_bridge.dll 的 GitHub Actions workflow
+#
+# ADLX SDK 以源码形式提供（ADLXHelper.cpp + WinAPIs.cpp），
+# 运行时动态加载 amd_adlx64.dll（随 AMD 驱动安装），无需预编译 .lib。
+#
+# 触发方式：
+#   1. 手动触发（workflow_dispatch）
+#   2. bridge/ 目录或本 workflow 文件变更时自动触发
+#
+# 产物：libs/feixue_adlx_bridge.dll（x64），自动提交回仓库
+
+name: Build ADLX Bridge DLL
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'bridge/**'
+      - '.github/workflows/build-bridge.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout plugin repo
+        uses: actions/checkout@v4
+
+      - name: Checkout ADLX SDK
+        uses: actions/checkout@v4
+        with:
+          repository: GPUOpen-LibrariesAndSDKs/ADLX
+          path: adlx-sdk
+          ref: main
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.25.x'
+
+      - name: Verify ADLX SDK structure
+        shell: powershell
+        run: |
+          Write-Host "=== ADLX SDK 目录结构 ==="
+          $sdkRoot = Resolve-Path "adlx-sdk"
+          Write-Host "SDK Root: $sdkRoot"
+
+          # 验证关键文件存在
+          $adlxHeader = Join-Path $sdkRoot "SDK/Include/ADLX.h"
+          $adlxHelper = Join-Path $sdkRoot "SDK/ADLXHelper/Windows/Cpp/ADLXHelper.cpp"
+          $winApis = Join-Path $sdkRoot "SDK/Platform/Windows/WinAPIs.cpp"
+
+          foreach ($f in @($adlxHeader, $adlxHelper, $winApis)) {
+            if (Test-Path $f) {
+              Write-Host "  OK: $f"
+            } else {
+              Write-Host "  MISSING: $f"
+              exit 1
+            }
+          }
+
+          # 设置 ADLX_SDK_PATH 环境变量（指向仓库根目录）
+          # GITHUB_ENV 的正确写法：echo "KEY=VALUE" >> $env:GITHUB_ENV
+          $sdkPath = $sdkRoot.Path
+          echo "ADLX_SDK_PATH=$sdkPath" >> $env:GITHUB_ENV
+          Write-Host "ADLX_SDK_PATH=$sdkPath"
+
+      - name: Configure CMake
+        shell: powershell
+        run: |
+          cmake -B build -S bridge `
+            -G "Visual Studio 17 2022" -A x64 `
+            -DADLX_SDK_PATH="$env:ADLX_SDK_PATH"
+
+      - name: Build
+        shell: powershell
+        run: |
+          cmake --build build --config Release
+          Write-Host "=== Build output ==="
+          Get-ChildItem -Path build/output -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
+
+      - name: Verify DLL
+        shell: powershell
+        run: |
+          $dll = "build/output/feixue_adlx_bridge.dll"
+          if (-not (Test-Path $dll)) {
+            # 兼容多配置生成器的输出路径
+            $dll = Get-ChildItem -Path build -Filter "feixue_adlx_bridge.dll" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $dll -or -not (Test-Path $dll)) {
+            Write-Host "ERROR: feixue_adlx_bridge.dll not found"
+            exit 1
+          }
+          Write-Host "DLL found: $dll"
+          $size = (Get-Item $dll).Length / 1KB
+          Write-Host "Size: $size KB"
+
+          # 拷贝到 libs/
+          if (-not (Test-Path libs)) { New-Item -ItemType Directory -Path libs }
+          Copy-Item -Path $dll -Destination "libs/feixue_adlx_bridge.dll" -Force
+          Write-Host "=== libs/ ==="
+          Get-ChildItem -Path libs
+
+      - name: Commit DLL to repo
+        shell: powershell
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add libs/feixue_adlx_bridge.dll
+          if (git diff --cached --quiet) {
+            Write-Host "No changes to commit"
+          } else {
+            git commit -m "build: update feixue_adlx_bridge.dll (CI auto-build)"
+            git push
+          }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

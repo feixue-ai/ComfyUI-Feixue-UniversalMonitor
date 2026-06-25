@@ -47,6 +47,7 @@ from collectors.gpu_providers import (
     AmdRocmProvider,
     AmdSmiProvider,
     AmdSysfsProvider,
+    DXGIProvider,
     NvidiaNvmlProvider,
     NvidiaProvider,
     WindowsPdhProvider,
@@ -175,9 +176,9 @@ class FeixueHardwareInfo:
     # Linux: AMD 官方 amdsmi 优先；NVIDIA 系统会自然 fallback 到 nvidia_nvml。
     # nvidia_nvml 放在 sysfs 之前，确保 N 卡优先使用驱动原生接口而非 sysfs 兜底。
     _SOURCE_PRIORITY_LINUX = ['amdsmi', 'rocm_smi', 'nvidia_nvml', 'sysfs']
-    # Windows: 优先 ctypes 原生零依赖方案，其次可选 PyPI 包，最后 PDH 系统计数器兜底。
-    # 不再降级到 WMI/wmic/pynvml-amd-windows 等不准确方案。
-    _SOURCE_PRIORITY_WINDOWS = ['amd_adl', 'nvidia_nvml', 'amd_adlx', 'windows_pdh']
+    # Windows: ADLX(bridge DLL) 第一优先级，全指标最准确；ADL 次之；NVIDIA 第三；
+    # PDH 仅 GPU 利用率兜底。VRAM 字段级降级由 DXGI Provider 独立补全（不走 source 列表）。
+    _SOURCE_PRIORITY_WINDOWS = ['amd_adlx', 'amd_adl', 'nvidia', 'windows_pdh']
 
     # 数据源质量分级：用于向用户说明当前数据的可靠程度
     # full    = 驱动原生接口，数据完整准确
@@ -187,6 +188,7 @@ class FeixueHardwareInfo:
         'amdsmi': 'full',
         'rocm_smi': 'full',
         'nvidia_nvml': 'full',
+        'nvidia': 'full',
         'amd_adl': 'full',
         'amd_adlx': 'full',
         'sysfs': 'limited',
@@ -233,6 +235,13 @@ class FeixueHardwareInfo:
         self._device_count: int = 0
         self._device_names: List[str] = []
 
+        # 字段级降级：DXGI 作为 VRAM 补充 Provider（独立于主 source 优先级链）
+        # 当主 Provider 的 VRAM 字段无效时，从此 Provider 补全（与任务管理器同源）
+        self._dxgi_provider: Optional[DXGIProvider] = None
+        # 降级路由锁死缓存：{device_id: bool} —— True 表示该 GPU 的 VRAM 需要 DXGI 补全
+        # 首次检测后缓存，后续直接查表，零额外开销
+        self._vram_fallback_cache: Dict[int, bool] = {}
+
         # 数据源质量提示仅打印一次，避免刷屏
         self._source_quality_hint_logged: bool = False
 
@@ -277,9 +286,39 @@ class FeixueHardwareInfo:
                     f"(quality={quality}), device_count={self._device_count}"
                 )
                 self._log_source_quality_hint(source, quality)
+                # 初始化 DXGI 作为 VRAM 字段级降级补充 Provider（不参与主 source 选择）
+                # 即使主 source 是 ADLX，DXGI 仍作为 VRAM 保底；若 ADLX VRAM 完全可用则永不触发
+                self._init_dxgi_supplement()
                 return
 
         logger.warning("FeixueHardwareInfo: no GPU data source available, GPU monitoring disabled")
+        # 即使无主数据源，也尝试 DXGI 作为最后的 VRAM 兜底
+        self._init_dxgi_supplement()
+
+    def _init_dxgi_supplement(self) -> None:
+        """初始化 DXGI Provider 作为 VRAM 字段级降级补充。
+
+        DXGI 与主 Provider 独立运行：主 Provider 提供全指标，
+        当其 VRAM 字段无效时由 DXGI 补全（数据与任务管理器同源）。
+        DXGI 初始化失败不影响主流程。
+        """
+        import platform
+        if platform.system() != 'Windows':
+            return
+        if self._dxgi_provider is not None and self._dxgi_provider.is_available():
+            return
+        try:
+            dxgi = DXGIProvider()
+            if dxgi.initialize():
+                self._dxgi_provider = dxgi
+                logger.info(
+                    f"DXGI VRAM 补充 Provider 已就绪: {dxgi.get_device_count()} 个适配器 "
+                    f"(字段级降级保底)"
+                )
+            else:
+                logger.debug("DXGI 补充 Provider 初始化失败（可能无独立显卡）")
+        except Exception as e:
+            logger.debug(f"DXGI 补充 Provider 初始化异常: {e}")
 
     def _log_source_quality_hint(self, source: str, quality: str) -> None:
         """当使用有限/兜底数据源时，向用户打印一次性提示"""
@@ -305,7 +344,8 @@ class FeixueHardwareInfo:
             elif source == 'amd_adlx':
                 return self._init_amd_adlx()
             elif source == 'nvidia_nvml':
-                return self._init_nvidia_nvml()
+                # nvidia_nvml 与 nvidia 共用同一个 Provider（NvidiaProvider 基于 NVML）
+                return self._init_nvidia()
             elif source == 'nvidia':
                 return self._init_nvidia()
             elif source == 'windows_pdh':
@@ -530,6 +570,30 @@ class FeixueHardwareInfo:
         logger.info(f"sysfs initialized: {self._device_count} GPU(s)")
         return True
 
+    def _init_amd_adl(self) -> bool:
+        """初始化 Windows AMD ADL (atiadlxx.dll) 数据源。
+
+        ADL 是真正的 C ABI，ctypes 可直接调用。作为 ADLX 不可用时的降级方案。
+        VRAM 字段若无效，由 DXGI 补充 Provider 在采集时字段级补全。
+        """
+        import platform
+        if platform.system() != 'Windows':
+            return False
+
+        provider = AMDADLProvider()
+        if provider.initialize():
+            self._gpu_provider = provider
+            self._device_count = provider.get_device_count()
+            self._device_names = [provider.get_device_name(i) for i in range(self._device_count)]
+            self._source_instance = 'amd_adl'
+            logger.info(
+                f"amd_adl initialized: {self._device_count} GPU(s): "
+                f"{', '.join(self._device_names)}"
+            )
+            return True
+
+        return False
+
     def _init_amd_adlx(self) -> bool:
         """初始化 Windows AMD ADLX 原生驱动级数据源。"""
         import platform
@@ -563,6 +627,29 @@ class FeixueHardwareInfo:
                 f"{', '.join(self._device_names)}"
             )
             return True
+        return False
+
+    def _init_windows_pdh(self) -> bool:
+        """初始化 Windows PDH 系统计数器数据源（最终兜底）。
+
+        PDH 仅提供 GPU 利用率（VRAM 已由 DXGI 字段级降级补全）。
+        """
+        import platform
+        if platform.system() != 'Windows':
+            return False
+
+        provider = WindowsPdhProvider()
+        if provider.initialize():
+            self._gpu_provider = provider
+            self._device_count = provider.get_device_count()
+            self._device_names = [provider.get_device_name(i) for i in range(self._device_count)]
+            self._source_instance = 'windows_pdh'
+            logger.info(
+                f"windows_pdh initialized: {self._device_count} GPU(s) "
+                f"[仅GPU利用率，VRAM由DXGI补全]"
+            )
+            return True
+
         return False
 
     def _extract_device_name_from_sysfs(self, device_link: Path) -> str:
@@ -916,20 +1003,70 @@ class FeixueHardwareInfo:
         """采集单个 GPU 的完整指标"""
         try:
             if self._active_source == 'amdsmi':
-                return self._collect_amdsmi_gpu(device_id)
+                gpu_data = self._collect_amdsmi_gpu(device_id)
             elif self._active_source == 'rocm_smi':
-                return self._collect_rocm_smi_gpu(device_id)
+                gpu_data = self._collect_rocm_smi_gpu(device_id)
             elif self._active_source == 'sysfs':
-                return self._collect_sysfs_gpu(device_id)
+                gpu_data = self._collect_sysfs_gpu(device_id)
             elif self._active_source == 'amd_adlx':
-                return self._collect_amd_adlx_gpu(device_id)
+                gpu_data = self._collect_amd_adlx_gpu(device_id)
+            elif self._active_source == 'amd_adl':
+                gpu_data = self._collect_amd_adl_gpu(device_id)
             elif self._active_source == 'nvidia':
-                return self._collect_nvidia_gpu(device_id)
+                gpu_data = self._collect_nvidia_gpu(device_id)
+            elif self._active_source == 'nvidia_nvml':
+                gpu_data = self._collect_nvidia_gpu(device_id)
+            elif self._active_source == 'windows_pdh':
+                gpu_data = self._collect_windows_pdh_gpu(device_id)
             else:
-                return self._get_default_gpu_data(device_id)
+                gpu_data = self._get_default_gpu_data(device_id)
+
+            # 字段级降级：VRAM 无效时由 DXGI 补全（与任务管理器同源）
+            self._supplement_vram_from_dxgi(gpu_data, device_id)
+            return gpu_data
         except Exception as e:
             logger.debug(f"GPU {device_id} collection error: {e}")
             return self._get_default_gpu_data(device_id)
+
+    def _supplement_vram_from_dxgi(self, gpu_data: Dict[str, Any], device_id: int) -> None:
+        """字段级 VRAM 降级：当主 Provider 的 VRAM 无效时，由 DXGI 补全。
+
+        降级锁死策略：
+        - 首次检测主 Provider VRAM 是否有效（vram_total > 0）
+        - 若无效，缓存该 device_id 需要 DXGI 补全，后续直接查表
+        - 若有效，缓存不需要补全，后续跳过 DXGI 调用（零开销）
+        - DXGI 不可用时直接返回，不影响主数据
+        """
+        if self._dxgi_provider is None or not self._dxgi_provider.is_available():
+            return
+
+        # 降级锁死：查缓存决定是否需要 DXGI 补全
+        need_fallback = self._vram_fallback_cache.get(device_id)
+        if need_fallback is None:
+            # 首次检测：VRAM 总量为 0 视为无效，需要 DXGI 补全
+            vram_total = gpu_data.get('vram_total_mb', 0) or 0
+            need_fallback = vram_total <= 0
+            self._vram_fallback_cache[device_id] = need_fallback
+            if need_fallback:
+                logger.info(
+                    f"GPU {device_id}: 主数据源 VRAM 无效，启用 DXGI 字段级降级补全"
+                )
+
+        if not need_fallback:
+            return
+
+        # 从 DXGI 获取 VRAM（与任务管理器同源）
+        try:
+            vram_used, vram_total = self._dxgi_provider.get_vram(device_id)
+            if vram_total > 0:
+                gpu_data['vram_used_mb'] = vram_used
+                gpu_data['vram_total_mb'] = vram_total
+                gpu_data['vram_percent'] = self._calculate_vram_percent(vram_used, vram_total)
+                # 若主 Provider 未提供设备名，用 DXGI 的设备名补全
+                if not gpu_data.get('device_name') or gpu_data['device_name'] == f'GPU {device_id}':
+                    gpu_data['device_name'] = self._dxgi_provider.get_device_name(device_id)
+        except Exception as e:
+            logger.debug(f"DXGI VRAM 补全失败 (device {device_id}): {e}")
 
     # ------------------------------------------------------------------
     # 各数据源的采集实现
@@ -1259,6 +1396,46 @@ class FeixueHardwareInfo:
             'device_name': metrics.device_name or self._get_device_name(device_id),
         }
 
+    def _collect_amd_adl_gpu(self, device_id: int = 0) -> Dict[str, Any]:
+        """通过 AMD ADL (atiadlxx.dll) 采集 GPU 数据（Windows）。
+
+        VRAM 可能由 PyTorch 提供或缺失；若缺失，由 DXGI 字段级降级补全。
+        """
+        if self._gpu_provider is None or device_id >= self._device_count:
+            return self._get_default_gpu_data(device_id)
+
+        metrics = self._gpu_provider.get_metrics(device_id)
+
+        return {
+            'gpu_utilization': int(metrics.gpu_utilization),
+            'vram_used_mb': int(metrics.vram_used),
+            'vram_total_mb': int(metrics.vram_total),
+            'vram_percent': self._calculate_vram_percent(metrics.vram_used, metrics.vram_total),
+            'gpu_temperature': metrics.temperature,
+            'power_draw': metrics.power_usage,
+            'device_name': metrics.device_name or self._get_device_name(device_id),
+        }
+
+    def _collect_windows_pdh_gpu(self, device_id: int = 0) -> Dict[str, Any]:
+        """通过 Windows PDH 系统计数器采集 GPU 数据（最终兜底）。
+
+        PDH 仅提供 GPU 利用率，VRAM 字段为 0，由 DXGI 字段级降级补全。
+        """
+        if self._gpu_provider is None or device_id >= self._device_count:
+            return self._get_default_gpu_data(device_id)
+
+        metrics = self._gpu_provider.get_metrics(device_id)
+
+        return {
+            'gpu_utilization': int(metrics.gpu_utilization),
+            'vram_used_mb': int(metrics.vram_used),
+            'vram_total_mb': int(metrics.vram_total),
+            'vram_percent': self._calculate_vram_percent(metrics.vram_used, metrics.vram_total),
+            'gpu_temperature': metrics.temperature,
+            'power_draw': metrics.power_usage,
+            'device_name': metrics.device_name or self._get_device_name(device_id),
+        }
+
     # ------------------------------------------------------------------
     # 辅助方法
     # ------------------------------------------------------------------
@@ -1516,6 +1693,13 @@ class FeixueHardwareInfo:
                 except Exception as e:
                     logger.warning(f"GPU provider shutdown error: {e}")
 
+            # 关闭 DXGI 补充 Provider（释放 COM 对象）
+            if self._dxgi_provider is not None:
+                try:
+                    self._dxgi_provider.shutdown()
+                except Exception as e:
+                    logger.debug(f"DXGI provider shutdown error: {e}")
+
         except Exception as e:
             logger.warning(f"Shutdown error: {e}")
 
@@ -1523,6 +1707,8 @@ class FeixueHardwareInfo:
         self._active_source = None
         self._source_instance = None
         self._gpu_provider = None
+        self._dxgi_provider = None
+        self._vram_fallback_cache.clear()
         self._cached_gpu_data = None
 
         logger.info("FeixueHardwareInfo shutdown complete")

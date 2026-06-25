@@ -239,15 +239,14 @@ class WindowsPdhProvider(BaseGPUProvider):
     """基于 Windows PDH 性能计数器的 GPU 数据提供者。"""
 
     def __init__(self, config: Optional[dict] = None):
-        super().__init__(name="windows-pdh", priority=5, config=config)
+        super().__init__(name="windows-pdh", priority=90, config=config)
         self._pdh: Optional[_PDHWrapper] = None
         self._util_instances: Dict[int, List[str]] = {}
-        self._mem_instances: Dict[int, List[str]] = {}
         self._device_count: int = 0
 
     @property
     def priority(self) -> int:
-        return 5
+        return 90
 
     def initialize(self) -> bool:
         if platform.system() != "Windows":
@@ -258,25 +257,21 @@ class WindowsPdhProvider(BaseGPUProvider):
             logger.info("windows-pdh: 无法加载 pdh.dll")
             return False
 
-        # 枚举 GPU Engine 实例并按 phys_N 分组
+        # 枚举 GPU Engine 实例并按 phys_N 分组（仅 GPU 利用率）
         engine_instances = pdh.enum_instances("GPU Engine")
         self._util_instances = self._group_by_phys(engine_instances)
 
-        # 枚举 GPU Process Memory 实例并按 phys_N 分组
-        mem_instances = pdh.enum_instances("GPU Process Memory")
-        self._mem_instances = self._group_by_phys(mem_instances)
-
-        if not self._util_instances and not self._mem_instances:
-            logger.warning("windows-pdh: 未找到任何 GPU 计数器实例")
+        if not self._util_instances:
+            logger.warning("windows-pdh: 未找到 GPU Engine 计数器实例")
             return False
 
         self._pdh = pdh
-        self._device_count = max(len(self._util_instances), len(self._mem_instances))
+        self._device_count = len(self._util_instances)
         self._device_names = [f"GPU {i}" for i in range(self._device_count)]
         self._initialized = True
 
         logger.info(
-            "windows-pdh provider initialized: %d device(s)",
+            "windows-pdh provider initialized: %d device(s) [仅GPU利用率，VRAM已由DXGI接管]",
             self._device_count,
         )
         return True
@@ -284,7 +279,6 @@ class WindowsPdhProvider(BaseGPUProvider):
     def shutdown(self) -> None:
         self._pdh = None
         self._util_instances = {}
-        self._mem_instances = {}
         self._device_count = 0
         self._initialized = False
         self._device_names = []
@@ -307,25 +301,17 @@ class WindowsPdhProvider(BaseGPUProvider):
                 device_name=self.get_device_name(device_id),
             )
 
+        # 仅提供 GPU 利用率（VRAM 已由 DXGI Provider 接管）
         gpu_util = self._sum_instances(
             self._util_instances.get(device_id, []),
             "GPU Engine",
             "Utilization Percentage",
         )
 
-        vram_used = self._sum_instances(
-            self._mem_instances.get(device_id, []),
-            "GPU Process Memory",
-            "Dedicated Usage",
-        )
-
-        # PDH 无法提供总量；尝试 PyTorch 校验，否则显示 0
-        torch_total, _ = self._get_pytorch_vram(device_id)
-
         return GPUMetrics(
             gpu_utilization=round(gpu_util, 1) if gpu_util is not None else 0.0,
-            vram_used=max(0, int(vram_used / (1024 * 1024))) if vram_used is not None else 0,
-            vram_total=max(0, int(torch_total or 0)),
+            vram_used=0,
+            vram_total=0,
             temperature=None,
             power_usage=None,
             device_id=device_id,

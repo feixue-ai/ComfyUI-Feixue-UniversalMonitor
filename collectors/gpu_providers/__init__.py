@@ -14,6 +14,7 @@ from .amd_rocm_provider import AmdRocmProvider
 from .amd_sysfs_provider import AmdSysfsProvider
 from .amd_adlx_provider import AMDADLXProvider
 from .amd_adl_provider import AMDADLProvider
+from .dxgi_provider import DXGIProvider
 from .windows_pdh_provider import WindowsPdhProvider
 
 __all__ = [
@@ -24,5 +25,6 @@ __all__ = [
     "AmdSysfsProvider",
     "AMDADLXProvider",
     "AMDADLProvider",
+    "DXGIProvider",
     "WindowsPdhProvider",
 ]

@@ -23,8 +23,6 @@ from __future__ import annotations
 import ctypes
 import logging
 import platform
-import re
-import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from collectors.base import BaseGPUProvider
@@ -39,6 +37,10 @@ class _ADLWrapper:
     ADL_OK = 0
     _DLL_NAMES = ("atiadlxx.dll", "atiadlxy.dll")
 
+    # ADL 内存分配回调类型：void* (*)(int size)
+    # ADL_Main_Control_Create 的第一个参数是此类型的函数指针
+    _AllocCallback = None  # 延迟初始化（需在 import ctypes 后定义）
+
     def __init__(self):
         self._dll: Any = None
         self._procs: Dict[str, Any] = {}
@@ -50,6 +52,13 @@ class _ADLWrapper:
 
         if platform.system() != "Windows":
             return False
+
+        # 定义 ADL 内存分配回调类型（必须在设置 argtypes 前定义）
+        # ADL_MAIN_MALLOC_CALLBACK: void* (*)(int)
+        if _ADLWrapper._AllocCallback is None:
+            _ADLWrapper._AllocCallback = ctypes.CFUNCTYPE(
+                ctypes.c_void_p, ctypes.c_int
+            )
 
         for name in self._DLL_NAMES:
             try:
@@ -68,13 +77,23 @@ class _ADLWrapper:
         int_arg = ctypes.c_int
 
         procs = {
-            "ADL_Main_Control_Create": (int_p, int_arg),
+            # 第一个参数是内存分配回调（函数指针），不是 POINTER(c_int)
+            "ADL_Main_Control_Create": (_ADLWrapper._AllocCallback, int_arg),
             "ADL_Main_Control_Destroy": (),
             "ADL_Adapter_NumberOfAdapters_Get": (int_p,),
             "ADL_Adapter_AdapterInfo_Get": (ctypes.c_void_p, ctypes.c_int),
+            "ADL_Adapter_Active_Get": (int_arg, ctypes.POINTER(ctypes.c_int)),
+            # Overdrive5（旧 GCN 架构）
             "ADL_Overdrive5_Temperature_Get": (int_arg, int_arg, ctypes.c_void_p),
             "ADL_Overdrive5_CurrentActivity_Get": (int_arg, ctypes.c_void_p),
-            "ADL_Adapter_Active_Get": (int_arg, ctypes.POINTER(ctypes.c_int)),
+            # Overdrive6（GCN 1.2+ / Vega）
+            "ADL_Overdrive6_CurrentPower_Get": (int_arg, int_arg, ctypes.c_void_p),
+            "ADL_Overdrive6_Temperature_Get": (int_arg, ctypes.c_void_p),
+            "ADL_Overdrive6_CurrentActivity_Get": (int_arg, ctypes.c_void_p),
+            # Overdrive7（RDNA1/RDNA2 — RX 5000/6000 系列，如 RX 6800）
+            "ADL_Overdrive7_CurrentActivity_Get": (int_arg, ctypes.c_void_p),
+            # Overdrive8（RDNA3 — RX 7000 系列）
+            "ADL_Overdrive8_CurrentActivity_Get": (int_arg, ctypes.c_void_p),
         }
 
         for func_name, argtypes in procs.items():
@@ -110,17 +129,13 @@ class _ADLWrapper:
         if create is None:
             return False
 
-        # ADL 需要一个内存分配回调。使用 ctypes 的 CFUNCTYPE 包装标准 malloc/free。
-        AllocCallback = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_int)
-        FreeCallback = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
-
+        # ADL 需要一个内存分配回调。使用与 argtypes 一致的 CFUNCTYPE 类型。
+        # ADL_MAIN_MALLOC_CALLBACK: void* (*)(int)
         libc = ctypes.CDLL("msvcrt.dll")
-        malloc_cb = AllocCallback(libc.malloc)
-        free_cb = FreeCallback(libc.free)
+        malloc_cb = _ADLWrapper._AllocCallback(libc.malloc)
 
         # ADL_Main_Control_Create 接收一个 ADL_MAIN_MEMORY_ALLOC 回调指针，
         # 和连接类型 1（默认连接）。
-        # 注意：ctypes 会把 CFUNCTYPE 对象转成函数指针。
         try:
             ret = create(malloc_cb, 1)
         except Exception as e:
@@ -133,7 +148,6 @@ class _ADLWrapper:
 
         # 保持回调引用，防止被 GC
         self._buffer.append(malloc_cb)
-        self._buffer.append(free_cb)
 
         return True
 
@@ -161,74 +175,139 @@ class _ADLWrapper:
         return count.value
 
     def get_adapter_info(self, count: int) -> List[Dict[str, Any]]:
-        """获取适配器信息列表。"""
+        """获取适配器信息列表。
+
+        ADLAdapterInfo 结构体布局（ADL SDK 标准）：
+          偏移 0:   iSize (int)
+          偏移 4:   iAdapterIndex (int)
+          偏移 8:   strUDID (char[256]) — 包含 "PCI_VEN_1002&DEV_..."
+          偏移 276: iVendorID (int) — 十进制 1002 = AMD（不是 0x1002!）
+          偏移 280: strAdapterName (char[256])
+
+        策略：
+        1. 如果 iSize > 0，用作条目大小
+        2. 如果 iSize == 0（某些驱动版本），扫描 "PCI_VEN" 确定条目大小
+        3. 用 strUDID 中的 "VEN_1002" 过滤 AMD 适配器（最可靠）
+        4. 去重相同索引的适配器
+        """
         import ctypes
 
         proc = self._procs.get("ADL_Adapter_AdapterInfo_Get")
         if proc is None or count <= 0:
             return []
 
-        # 使用官方 ADLAdapterInfo 结构体的简化版（大小约 688 字节）。
-        # 由于我们只需要名称和索引，保留前几个字段并对齐即可。
-        class ADLAdapterInfo(ctypes.Structure):
-            _fields_ = [
-                ("iSize", ctypes.c_int),
-                ("iAdapterIndex", ctypes.c_int),
-                ("strUDID", ctypes.c_char * 256),
-                ("iBusNumber", ctypes.c_int),
-                ("strDriverPath", ctypes.c_char * 256),
-                ("strDriverPathExt", ctypes.c_char * 256),
-                ("strPNPString", ctypes.c_char * 256),
-                ("iDisplayIndex", ctypes.c_int),
-            ]
+        max_entry = 4096
+        buf_size = max_entry * count
+        buf = (ctypes.c_ubyte * buf_size)()
 
-        infos = (ADLAdapterInfo * count)()
-        size = ctypes.sizeof(ADLAdapterInfo) * count
-        ret = proc(ctypes.cast(infos, ctypes.c_void_p), size)
+        ret = proc(ctypes.cast(buf, ctypes.c_void_p), buf_size)
         if ret != self.ADL_OK:
             logger.debug("adl-ctypes: ADL_Adapter_AdapterInfo_Get returned %d", ret)
             return []
 
+        int_ptr = ctypes.cast(buf, ctypes.POINTER(ctypes.c_int))
+        actual_entry_size = int_ptr[0]
+
+        # 如果 iSize == 0（某些驱动版本不填此字段），扫描 "PCI_VEN" 确定条目大小
+        if actual_entry_size <= 0 or actual_entry_size > max_entry:
+            actual_entry_size = self._detect_entry_size(buf, buf_size, count)
+            logger.debug("adl-ctypes: iSize=0, detected entry size=%d", actual_entry_size)
+
+        logger.debug("adl-ctypes: ADLAdapterInfo entry_size=%d, count=%d", actual_entry_size, count)
+
+        seen_indices = set()
         result = []
-        for info in infos:
+
+        for i in range(count):
+            base = actual_entry_size * i
+            if base + 280 >= buf_size:
+                break
+
+            # iAdapterIndex 在偏移 4
+            adapter_index = int_ptr[base // 4 + 1]
+
+            # strUDID 在偏移 8，用于判断是否 AMD
+            udid_raw = bytes(buf[base + 8:base + 8 + 256])
+            udid_null = udid_raw.find(b'\x00')
+            udid = udid_raw[:udid_null].decode("ascii", errors="ignore") if udid_null > 0 else ""
+
+            # 用 strUDID 中的 "VEN_1002" 过滤（最可靠，不依赖 iVendorID 偏移）
+            if "VEN_1002" not in udid:
+                logger.debug("adl-ctypes: adapter[%d] udid=%s (not AMD), skip", i, udid[:40])
+                continue
+
+            # 跳过无效索引
+            if adapter_index < 0 or adapter_index >= count:
+                continue
+
+            # 去重
+            if adapter_index in seen_indices:
+                continue
+            seen_indices.add(adapter_index)
+
+            # strAdapterName 在偏移 280
             name = ""
             try:
-                raw = info.strUDID or b""
+                name_offset = base + 280
+                raw = bytes(buf[name_offset:name_offset + 256])
+                null_pos = raw.find(b'\x00')
+                if null_pos > 0:
+                    raw = raw[:null_pos]
                 if raw:
-                    name = raw.decode("utf-8", errors="ignore").split(";")[0].strip()
+                    name = raw.decode("ascii", errors="ignore").strip()
             except Exception:
                 pass
+
             if not name:
-                name = f"AMD GPU {info.iAdapterIndex}"
+                name = "AMD Radeon GPU"
+
+            logger.debug("adl-ctypes: adapter[%d] index=%d name=%s", i, adapter_index, name)
             result.append({
-                "index": info.iAdapterIndex,
+                "index": adapter_index,
                 "name": name,
             })
+
         return result
 
-    def get_temperature(self, adapter_index: int) -> Optional[float]:
-        """通过 Overdrive5 获取温度（摄氏度）。"""
-        import ctypes
+    @staticmethod
+    def _detect_entry_size(buf, buf_size: int, count: int) -> int:
+        """当 iSize=0 时，通过扫描 'PCI_VEN' 字符串确定条目大小。"""
+        marker = b"PCI_VEN"
+        positions = []
+        start = 0
+        while len(positions) < count + 1:
+            pos = bytes(buf[start:buf_size]).find(marker)
+            if pos < 0:
+                break
+            positions.append(start + pos)
+            start = start + pos + 1
 
-        proc = self._procs.get("ADL_Overdrive5_Temperature_Get")
-        if proc is None:
-            return None
+        if len(positions) >= 2:
+            entry_size = positions[1] - positions[0]
+            if 100 < entry_size < 4096:
+                return entry_size
 
-        class ADLTemperature(ctypes.Structure):
-            _fields_ = [("iSize", ctypes.c_int), ("iTemperature", ctypes.c_int)]
-
-        temp = ADLTemperature()
-        temp.iSize = ctypes.sizeof(ADLTemperature)
-        # 第二个参数 0 表示核心温度传感器
-        ret = proc(adapter_index, 0, ctypes.byref(temp))
-        if ret != self.ADL_OK:
-            return None
-        return round(temp.iTemperature / 1000.0, 1)
+        # 回退：常见 ADLAdapterInfo 大小
+        return 1536
 
     def get_activity(self, adapter_index: int) -> Optional[float]:
-        """通过 Overdrive5 CurrentActivity 获取 GPU 利用率。"""
-        import ctypes
+        """获取 GPU 利用率（百分比）。
 
+        优先级：Overdrive8 → Overdrive7 → Overdrive5
+        RX 6800 (RDNA2) 使用 Overdrive7，Overdrive5 返回失败。
+        """
+        # Overdrive7/8: ADLPMLogDataOutput 通道 6 = GPU_USAGE
+        for od_ver in ("ADL_Overdrive8_CurrentActivity_Get",
+                       "ADL_Overdrive7_CurrentActivity_Get"):
+            proc = self._procs.get(od_ver)
+            if proc is None:
+                continue
+            usage = self._get_pmlog_value(adapter_index, proc, 6)
+            if usage is not None and usage >= 0:
+                return float(usage)
+            logger.debug("adl-ctypes: %s returned no usage", od_ver)
+
+        # Overdrive5 降级
         proc = self._procs.get("ADL_Overdrive5_CurrentActivity_Get")
         if proc is None:
             return None
@@ -254,6 +333,113 @@ class _ADLWrapper:
             return None
         return float(activity.iActivityPercent)
 
+    def get_temperature(self, adapter_index: int) -> Optional[float]:
+        """获取 GPU 温度（摄氏度）。
+
+        优先级：Overdrive7/8 PMLog 通道 3 → Overdrive6 → Overdrive5
+        """
+        # Overdrive7/8: ADLPMLogDataOutput 通道 3 = TEMPERATURE_GPU (0.001°C)
+        for od_ver in ("ADL_Overdrive8_CurrentActivity_Get",
+                       "ADL_Overdrive7_CurrentActivity_Get"):
+            proc = self._procs.get(od_ver)
+            if proc is None:
+                continue
+            temp_raw = self._get_pmlog_value(adapter_index, proc, 3)
+            if temp_raw is not None and temp_raw > 0:
+                return round(temp_raw / 1000.0, 1)
+            logger.debug("adl-ctypes: %s returned no temp", od_ver)
+
+        # Overdrive6 降级
+        proc = self._procs.get("ADL_Overdrive6_Temperature_Get")
+        if proc is not None:
+            class ADLTemperature6(ctypes.Structure):
+                _fields_ = [("iSize", ctypes.c_int), ("iTemperature", ctypes.c_int)]
+            temp = ADLTemperature6()
+            temp.iSize = ctypes.sizeof(ADLTemperature6)
+            ret = proc(adapter_index, ctypes.byref(temp))
+            if ret == self.ADL_OK and temp.iTemperature > 0:
+                return round(temp.iTemperature / 1000.0, 1)
+
+        # Overdrive5 降级
+        proc = self._procs.get("ADL_Overdrive5_Temperature_Get")
+        if proc is None:
+            return None
+
+        class ADLTemperature(ctypes.Structure):
+            _fields_ = [("iSize", ctypes.c_int), ("iTemperature", ctypes.c_int)]
+
+        temp = ADLTemperature()
+        temp.iSize = ctypes.sizeof(ADLTemperature)
+        ret = proc(adapter_index, 0, ctypes.byref(temp))
+        if ret != self.ADL_OK:
+            return None
+        return round(temp.iTemperature / 1000.0, 1)
+
+    def get_power(self, adapter_index: int) -> Optional[float]:
+        """获取 GPU 功耗（瓦特）。
+
+        优先级：Overdrive7/8 PMLog 通道 7 → Overdrive6 CurrentPower
+        """
+        # Overdrive7/8: ADLPMLogDataOutput 通道 7 = GPU_POWER
+        for od_ver in ("ADL_Overdrive8_CurrentActivity_Get",
+                       "ADL_Overdrive7_CurrentActivity_Get"):
+            proc = self._procs.get(od_ver)
+            if proc is None:
+                continue
+            power_raw = self._get_pmlog_value(adapter_index, proc, 7)
+            if power_raw is not None and power_raw > 0:
+                # PMLog 功耗单位通常是 0.001W
+                return round(power_raw / 1000.0, 1)
+
+        # Overdrive6 CurrentPower 降级
+        proc = self._procs.get("ADL_Overdrive6_CurrentPower_Get")
+        if proc is None:
+            return None
+        power_val = ctypes.c_int(0)
+        # 第二个参数 0 = GPU 总功耗
+        ret = proc(adapter_index, 0, ctypes.byref(power_val))
+        if ret != self.ADL_OK:
+            return None
+        return round(power_val.value / 1000.0, 1) if power_val.value > 0 else None
+
+    def _get_pmlog_value(self, adapter_index: int, proc: Any, channel: int) -> Optional[int]:
+        """调用 Overdrive7/8 CurrentActivity，从 ADLPMLogDataOutput 读取指定通道值。
+
+        ADLPMLogDataOutput 布局：
+          偏移 0:  iSize (int)
+          偏移 4:  ulRevision (uint)
+          偏移 8:  ulOutputFlags (uint)
+          偏移 12: ulReserved[16] (64 字节)
+          偏移 76: ulChannelIndex (uint)
+          偏移 80: ulChannelValue[256] (1024 字节)
+
+        通道值在偏移 80 + channel*4 处（unsigned int）。
+        """
+        import ctypes
+
+        buf_size = 1200  # 80 + 256*4 = 1104，留余量
+        buf = (ctypes.c_ubyte * buf_size)()
+        # 设置 iSize
+        int_ptr = ctypes.cast(buf, ctypes.POINTER(ctypes.c_int))
+        int_ptr[0] = buf_size
+
+        try:
+            ret = proc(adapter_index, ctypes.cast(buf, ctypes.c_void_p))
+        except Exception as e:
+            logger.debug("adl-ctypes: PMLog call failed: %s", e)
+            return None
+
+        if ret != self.ADL_OK:
+            logger.debug("adl-ctypes: PMLog returned %d for adapter %d", ret, adapter_index)
+            return None
+
+        # 读取通道值：偏移 80 + channel*4，作为 unsigned int
+        uint_ptr = ctypes.cast(buf, ctypes.POINTER(ctypes.c_uint))
+        value_offset = (80 + channel * 4) // 4
+        if value_offset >= buf_size // 4:
+            return None
+        return int(uint_ptr[value_offset])
+
     def get_active_state(self, adapter_index: int) -> bool:
         """查询适配器是否处于活动状态。"""
         import ctypes
@@ -270,14 +456,13 @@ class AMDADLProvider(BaseGPUProvider):
     """基于 AMD ADL (atiadlxx.dll) 的 Windows AMD GPU 数据提供者。"""
 
     def __init__(self, config: Optional[dict] = None):
-        super().__init__(name="amd-adl", priority=0, config=config)
+        super().__init__(name="amd-adl", priority=10, config=config)
         self._adl: Optional[_ADLWrapper] = None
         self._adapters: List[Dict[str, Any]] = []
-        self._pdh_vram_cache: Optional[Dict[int, List[str]]] = None
 
     @property
     def priority(self) -> int:
-        return 0
+        return 10
 
     def initialize(self) -> bool:
         if platform.system() != "Windows":
@@ -338,131 +523,6 @@ class AMDADLProvider(BaseGPUProvider):
             return self._device_names[device_id]
         return f"AMD GPU {device_id}"
 
-    def _get_pdh_vram_used(self, device_id: int) -> Optional[int]:
-        """通过 PDH 系统计数器获取真实 VRAM 已用量（MB）。"""
-        try:
-            if platform.system() != "Windows":
-                return None
-
-            # 加载 pdh.dll
-            pdh = ctypes.CDLL("pdh.dll")
-
-            # 枚举 GPU Process Memory 实例（使用缓存避免重复枚举）
-            if self._pdh_vram_cache is None:
-                PdhEnumObjectItemsW = pdh.PdhEnumObjectItemsW
-
-                counter_size = ctypes.c_ulong(0)
-                instance_size = ctypes.c_ulong(0)
-
-                # 第一次调用获取缓冲区大小
-                ret = PdhEnumObjectItemsW(
-                    None, None, "GPU Process Memory",
-                    None, ctypes.byref(counter_size),
-                    None, ctypes.byref(instance_size),
-                    0, 0
-                )
-
-                if instance_size.value == 0:
-                    return None
-
-                # 实例名缓冲区
-                instance_buf = ctypes.create_unicode_buffer(instance_size.value)
-                counter_buf = ctypes.create_unicode_buffer(counter_size.value)
-
-                ret = PdhEnumObjectItemsW(
-                    None, None, "GPU Process Memory",
-                    counter_buf, ctypes.byref(counter_size),
-                    instance_buf, ctypes.byref(instance_size),
-                    0, 0
-                )
-
-                if ret != 0:
-                    return None
-
-                # 解析 MULTI_SZ 格式的实例名列表
-                instances: List[str] = []
-                i = 0
-                buf_len = len(instance_buf)
-                while i < buf_len:
-                    end = i
-                    while end < buf_len and instance_buf[end] != "\0":
-                        end += 1
-                    if end == i:
-                        break
-                    instances.append(instance_buf[i:end])
-                    i = end + 1
-
-                # 按 phys_N 分组（与 windows_pdh_provider.py 一致）
-                groups: Dict[int, List[str]] = {}
-                for inst in instances:
-                    m = re.search(r"_phys_(\d+)", inst)
-                    if m:
-                        idx = int(m.group(1))
-                    else:
-                        idx = 0
-                    groups.setdefault(idx, []).append(inst)
-
-                self._pdh_vram_cache = groups
-
-            # 获取 device_id 对应的实例列表
-            target_instances = self._pdh_vram_cache.get(device_id, [])
-            if not target_instances:
-                return None
-
-            # 查询每个实例的 Dedicated Usage 计数器（使用单个 query，批量添加 counter）
-            PdhOpenQueryW = pdh.PdhOpenQueryW
-            PdhAddCounterW = pdh.PdhAddCounterW
-            PdhCollectQueryData = pdh.PdhCollectQueryData
-            PdhGetFormattedCounterValue = pdh.PdhGetFormattedCounterValue
-            PdhCloseQuery = pdh.PdhCloseQuery
-
-            class PDH_FMT_COUNTERVALUE(ctypes.Structure):
-                _fields_ = [("CStatus", ctypes.c_ulong), ("doubleValue", ctypes.c_double)]
-
-            query = ctypes.c_void_p()
-            ret = PdhOpenQueryW(None, None, ctypes.byref(query))
-            if ret != 0:
-                return None
-
-            counters: List[ctypes.c_void_p] = []
-            try:
-                for inst in target_instances:
-                    counter_path = f"\\GPU Process Memory({inst})\\Dedicated Usage"
-                    counter = ctypes.c_void_p()
-                    ret = PdhAddCounterW(query, counter_path, None, ctypes.byref(counter))
-                    if ret == 0:
-                        counters.append(counter)
-
-                if not counters:
-                    return None
-
-                # 第一次采集建立基线
-                PdhCollectQueryData(query)
-                time.sleep(0.05)
-                # 第二次采集获取实际值
-                PdhCollectQueryData(query)
-
-                total_bytes = 0.0
-                has_value = False
-                for counter in counters:
-                    value = PDH_FMT_COUNTERVALUE()
-                    ret = PdhGetFormattedCounterValue(counter, 0x00000200, None, ctypes.byref(value))
-                    if ret == 0 and value.CStatus == 0:
-                        total_bytes += value.doubleValue
-                        has_value = True
-
-                if not has_value:
-                    return None
-
-                # 转换为 MB
-                return int(total_bytes / (1024 * 1024))
-            finally:
-                PdhCloseQuery(query)
-
-        except Exception as e:
-            logger.debug("amd-adl: PDH VRAM read failed: %s", e)
-            return None
-
     def get_metrics(self, device_id: int = 0) -> GPUMetrics:
         if not self._initialized or device_id >= len(self._adapters) or self._adl is None:
             return GPUMetrics(
@@ -478,25 +538,18 @@ class AMDADLProvider(BaseGPUProvider):
 
         gpu_util = self._adl.get_activity(adapter_index)
         temperature = self._adl.get_temperature(adapter_index)
+        power = self._adl.get_power(adapter_index)
 
-        # VRAM 总量：PyTorch 设备属性（物理显存大小，准确）
-        torch_total, _ = self._get_pytorch_vram(device_id)
-        vram_total = torch_total
-
-        # VRAM 已用：优先 PDH 系统计数器（真实占用），回退 PyTorch
-        pdh_vram = self._get_pdh_vram_used(device_id)
-        if pdh_vram is not None:
-            vram_used = pdh_vram
-        else:
-            _, torch_used = self._get_pytorch_vram(device_id)
-            vram_used = torch_used
+        # VRAM：PyTorch 设备属性（物理显存大小，准确）
+        # 若 PyTorch 不可用则返回 (0, 0)，由 DXGI 字段级降级补全
+        vram_total, vram_used = self._get_pytorch_vram(device_id)
 
         return GPUMetrics(
             gpu_utilization=float(gpu_util or 0),
             vram_used=max(0, int(vram_used or 0)),
             vram_total=max(0, int(vram_total or 0)),
             temperature=temperature,
-            power_usage=None,  # ADL Overdrive5 不直接提供功耗；ADLX/PDH 补充
+            power_usage=power,
             device_id=device_id,
             device_name=self.get_device_name(device_id),
             driver_version="",
