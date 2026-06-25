@@ -26,7 +26,7 @@ FeixueHardwareInfo - 飞雪监测器简化版数据采集引擎
     }]
 }
 
-Version: 3.30 (Zero-Dependency Native Monitoring)
+Version: 3.40 (ADLX Bridge + Tiered Fallback)
 Author: Feixue Team
 """
 
@@ -242,6 +242,12 @@ class FeixueHardwareInfo:
         # 首次检测后缓存，后续直接查表，零额外开销
         self._vram_fallback_cache: Dict[int, bool] = {}
 
+        # 字段级降级：PDH 作为 GPU 利用率补充 Provider（当主 Provider 利用率无效时补全）
+        # 典型场景：ADL 对 RX 6800 RDNA2 不支持 Overdrive7/8，利用率返回 0，
+        # 此时由 PDH 性能计数器补全（与任务管理器同源）
+        self._pdh_provider: Optional[WindowsPdhProvider] = None
+        self._util_fallback_cache: Dict[int, bool] = {}
+
         # 数据源质量提示仅打印一次，避免刷屏
         self._source_quality_hint_logged: bool = False
 
@@ -289,11 +295,14 @@ class FeixueHardwareInfo:
                 # 初始化 DXGI 作为 VRAM 字段级降级补充 Provider（不参与主 source 选择）
                 # 即使主 source 是 ADLX，DXGI 仍作为 VRAM 保底；若 ADLX VRAM 完全可用则永不触发
                 self._init_dxgi_supplement()
+                # 初始化 PDH 作为 GPU 利用率字段级降级补充（当主 Provider 利用率无效时补全）
+                self._init_pdh_supplement()
                 return
 
         logger.warning("FeixueHardwareInfo: no GPU data source available, GPU monitoring disabled")
-        # 即使无主数据源，也尝试 DXGI 作为最后的 VRAM 兜底
+        # 即使无主数据源，也尝试 DXGI/PDH 作为最后的兜底
         self._init_dxgi_supplement()
+        self._init_pdh_supplement()
 
     def _init_dxgi_supplement(self) -> None:
         """初始化 DXGI Provider 作为 VRAM 字段级降级补充。
@@ -319,6 +328,31 @@ class FeixueHardwareInfo:
                 logger.debug("DXGI 补充 Provider 初始化失败（可能无独立显卡）")
         except Exception as e:
             logger.debug(f"DXGI 补充 Provider 初始化异常: {e}")
+
+    def _init_pdh_supplement(self) -> None:
+        """初始化 PDH Provider 作为 GPU 利用率字段级降级补充。
+
+        典型场景：ADL 对 RX 6800 (RDNA2) 不支持 Overdrive7/8，利用率返回 0。
+        此时由 PDH 性能计数器补全 GPU 利用率（与任务管理器同源）。
+        PDH 初始化失败不影响主流程。
+        """
+        import platform
+        if platform.system() != 'Windows':
+            return
+        if self._pdh_provider is not None and self._pdh_provider.is_available():
+            return
+        try:
+            pdh = WindowsPdhProvider()
+            if pdh.initialize():
+                self._pdh_provider = pdh
+                logger.info(
+                    f"PDH 利用率补充 Provider 已就绪: {pdh.get_device_count()} 个设备 "
+                    f"(字段级降级保底)"
+                )
+            else:
+                logger.debug("PDH 补充 Provider 初始化失败")
+        except Exception as e:
+            logger.debug(f"PDH 补充 Provider 初始化异常: {e}")
 
     def _log_source_quality_hint(self, source: str, quality: str) -> None:
         """当使用有限/兜底数据源时，向用户打印一次性提示"""
@@ -729,7 +763,7 @@ class FeixueHardwareInfo:
                 'data_source_quality': self._SOURCE_QUALITY.get(
                     self._active_source, 'unknown'
                 ),
-                'version': '3.30',
+                'version': '3.40',
             }
 
             # 辅助指标采集（每个独立try-except，单个失败不影响整体）
@@ -1023,6 +1057,8 @@ class FeixueHardwareInfo:
 
             # 字段级降级：VRAM 无效时由 DXGI 补全（与任务管理器同源）
             self._supplement_vram_from_dxgi(gpu_data, device_id)
+            # 字段级降级：GPU 利用率无效时由 PDH 补全（与任务管理器同源）
+            self._supplement_util_from_pdh(gpu_data, device_id)
             return gpu_data
         except Exception as e:
             logger.debug(f"GPU {device_id} collection error: {e}")
@@ -1067,6 +1103,41 @@ class FeixueHardwareInfo:
                     gpu_data['device_name'] = self._dxgi_provider.get_device_name(device_id)
         except Exception as e:
             logger.debug(f"DXGI VRAM 补全失败 (device {device_id}): {e}")
+
+    def _supplement_util_from_pdh(self, gpu_data: Dict[str, Any], device_id: int) -> None:
+        """字段级 GPU 利用率降级：当主 Provider 的利用率无效时，由 PDH 补全。
+
+        降级锁死策略（与 VRAM 降级一致）：
+        - 首次检测主 Provider 利用率是否有效（>0 视为有效）
+        - 若无效，缓存该 device_id 需要 PDH 补全，后续直接查表
+        - 若有效，缓存不需要补全，后续跳过 PDH 调用（零开销）
+        - PDH 不可用时直接返回，不影响主数据
+        """
+        if self._pdh_provider is None or not self._pdh_provider.is_available():
+            return
+
+        # 降级锁死：查缓存决定是否需要 PDH 补全
+        need_fallback = self._util_fallback_cache.get(device_id)
+        if need_fallback is None:
+            # 首次检测：利用率为 0 视为无效，需要 PDH 补全
+            util = gpu_data.get('gpu_utilization', 0) or 0
+            need_fallback = util <= 0
+            self._util_fallback_cache[device_id] = need_fallback
+            if need_fallback:
+                logger.info(
+                    f"GPU {device_id}: 主数据源 GPU 利用率无效，启用 PDH 字段级降级补全"
+                )
+
+        if not need_fallback:
+            return
+
+        # 从 PDH 获取 GPU 利用率
+        try:
+            metrics = self._pdh_provider.get_metrics(device_id)
+            if metrics.gpu_utilization > 0:
+                gpu_data['gpu_utilization'] = int(metrics.gpu_utilization)
+        except Exception as e:
+            logger.debug(f"PDH 利用率补全失败 (device {device_id}): {e}")
 
     # ------------------------------------------------------------------
     # 各数据源的采集实现
@@ -1605,7 +1676,7 @@ class FeixueHardwareInfo:
             'gpus': [self._get_default_gpu_data()],
             'data_source': 'error_fallback',
             'data_source_quality': 'unknown',
-            'version': '3.30',
+            'version': '3.40',
             'disk_io': None,
             'network_io': None,
         }
@@ -1700,6 +1771,13 @@ class FeixueHardwareInfo:
                 except Exception as e:
                     logger.debug(f"DXGI provider shutdown error: {e}")
 
+            # 关闭 PDH 补充 Provider（释放持久化查询）
+            if self._pdh_provider is not None:
+                try:
+                    self._pdh_provider.shutdown()
+                except Exception as e:
+                    logger.debug(f"PDH provider shutdown error: {e}")
+
         except Exception as e:
             logger.warning(f"Shutdown error: {e}")
 
@@ -1708,7 +1786,9 @@ class FeixueHardwareInfo:
         self._source_instance = None
         self._gpu_provider = None
         self._dxgi_provider = None
+        self._pdh_provider = None
         self._vram_fallback_cache.clear()
+        self._util_fallback_cache.clear()
         self._cached_gpu_data = None
 
         logger.info("FeixueHardwareInfo shutdown complete")
@@ -1728,7 +1808,7 @@ class FeixueHardwareInfo:
             'last_success_time': self._last_success_time,
             'has_cached_data': self._cached_gpu_data is not None,
             'stats': self._stats.copy(),
-            'version': '3.30',
+            'version': '3.40',
         }
 
     @property

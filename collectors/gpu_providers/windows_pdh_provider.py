@@ -236,13 +236,21 @@ class _PDHWrapper:
 
 
 class WindowsPdhProvider(BaseGPUProvider):
-    """基于 Windows PDH 性能计数器的 GPU 数据提供者。"""
+    """基于 Windows PDH 性能计数器的 GPU 数据提供者。
+
+    使用持久化 PDH 查询（persistent query）避免每次采集都创建/销毁查询，
+    显著降低开销。GPU Engine 有数百个实例（每个进程×引擎一个），
+    持久化查询 + 一次 PdhCollectQueryData 即可读取全部计数器。
+
+    GPU 利用率 = 所有引擎利用率之和（上限 100%），与任务管理器"总 GPU 利用率"一致。
+    """
 
     def __init__(self, config: Optional[dict] = None):
         super().__init__(name="windows-pdh", priority=90, config=config)
         self._pdh: Optional[_PDHWrapper] = None
-        self._util_instances: Dict[int, List[str]] = {}
         self._device_count: int = 0
+        # 持久化查询：{device_id: (query_handle, [counter_handles])}
+        self._persistent_queries: Dict[int, tuple] = {}
 
     @property
     def priority(self) -> int:
@@ -257,28 +265,64 @@ class WindowsPdhProvider(BaseGPUProvider):
             logger.info("windows-pdh: 无法加载 pdh.dll")
             return False
 
-        # 枚举 GPU Engine 实例并按 phys_N 分组（仅 GPU 利用率）
+        # 枚举 GPU Engine 实例并按 phys_N 分组
         engine_instances = pdh.enum_instances("GPU Engine")
-        self._util_instances = self._group_by_phys(engine_instances)
+        util_groups = self._group_by_phys(engine_instances)
 
-        if not self._util_instances:
+        if not util_groups:
             logger.warning("windows-pdh: 未找到 GPU Engine 计数器实例")
             return False
 
         self._pdh = pdh
-        self._device_count = len(self._util_instances)
+        self._device_count = len(util_groups)
         self._device_names = [f"GPU {i}" for i in range(self._device_count)]
-        self._initialized = True
 
+        # 为每个物理 GPU 创建持久化查询
+        for device_id, instances in util_groups.items():
+            query = pdh._create_query()
+            if query is None:
+                logger.warning("windows-pdh: 无法为 device %d 创建查询", device_id)
+                continue
+
+            counters = []
+            for inst in instances:
+                path = f"\\GPU Engine({inst})\\Utilization Percentage"
+                counter = pdh._add_counter(query, path)
+                if counter is not None:
+                    counters.append(counter)
+
+            if not counters:
+                pdh._close_query(query)
+                logger.warning("windows-pdh: device %d 无有效计数器", device_id)
+                continue
+
+            # 初始采集建立基线（PDH 需要两次采集才能计算利用率）
+            pdh._collect(query)
+            self._persistent_queries[device_id] = (query, counters)
+            logger.debug(
+                "windows-pdh: device %d 持久化查询已创建 (%d 计数器)",
+                device_id, len(counters),
+            )
+
+        if not self._persistent_queries:
+            logger.warning("windows-pdh: 所有持久化查询创建失败")
+            return False
+
+        self._initialized = True
         logger.info(
-            "windows-pdh provider initialized: %d device(s) [仅GPU利用率，VRAM已由DXGI接管]",
-            self._device_count,
+            "windows-pdh provider initialized: %d device(s) [持久化查询，仅GPU利用率]",
+            len(self._persistent_queries),
         )
         return True
 
     def shutdown(self) -> None:
+        if self._pdh is not None:
+            for device_id, (query, counters) in self._persistent_queries.items():
+                for counter in counters:
+                    self._pdh._remove_counter(counter)
+                self._pdh._close_query(query)
+        self._persistent_queries.clear()
         self._pdh = None
-        self._util_instances = {}
         self._device_count = 0
         self._initialized = False
         self._device_names = []
@@ -301,15 +345,22 @@ class WindowsPdhProvider(BaseGPUProvider):
                 device_name=self.get_device_name(device_id),
             )
 
-        # 仅提供 GPU 利用率（VRAM 已由 DXGI Provider 接管）
-        gpu_util = self._sum_instances(
-            self._util_instances.get(device_id, []),
-            "GPU Engine",
-            "Utilization Percentage",
-        )
+        gpu_util = 0.0
+        entry = self._persistent_queries.get(device_id)
+        if entry is not None:
+            query, counters = entry
+            # 一次采集所有计数器
+            if self._pdh._collect(query) == 0:
+                total = 0.0
+                for counter in counters:
+                    val = self._pdh._get_value(counter)
+                    if val is not None:
+                        total += val
+                # GPU 利用率 = 所有引擎利用率之和，上限 100%
+                gpu_util = min(total, 100.0)
 
         return GPUMetrics(
-            gpu_utilization=round(gpu_util, 1) if gpu_util is not None else 0.0,
+            gpu_utilization=round(gpu_util, 1),
             vram_used=0,
             vram_total=0,
             temperature=None,
@@ -325,7 +376,7 @@ class WindowsPdhProvider(BaseGPUProvider):
         groups: Dict[int, List[str]] = {}
         for inst in instances:
             # 实例名示例：
-            # pid_1234_luid_0x00000000_0x0000C5A1_phys_0_engtype_3D
+            # pid_1234_luid_0x00000000_0x0000C5A1_phys_0_eng_0_engtype_3D
             m = re.search(r"_phys_(\d+)", inst)
             if m:
                 idx = int(m.group(1))
@@ -333,28 +384,6 @@ class WindowsPdhProvider(BaseGPUProvider):
                 idx = 0
             groups.setdefault(idx, []).append(inst)
         return groups
-
-    def _sum_instances(
-        self,
-        instances: List[str],
-        object_name: str,
-        counter_name: str,
-    ) -> Optional[float]:
-        if self._pdh is None or not instances:
-            return None
-
-        total = 0.0
-        has_value = False
-        for inst in instances:
-            # 只取 *_Total 聚合实例以获取整体利用率/内存
-            if "_Total" not in inst and object_name == "GPU Engine":
-                continue
-            path = f"\\{object_name}({inst})\\{counter_name}"
-            value = self._pdh.query_counter(path, interval=0.05)
-            if value is not None:
-                total += value
-                has_value = True
-        return total if has_value else None
 
     @staticmethod
     def _get_pytorch_vram(device_id: int) -> Tuple[int, int]:

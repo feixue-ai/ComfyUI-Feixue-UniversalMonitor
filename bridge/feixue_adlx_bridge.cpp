@@ -14,7 +14,7 @@
  *       → GetPerformanceMonitoringServices() → StartPerformanceMetricsTracking()
  *       → GetGPUs() → IADLXGPUList → IADLXGPU[]
  *   采集时：GetCurrentGPUMetrics(gpu) → IADLXGPUMetrics
- *     → GPUUsage / GPUTemperature / GPUVRAM / GPUChipPower
+ *     → GPUUsage / GPUTemperature / GPUVRAM(已用MB) + TotalVRAM(总量MB) / GPUTotalBoardPower
  *   关闭时：StopPerformanceMetricsTracking() → g_ADLX.Terminate()
  *
  * 异常安全：所有 extern "C" 函数用 try/catch 包裹，防止 C++ 异常跨语言边界。
@@ -27,9 +27,13 @@
 
 #include <ADLX.h>
 #include <ADLXHelper.h>   // 声明 extern ADLXHelper g_ADLX; (定义于 ADLXHelper.cpp)
+#include <IPerformanceMonitoring.h>  // IADLXPerformanceMonitoringServices, IADLXGPUMetrics
 #include <mutex>
 #include <string>
 #include <vector>
+
+// ADLX 接口类型（IADLXSystem, IADLXGPU 等）定义在 adlx 命名空间内
+using namespace adlx;
 
 /* =========================================================================
  * 内部状态
@@ -131,7 +135,7 @@ FEIXUE_API int feixue_adlx_init(void) {
         adlx_uint gpuCount = gpuList->Size();
         for (adlx_uint i = 0; i < gpuCount; i++) {
             IADLXGPU* gpu = nullptr;
-            res = gpuList->Item(i, &gpu);
+            res = gpuList->At(i, &gpu);
             if (res == ADLX_OK && gpu != nullptr) {
                 g_gpus.push_back(gpu);
             }
@@ -188,13 +192,14 @@ FEIXUE_API const char* feixue_adlx_get_gpu_name(int gpu_index) {
         }
 
         IADLXGPU* gpu = g_gpus[gpu_index];
-        char nameBuf[256] = {0};
-        ADLX_RESULT res = gpu->Name(nameBuf, sizeof(nameBuf));
-        if (res != ADLX_OK) {
+        /* ADLX IADLXGPU::Name(const char** name) 返回内部字符串指针，无需缓冲区 */
+        const char* namePtr = nullptr;
+        ADLX_RESULT res = gpu->Name(&namePtr);
+        if (res != ADLX_OK || namePtr == nullptr) {
             set_error("GPU.Name failed");
             return nullptr;
         }
-        g_nameBuf = nameBuf;
+        g_nameBuf = namePtr;
         return g_nameBuf.c_str();
     } catch (...) {
         set_error("Exception in get_gpu_name");
@@ -235,7 +240,8 @@ FEIXUE_API int feixue_adlx_get_metrics(int gpu_index,
         bool anySuccess = false;
 
         if (gpu_usage != nullptr) {
-            adlx_uint usage = 0;
+            /* ADLX GPUUsage(adlx_double* data) — 返回 0.0-100.0 的利用率百分比 */
+            adlx_double usage = 0.0;
             res = metrics->GPUUsage(&usage);
             if (res == ADLX_OK) {
                 *gpu_usage = static_cast<double>(usage);
@@ -257,17 +263,24 @@ FEIXUE_API int feixue_adlx_get_metrics(int gpu_index,
         }
 
         if (vram_used != nullptr || vram_total != nullptr) {
-            adlx_uint vramUsed = 0;
-            adlx_uint vramTotal = 0;
-            res = metrics->GPUVRAM(&vramUsed, &vramTotal);
+            /* ADLX GPUVRAM(adlx_int* data) — 返回已使用 VRAM (MB)，非百分比
+             *   文档原文："the dedicated GPU memory (in MB) is returned"
+             * IADLXGPU::TotalVRAM(adlx_uint* vramMB) — 返回 VRAM 总量 (MB)
+             * gpu 指针在 metrics 释放后仍有效（长期持有的 g_gpus 元素） */
+            adlx_int usedMB = 0;
+            res = metrics->GPUVRAM(&usedMB);
             if (res == ADLX_OK) {
-                /*
-                 * ADLX GPUVRAM 返回值单位为 MB（adlx_uint 32 位，>4GB 显存以 MB 表达）。
-                 * 转为 unsigned long long 输出，Python 端按 MB 使用。
-                 */
-                if (vram_used != nullptr)  *vram_used  = static_cast<unsigned long long>(vramUsed);
-                if (vram_total != nullptr) *vram_total = static_cast<unsigned long long>(vramTotal);
-                anySuccess = true;
+                adlx_uint totalMB = 0;
+                ADLX_RESULT res2 = gpu->TotalVRAM(&totalMB);
+                if (res2 == ADLX_OK) {
+                    if (vram_used != nullptr)  *vram_used  = static_cast<unsigned long long>(usedMB);
+                    if (vram_total != nullptr) *vram_total = static_cast<unsigned long long>(totalMB);
+                    anySuccess = true;
+                } else {
+                    /* TotalVRAM 失败：只能给 used，total 未知置 0 */
+                    if (vram_used != nullptr)  *vram_used  = static_cast<unsigned long long>(usedMB);
+                    if (vram_total != nullptr) *vram_total = 0;
+                }
             } else {
                 if (vram_used != nullptr)  *vram_used  = 0;
                 if (vram_total != nullptr) *vram_total = 0;
@@ -275,10 +288,11 @@ FEIXUE_API int feixue_adlx_get_metrics(int gpu_index,
         }
 
         if (power != nullptr) {
-            adlx_double chipPower = 0.0;
-            res = metrics->GPUChipPower(&chipPower);
+            /* ADLX GPUTotalBoardPower(adlx_double* data) — 整板功耗 (W)，无 GPUChipPower 接口 */
+            adlx_double boardPower = 0.0;
+            res = metrics->GPUTotalBoardPower(&boardPower);
             if (res == ADLX_OK) {
-                *power = chipPower;
+                *power = boardPower;
                 anySuccess = true;
             } else {
                 *power = 0.0;

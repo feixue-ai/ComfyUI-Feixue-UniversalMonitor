@@ -149,7 +149,16 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.30 — PDH VRAM Fix + Capsule Bounce Fix (Current)
+### v3.40 — ADLX Bridge + Field-Level Tiered Fallback (Current)
+
+- **ADLX C++ Bridge DLL (first priority)**: Compiled `feixue_adlx_bridge.dll` wraps AMD ADLX SDK via `extern "C"` — provides full GPU metrics (utilization / VRAM used / VRAM total / temperature) directly from the AMD driver. Zero pip dependency, ships as a prebuilt DLL in `libs/`
+- **Field-level tiered fallback**: Instead of whole-provider failover, each metric field is supplemented independently — DXGI fills missing VRAM, PDH fills missing utilization (same data source as Windows Task Manager). First-invalid detection is cached for zero overhead on subsequent calls
+- **PDH persistent query rewrite**: Fixed PDH GPU utilization returning 0% — the old `_Total` filter skipped all 462 GPU Engine instances. Rewritten with persistent PDH queries (one `PdhCollectQueryData` reads all counters) summing all engine instances, capped at 100%
+- **ADLX API signature fixes**: Corrected 6 API mismatches against official ADLX headers (`Name(const char**)`, `GPUUsage(adlx_double*)`, `GPUVRAM(adlx_int* MB)` + `TotalVRAM(adlx_uint*)`, `GPUTotalBoardPower`, `gpuList->At`, `using namespace adlx`)
+- **Stress tested**: 300-collection memory leak test (+0.4 MB), 10-thread concurrency test (500/500 success), boundary tests (repeated init/shutdown, post-shutdown collection), 5-second stability test (313 collections, 11-31ms each)
+- **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40
+
+### v3.30 — PDH VRAM Fix + Capsule Bounce Fix
 
 - **VRAM display fix (Windows AMD)**: Fixed PDH counter enumeration bug — `PdhEnumObjectItemsW` first call returns `PDH_MORE_DATA` which was incorrectly treated as failure, causing VRAM to always show 0. Now correctly handles the two-call enumeration pattern
 - **Unicode buffer parsing fix**: Replaced `instance_buf.raw` (not available on `create_unicode_buffer`) with character-by-character iteration for proper instance name parsing

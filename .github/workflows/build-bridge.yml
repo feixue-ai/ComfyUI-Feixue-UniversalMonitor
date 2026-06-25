@@ -64,17 +64,25 @@ jobs:
             }
           }
 
-          # 设置 ADLX_SDK_PATH 环境变量（指向仓库根目录）
-          # GITHUB_ENV 的正确写法：echo "KEY=VALUE" >> $env:GITHUB_ENV
-          $sdkPath = $sdkRoot.Path
+          # 设置 ADLX_SDK_PATH 环境变量（使用正斜杠，避免 CMake 反斜杠转义问题）
+          $sdkPath = ($sdkRoot.Path -replace '\\', '/')
           echo "ADLX_SDK_PATH=$sdkPath" >> $env:GITHUB_ENV
           Write-Host "ADLX_SDK_PATH=$sdkPath"
 
-      - name: Configure CMake
+      - name: Configure CMake (Ninja)
         shell: powershell
         run: |
-          cmake -B build -S bridge `
-            -G "Visual Studio 17 2022" -A x64 `
+          Write-Host "=== Diagnostics ==="
+          Write-Host "ADLX_SDK_PATH = $env:ADLX_SDK_PATH"
+          Write-Host "CMAKE VERSION:"
+          cmake --version
+          Write-Host "NINJA:"
+          ninja --version 2>&1
+          Write-Host "MSVC:"
+          cl 2>&1 | Select-Object -First 1
+          Write-Host "=== Configure ==="
+          cmake -B build -S bridge -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
             -DADLX_SDK_PATH="$env:ADLX_SDK_PATH"
 
       - name: Build
@@ -89,11 +97,11 @@ jobs:
         run: |
           $dll = "build/output/feixue_adlx_bridge.dll"
           if (-not (Test-Path $dll)) {
-            # 兼容多配置生成器的输出路径
-            $dll = Get-ChildItem -Path build -Filter "feixue_adlx_bridge.dll" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+            $dll = Get-ChildItem -Path build -Filter "feixue_adlx_bridge.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
           }
           if (-not $dll -or -not (Test-Path $dll)) {
             Write-Host "ERROR: feixue_adlx_bridge.dll not found"
+            Get-ChildItem -Path build -Recurse -Filter "*.dll" -ErrorAction SilentlyContinue | Select-Object FullName
             exit 1
           }
           Write-Host "DLL found: $dll"

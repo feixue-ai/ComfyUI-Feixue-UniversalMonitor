@@ -39,3 +39,6 @@ Thumbs.db
 
 # 日志
 *.log
+
+# 编译产物（bridge DLL 已预编译在 libs/，build/ 仅为本地编译缓存）
+build/
