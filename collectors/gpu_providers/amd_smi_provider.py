@@ -32,6 +32,67 @@ class AmdSmiProvider(BaseGPUProvider):
     def priority(self) -> int:
         return 2
 
+    def _extract_device_name(self, info: Any, handle: Any, fallback: str) -> str:
+        """兼容不同 amdsmi 版本的 processor_info 返回值（对象或字符串）。
+
+        26.0.0 的 processor_info 返回设备索引字符串，需通过 asic_info 取真实型号。
+        """
+        if info is not None and not isinstance(info, str):
+            name = str(
+                getattr(info, "market_name", None)
+                or getattr(info, "device_name", None)
+                or ""
+            ).strip()
+            if name:
+                return name
+
+        if isinstance(info, str):
+            idx_str = info.strip()
+            if idx_str:
+                try:
+                    asic_info = self._lib.amdsmi_get_gpu_asic_info(handle)
+                    if isinstance(asic_info, dict):
+                        name = str(asic_info.get("market_name", "")).strip()
+                        if name:
+                            return name
+                except Exception:
+                    pass
+
+        return fallback
+
+    @staticmethod
+    def _is_gpu_type(ptype: Any, lib: Any) -> bool:
+        """兼容 amdsmi_get_processor_type 返回枚举值或字典。"""
+        try:
+            gpu_type = getattr(lib, "AmdSmiDeviceType", None)
+            if gpu_type is not None and hasattr(gpu_type, "GPU"):
+                if ptype == gpu_type.GPU:
+                    return True
+            # 26.0.0 返回字典，如 {'processor_type': 'AMDSMI_PROCESSOR_TYPE_AMD_GPU'}
+            if isinstance(ptype, dict):
+                type_str = str(ptype.get("processor_type", "")).lower()
+                if "gpu" in type_str:
+                    return True
+            type_str = str(ptype).lower()
+            if "gpu" in type_str:
+                return True
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def _safe_shutdown(lib: Any) -> None:
+        """兼容不同 amdsmi 版本的 shutdown 函数名。"""
+        if lib is None:
+            return
+        for attr in ("amdsmi_shut_down", "amdsmi_shutdown"):
+            if hasattr(lib, attr):
+                try:
+                    getattr(lib, attr)()
+                    return
+                except Exception:
+                    pass
+
     def initialize(self) -> bool:
         """初始化 amdsmi 并枚举 GPU 设备。"""
         try:
@@ -57,17 +118,13 @@ class AmdSmiProvider(BaseGPUProvider):
             for handle in handles:
                 try:
                     ptype = amdsmi.amdsmi_get_processor_type(handle)
-                    if ptype == amdsmi.AmdSmiDeviceType.GPU or len(handles) == 1:
+                    if self._is_gpu_type(ptype, amdsmi) or len(handles) == 1:
                         gpu_handles.append(handle)
                     else:
                         info = amdsmi.amdsmi_get_processor_info(handle)
-                        device_name = str(
-                            getattr(info, "market_name", "")
-                            or getattr(info, "device_name", "")
-                            or ""
-                        )
+                        device_name = self._extract_device_name(info, handle, "").lower()
                         if any(
-                            kw in device_name.lower()
+                            kw in device_name
                             for kw in ["radeon", "gpu", "graphics", "device"]
                         ):
                             gpu_handles.append(handle)
@@ -88,11 +145,7 @@ class AmdSmiProvider(BaseGPUProvider):
             for i, handle in enumerate(gpu_handles):
                 try:
                     info = amdsmi.amdsmi_get_processor_info(handle)
-                    name = (
-                        getattr(info, "market_name", None)
-                        or getattr(info, "device_name", None)
-                        or f"AMD Device {i}"
-                    )
+                    name = self._extract_device_name(info, handle, f"AMD Device {i}")
                     self._device_names.append(str(name))
                 except Exception:
                     self._device_names.append(f"AMD Device {i}")
@@ -109,10 +162,7 @@ class AmdSmiProvider(BaseGPUProvider):
             return False
         finally:
             if not init_succeeded:
-                try:
-                    amdsmi.amdsmi_shutdown()
-                except Exception:
-                    pass
+                self._safe_shutdown(amdsmi)
 
     def shutdown(self) -> None:
         """关闭 amdsmi 会话。"""
@@ -120,8 +170,7 @@ class AmdSmiProvider(BaseGPUProvider):
             return
 
         try:
-            if self._lib is not None and hasattr(self._lib, "amdsmi_shutdown"):
-                self._lib.amdsmi_shutdown()
+            self._safe_shutdown(self._lib)
         except Exception as e:
             logger.debug("amd-smi: shutdown error: %s", e)
         finally:

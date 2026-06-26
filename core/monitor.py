@@ -424,21 +424,55 @@ class FeixueHardwareInfo:
                 logger.warning("amdsmi: 未找到任何处理器设备")
                 return False
 
+            def _is_amdsmi_gpu_type(ptype):
+                """兼容不同 amdsmi 版本的 processor_type 返回值。"""
+                try:
+                    if hasattr(amdsmi.AmdSmiDeviceType, 'GPU') and ptype == amdsmi.AmdSmiDeviceType.GPU:
+                        return True
+                    if isinstance(ptype, dict) and 'gpu' in str(ptype.get('processor_type', '')).lower():
+                        return True
+                    if 'gpu' in str(ptype).lower():
+                        return True
+                except Exception:
+                    pass
+                return False
+
+            def _extract_amdsmi_name(info, handle, fallback):
+                """兼容不同 amdsmi 版本的 processor_info 返回值。"""
+                if info is not None and not isinstance(info, str):
+                    name = str(getattr(info, 'market_name', '') or getattr(info, 'device_name', '') or '').strip()
+                    if name:
+                        return name
+
+                if isinstance(info, str):
+                    idx_str = info.strip()
+                    if idx_str:
+                        try:
+                            asic_info = amdsmi.amdsmi_get_gpu_asic_info(handle)
+                            if isinstance(asic_info, dict):
+                                name = str(asic_info.get('market_name', '')).strip()
+                                if name:
+                                    return name
+                        except Exception:
+                            pass
+
+                return fallback
+
             # 尝试识别 GPU 设备（宽松匹配）
             gpu_handles = []
             for handle in handles:
                 try:
                     ptype = amdsmi.amdsmi_get_processor_type(handle)
-                    logger.debug(f"处理器类型: {ptype} (GPU={amdsmi.AmdSmiDeviceType.GPU})")
+                    logger.debug(f"处理器类型: {ptype} (GPU={getattr(amdsmi.AmdSmiDeviceType, 'GPU', 'N/A')})")
 
                     # 宽松匹配：只要是 GPU 类型或者是唯一设备就加入
-                    if ptype == amdsmi.AmdSmiDeviceType.GPU or len(handles) == 1:
+                    if _is_amdsmi_gpu_type(ptype) or len(handles) == 1:
                         gpu_handles.append(handle)
                     else:
                         # 如果类型不确定但看起来像 GPU，也尝试添加
                         info = amdsmi.amdsmi_get_processor_info(handle)
-                        device_name = str(getattr(info, 'market_name', '') or getattr(info, 'device_name', '') or '')
-                        if any(keyword in device_name.lower() for keyword in ['radeon', 'gpu', 'graphics', 'device']):
+                        device_name = _extract_amdsmi_name(info, handle, "").lower()
+                        if any(keyword in device_name for keyword in ['radeon', 'gpu', 'graphics', 'device']):
                             gpu_handles.append(handle)
                             logger.info(f"通过名称识别到 GPU: {device_name}")
                         else:
@@ -468,11 +502,7 @@ class FeixueHardwareInfo:
             for i, handle in enumerate(gpu_handles):
                 try:
                     info = amdsmi.amdsmi_get_processor_info(handle)
-                    name = (
-                        getattr(info, 'market_name', None) or
-                        getattr(info, 'device_name', None) or
-                        f"AMD Device {i}"
-                    )
+                    name = _extract_amdsmi_name(info, handle, f"AMD Device {i}")
                     self._device_names.append(str(name))
                     logger.info(f"GPU [{i}]: {name}")
                 except Exception as e:
@@ -490,10 +520,13 @@ class FeixueHardwareInfo:
             return False
         finally:
             if not init_succeeded:
-                try:
-                    amdsmi.amdsmi_shutdown()
-                except Exception:
-                    pass
+                for attr in ('amdsmi_shut_down', 'amdsmi_shutdown'):
+                    if hasattr(amdsmi, attr):
+                        try:
+                            getattr(amdsmi, attr)()
+                            break
+                        except Exception:
+                            pass
 
     def _init_rocm_smi(self) -> bool:
         """初始化 rocm_smi 数据源（ROCm 5.x 兼容层）"""
@@ -1744,11 +1777,13 @@ class FeixueHardwareInfo:
             if self._active_source == 'amdsmi' and self._source_instance is not None:
                 if isinstance(self._source_instance, dict) and 'lib' in self._source_instance:
                     amdsmi_lib = self._source_instance['lib']
-                    if hasattr(amdsmi_lib, 'amdsmi_shutdown'):
-                        try:
-                            amdsmi_lib.amdsmi_shutdown()
-                        except Exception as e:
-                            logger.warning(f"amdsmi shutdown error: {e}")
+                    for attr in ('amdsmi_shut_down', 'amdsmi_shutdown'):
+                        if hasattr(amdsmi_lib, attr):
+                            try:
+                                getattr(amdsmi_lib, attr)()
+                                break
+                            except Exception as e:
+                                logger.warning(f"amdsmi {attr} error: {e}")
 
             elif self._active_source == 'rocm_smi' and self._source_instance is not None:
                 if hasattr(self._source_instance, 'rocm_smi_shutdown'):
