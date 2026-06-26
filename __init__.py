@@ -9,10 +9,10 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 - WebSocket / HTTP 双通道实时数据推送
 
 作者: Feixue Team
-版本: 3.40.1 (ADLX Bridge + Tiered Fallback)
+版本: 3.40.2 (ADLX Bridge + Tiered Fallback)
 """
 
-__version__ = "3.40.1"
+__version__ = "3.40.2"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -20,7 +20,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.40.1 ADLX Bridge + 字段级降级)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.40.2 ADLX Bridge + 字段级降级)")
 
 # ============================================================================
 # 获取插件根目录（用于导入 core 模块）
