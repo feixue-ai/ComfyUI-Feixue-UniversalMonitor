@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      # 兼容仍在使用 Node.js 16 的 publish-node-action，防止被 GitHub 强制阻断
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - name: Check out code
         uses: actions/checkout@v4

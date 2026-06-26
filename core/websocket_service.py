@@ -17,7 +17,7 @@ FeixueMonitorService - 飞雪监测器 WebSocket 实时推送服务
 - 数据格式: FeixueHardwareInfo.get_snapshot() 返回的字典
 - 心跳响应: {type: 'pong', timestamp: <client_timestamp>}
 
-Version: 3.40.2 (WebSocket Real-time)
+Version: 3.40.3 (WebSocket Real-time)
 Author: Feixue Team
 """
 
