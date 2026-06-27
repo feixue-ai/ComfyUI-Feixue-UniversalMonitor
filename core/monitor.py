@@ -26,7 +26,7 @@ FeixueHardwareInfo - 飞雪监测器简化版数据采集引擎
     }]
 }
 
-Version: 3.40.3 (ADLX Bridge + Tiered Fallback)
+Version: 3.40.4 (Responsive Dock + Panel Fix)
 Author: Feixue Team
 """
 
@@ -796,7 +796,7 @@ class FeixueHardwareInfo:
                 'data_source_quality': self._SOURCE_QUALITY.get(
                     self._active_source, 'unknown'
                 ),
-                'version': '3.40.3',
+                'version': '3.40.4',
             }
 
             # 辅助指标采集（每个独立try-except，单个失败不影响整体）
@@ -1709,7 +1709,7 @@ class FeixueHardwareInfo:
             'gpus': [self._get_default_gpu_data()],
             'data_source': 'error_fallback',
             'data_source_quality': 'unknown',
-            'version': '3.40.3',
+            'version': '3.40.4',
             'disk_io': None,
             'network_io': None,
         }
@@ -1843,7 +1843,7 @@ class FeixueHardwareInfo:
             'last_success_time': self._last_success_time,
             'has_cached_data': self._cached_gpu_data is not None,
             'stats': self._stats.copy(),
-            'version': '3.40.3',
+            'version': '3.40.4',
         }
 
     @property

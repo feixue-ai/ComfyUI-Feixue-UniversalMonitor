@@ -1,20 +1,20 @@
 /**
- * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.40.3
+ * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.40.4
  *
  * 设计原则：不透明实底背景 + 发光边框灯条 + 药丸/胶囊形状 + 3D圆柱横截面效果 + CSS芯片图标 + 渐变状态条 + 5色主题系统
- * @version 3.40.3
+ * @version 3.40.4
  */
 
 (function() {
     'use strict';
 
-    console.log('[飞雪监测器] 🚀 Premium UI v3.40.3 启动...');
+    console.log('[飞雪监测器] 🚀 Premium UI v3.40.4 启动...');
 
     // ============================================================
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.40.3',
+        version: '3.40.4',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -1019,10 +1019,13 @@ body.neu-active {
     top: 85px;
     right: 20px;
     width: var(--neu-panel-width);
+    min-width: 280px;
+    max-width: min(100vw - 40px, 420px);
     max-height: calc(100vh - 105px);
     overflow-y: auto;
     z-index: 99999;
     padding: var(--neu-space-xl);
+    box-sizing: border-box;
 
     /* 陶瓷面板底色*/
     background-color: var(--neu-base-color);
@@ -1645,16 +1648,17 @@ body.neu-active {
 @media (max-width: 900px) {
     :root {
         --neu-dock-width: 95vw;
-        --neu-panel-width: 320px;
+        --neu-panel-width: min(100vw - 32px, 360px);
     }
 
     #neu-dock {
         flex-wrap: wrap;
         height: auto;
         min-height: var(--neu-dock-height);
-        padding: var(--neu-space-md);
-        gap: var(--neu-space-sm);
+        padding: 10px 56px 10px 48px;
+        gap: 8px;
         border-radius: 28px;
+        justify-content: center;
     }
 
     /* 小屏换行时隐藏凹槽底座 */
@@ -1662,22 +1666,54 @@ body.neu-active {
         display: none;
     }
 
+    .neu-dock-handle {
+        width: 24px;
+        height: 40px;
+        gap: 3px;
+    }
+
     .neu-metric-chip {
-        min-width: calc(33% - 8px);
-        max-width: calc(33% - 8px);
-        height: 52px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        min-width: 72px;
+        max-width: 88px;
+        height: 58px;
+        padding: 5px 4px 10px 4px;
+    }
+
+    .neu-chip-icon {
+        font-size: 18px;
+    }
+
+    .neu-chip-data {
+        align-items: center;
+    }
+
+    .neu-chip-label {
+        display: none;
+    }
+
+    .neu-chip-value {
+        font-size: 13px;
+    }
+
+    .neu-chip-progress-track {
+        left: 6px;
+        right: 6px;
+        bottom: 4px;
+        height: 4px;
     }
 
     #neu-panel {
-        right: 10px;
-        width: calc(100vw - 20px);
-        max-width: 360px;
+        right: 16px;
+        width: var(--neu-panel-width);
+        padding: 16px;
     }
-}
 
-@media (max-width: 600px) {
     .neu-metrics-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 8px;
     }
 
@@ -1689,9 +1725,114 @@ body.neu-active {
         font-size: 18px;
     }
 
+    .neu-metric-label {
+        font-size: 8px;
+        letter-spacing: 0.4px;
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --neu-panel-width: min(100vw - 32px, 320px);
+    }
+
+    #neu-dock {
+        padding: 8px 44px 8px 38px;
+        gap: 6px;
+        border-radius: 22px;
+    }
+
+    .neu-dock-handle {
+        width: 20px;
+        height: 34px;
+    }
+
+    .neu-metric-chip {
+        min-width: 58px;
+        max-width: 72px;
+        height: 50px;
+        padding: 4px 3px 8px 3px;
+        border-radius: 14px;
+    }
+
+    .neu-chip-icon {
+        font-size: 15px;
+    }
+
+    .neu-chip-value {
+        font-size: 11px;
+    }
+
+    .neu-chip-progress-track {
+        left: 5px;
+        right: 5px;
+        bottom: 3px;
+        height: 3px;
+    }
+
+    .neu-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .neu-metric-card {
+        padding: 8px 4px;
+    }
+
+    .neu-metric-value {
+        font-size: 16px;
+    }
+
+    .neu-metric-label {
+        font-size: 8px;
+    }
+
     #neu-panel {
-        width: calc(100vw - 32px);
-        padding: 16px;
+        right: 12px;
+        padding: 14px;
+    }
+}
+
+@media (max-width: 360px) {
+    :root {
+        --neu-panel-width: calc(100vw - 24px);
+    }
+
+    #neu-dock {
+        padding: 6px 36px 6px 32px;
+        gap: 5px;
+    }
+
+    .neu-metric-chip {
+        min-width: 52px;
+        max-width: 64px;
+        height: 46px;
+        border-radius: 12px;
+    }
+
+    .neu-chip-icon {
+        font-size: 13px;
+    }
+
+    .neu-chip-value {
+        font-size: 10px;
+    }
+
+    .neu-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .neu-metric-card {
+        padding: 6px 3px;
+    }
+
+    .neu-metric-value {
+        font-size: 14px;
+    }
+
+    .neu-metric-unit {
+        font-size: 9px;
     }
 }
 
@@ -7170,7 +7311,7 @@ body.cyber-active {
             '<div class="neu-panel-header">' +
                 '<div class="neu-header-brand">' +
                     '<div class="neu-brand-icon">\u2744</div>' +
-                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.3</span></div>' +
+                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.4</span></div>' +
                 '</div>' +
                 '<div class="neu-header-actions">' +
                     '<button class="neu-action-btn" id="neu-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
@@ -7331,7 +7472,7 @@ body.cyber-active {
             // Footer
             '<footer class="neu-panel-footer">' +
                 '<div class="neu-footer-left"><span class="neu-status-dot"></span><span id="np-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.40.3 Build 2026.06.26</span>' +
+                '<span>v3.40.4 Build 2026.06.26</span>' +
             '</footer>';
 
         // 绑定关闭按钮
@@ -7502,7 +7643,7 @@ body.cyber-active {
                 '</div>' +
             '</div>' +
             // V19 Footer
-            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.40.3</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.26</div></div>' +
+            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.40.4</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.26</div></div>' +
             '<div class="retro-source-text" id="retro-source-text">[ AMD SMI ]</div>' +
             '</div></div>';
 
@@ -7611,7 +7752,7 @@ body.cyber-active {
     /** 构建Lux Panel内容 */
     function buildLuxPanel(panel) {
         panel.innerHTML =
-            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.40.3</span></div>' +
+            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.40.4</span></div>' +
                 '<div class="lux-header-actions"><button class="lux-action-btn lux-close-btn" title="' + t('close') + '">&times;</button></div></div>' +
             '<div class="lux-metrics-grid"><div class="lux-metric-card"><div class="lux-metric-label">' + t('gpu') + ' ' + t('load') + '</div><div class="lux-metric-value"><span id="lp-gpu-val">--</span>%</div></div>' +
                 '<div class="lux-metric-card"><div class="lux-metric-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="lux-metric-value"><span id="lp-cpu-val">--</span>%</div></div>' +
@@ -7661,7 +7802,7 @@ body.cyber-active {
                     '<button class="fxm-cleanup-btn" id="lux-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
-            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.40.3 Build 2026.06.26</span></footer>';
+            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.40.4 Build 2026.06.26</span></footer>';
 
         panel.querySelector('.lux-close-btn').addEventListener('click', () => togglePanel('lux'));
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -7836,7 +7977,7 @@ body.cyber-active {
                     '<button class="fxm-cleanup-btn" id="cyber-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
-            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.40.3 Build 2026.06.26</span></div>';
+            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.40.4 Build 2026.06.26</span></div>';
 
         // 主题切换按钮
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -7957,7 +8098,7 @@ body.cyber-active {
     function buildIndPanel(panel) {
         panel.innerHTML =
             '<div class="ind-panel-header">' +
-                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.3</span></div>' +
+                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.4</span></div>' +
                 '<div class="ind-header-actions">' +
                     '<button class="ind-action-btn" id="ind-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="ind-action-btn" id="ind-closeBtn" title="' + t('close') + '">&times;</button>' +
@@ -8018,7 +8159,7 @@ body.cyber-active {
             '</div>' +
             '<footer class="ind-panel-footer">' +
                 '<div><span class="ind-status-dot"></span><span id="gp-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.40.3 Build 2026.06.26</span>' +
+                '<span>v3.40.4 Build 2026.06.26</span>' +
             '</footer>';
 
         const closeBtn = panel.querySelector('#ind-closeBtn');
@@ -8941,7 +9082,7 @@ body.cyber-active {
      * 7. 初始化拖拽
      */
     async function init() {
-        console.log('[飞雪监测器] 🚀 Premium UI v3.40.3 启动...');
+        console.log('[飞雪监测器] 🚀 Premium UI v3.40.4 启动...');
         try {
             // 1. 注入新CSS
             injectPremiumCSS();
@@ -8989,7 +9130,7 @@ body.cyber-active {
                 }).observe(document.body, { childList: true, subtree: true });
             }
 
-            console.log('[飞雪监测器] ✅ Premium UI v3.40.3 initialized successfully!');
+            console.log('[飞雪监测器] ✅ Premium UI v3.40.4 initialized successfully!');
         } catch(e) {
             console.error('[飞雪监测器] ❌ Init failed:', e);
         }
@@ -9924,7 +10065,7 @@ body.cyber-active {
         getSnapshot: () => fetchFromBackend()
     };
 
-    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.40.3)');
+    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.40.4)');
 
     // ============================================================
     // ComfyUI 工作流完成/出错声音提示

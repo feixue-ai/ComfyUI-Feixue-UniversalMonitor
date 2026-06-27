@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ComfyUI-Feixue-UniversalMonitor"
-version = "3.40.3"
+version = "3.40.4"
 description = "飞雪监测器 — Premium UI 实时硬件监测，AMD GPU 优化"
 readme = "README.md"
 license = {text = "MIT"}
