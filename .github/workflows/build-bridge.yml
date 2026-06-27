@@ -13,10 +13,6 @@ name: Build ADLX Bridge DLL
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'bridge/**'
-      - '.github/workflows/build-bridge.yml'
 
 jobs:
   build:
