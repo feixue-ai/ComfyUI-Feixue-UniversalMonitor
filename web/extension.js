@@ -1,20 +1,20 @@
 /**
- * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.40.4
+ * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.40.5
  *
  * 设计原则：不透明实底背景 + 发光边框灯条 + 药丸/胶囊形状 + 3D圆柱横截面效果 + CSS芯片图标 + 渐变状态条 + 5色主题系统
- * @version 3.40.4
+ * @version 3.40.5
  */
 
 (function() {
     'use strict';
 
-    console.log('[飞雪监测器] 🚀 Premium UI v3.40.4 启动...');
+    console.log('[飞雪监测器] 🚀 Premium UI v3.40.5 启动...');
 
     // ============================================================
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.40.4',
+        version: '3.40.5',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -7311,7 +7311,7 @@ body.cyber-active {
             '<div class="neu-panel-header">' +
                 '<div class="neu-header-brand">' +
                     '<div class="neu-brand-icon">\u2744</div>' +
-                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.4</span></div>' +
+                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.5</span></div>' +
                 '</div>' +
                 '<div class="neu-header-actions">' +
                     '<button class="neu-action-btn" id="neu-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
@@ -7472,7 +7472,7 @@ body.cyber-active {
             // Footer
             '<footer class="neu-panel-footer">' +
                 '<div class="neu-footer-left"><span class="neu-status-dot"></span><span id="np-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.40.4 Build 2026.06.26</span>' +
+                '<span>v3.40.5 Build 2026.06.27</span>' +
             '</footer>';
 
         // 绑定关闭按钮
@@ -7643,7 +7643,7 @@ body.cyber-active {
                 '</div>' +
             '</div>' +
             // V19 Footer
-            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.40.4</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.26</div></div>' +
+            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.40.5</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.06.27</div></div>' +
             '<div class="retro-source-text" id="retro-source-text">[ AMD SMI ]</div>' +
             '</div></div>';
 
@@ -7752,7 +7752,7 @@ body.cyber-active {
     /** 构建Lux Panel内容 */
     function buildLuxPanel(panel) {
         panel.innerHTML =
-            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.40.4</span></div>' +
+            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.40.5</span></div>' +
                 '<div class="lux-header-actions"><button class="lux-action-btn lux-close-btn" title="' + t('close') + '">&times;</button></div></div>' +
             '<div class="lux-metrics-grid"><div class="lux-metric-card"><div class="lux-metric-label">' + t('gpu') + ' ' + t('load') + '</div><div class="lux-metric-value"><span id="lp-gpu-val">--</span>%</div></div>' +
                 '<div class="lux-metric-card"><div class="lux-metric-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="lux-metric-value"><span id="lp-cpu-val">--</span>%</div></div>' +
@@ -7802,7 +7802,7 @@ body.cyber-active {
                     '<button class="fxm-cleanup-btn" id="lux-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
-            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.40.4 Build 2026.06.26</span></footer>';
+            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.40.5 Build 2026.06.27</span></footer>';
 
         panel.querySelector('.lux-close-btn').addEventListener('click', () => togglePanel('lux'));
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -7977,7 +7977,7 @@ body.cyber-active {
                     '<button class="fxm-cleanup-btn" id="cyber-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
-            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.40.4 Build 2026.06.26</span></div>';
+            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.40.5 Build 2026.06.27</span></div>';
 
         // 主题切换按钮
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -8098,7 +8098,7 @@ body.cyber-active {
     function buildIndPanel(panel) {
         panel.innerHTML =
             '<div class="ind-panel-header">' +
-                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.4</span></div>' +
+                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.5</span></div>' +
                 '<div class="ind-header-actions">' +
                     '<button class="ind-action-btn" id="ind-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="ind-action-btn" id="ind-closeBtn" title="' + t('close') + '">&times;</button>' +
@@ -8159,7 +8159,7 @@ body.cyber-active {
             '</div>' +
             '<footer class="ind-panel-footer">' +
                 '<div><span class="ind-status-dot"></span><span id="gp-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.40.4 Build 2026.06.26</span>' +
+                '<span>v3.40.5 Build 2026.06.27</span>' +
             '</footer>';
 
         const closeBtn = panel.querySelector('#ind-closeBtn');
@@ -8283,6 +8283,12 @@ body.cyber-active {
             return;
         }
 
+        // 记录当前是否有面板可见，切换风格时保持用户已打开的状态
+        const anyPanelVisible = VALID_STYLES.some(s => {
+            const panel = document.getElementById(s + '-panel');
+            return panel && !panel.classList.contains('style-hidden');
+        });
+
         // 隐藏所有dock和panel
         VALID_STYLES.forEach(s => {
             const dock = document.getElementById(s + '-dock');
@@ -8291,11 +8297,15 @@ body.cyber-active {
             if (panel) panel.classList.add('style-hidden');
         });
 
-        // 显示目标dock和panel
+        // 显示目标dock
         const targetDock = document.getElementById(target + '-dock');
-        const targetPanel = document.getElementById(target + '-panel');
         if (targetDock) targetDock.classList.remove('style-hidden');
-        if (targetPanel) targetPanel.classList.remove('style-hidden');
+
+        // 面板默认不展开；仅当切换前已有面板打开时才保持展开
+        const targetPanel = document.getElementById(target + '-panel');
+        if (targetPanel && anyPanelVisible) {
+            targetPanel.classList.remove('style-hidden');
+        }
 
         // 更新body class
         document.body.classList.remove(...VALID_STYLES.map(s => s + '-active'));
@@ -9082,7 +9092,7 @@ body.cyber-active {
      * 7. 初始化拖拽
      */
     async function init() {
-        console.log('[飞雪监测器] 🚀 Premium UI v3.40.4 启动...');
+        console.log('[飞雪监测器] 🚀 Premium UI v3.40.5 启动...');
         try {
             // 1. 注入新CSS
             injectPremiumCSS();
@@ -9130,7 +9140,7 @@ body.cyber-active {
                 }).observe(document.body, { childList: true, subtree: true });
             }
 
-            console.log('[飞雪监测器] ✅ Premium UI v3.40.4 initialized successfully!');
+            console.log('[飞雪监测器] ✅ Premium UI v3.40.5 initialized successfully!');
         } catch(e) {
             console.error('[飞雪监测器] ❌ Init failed:', e);
         }
@@ -10065,7 +10075,7 @@ body.cyber-active {
         getSnapshot: () => fetchFromBackend()
     };
 
-    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.40.4)');
+    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.40.5)');
 
     // ============================================================
     // ComfyUI 工作流完成/出错声音提示
