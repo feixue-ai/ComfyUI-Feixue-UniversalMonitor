@@ -16,6 +16,7 @@ Design Principles:
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import os
 import platform
@@ -659,29 +660,55 @@ def _detect_rocm_availability_impl() -> Dict[str, Any]:
 
 def check_amdsmi() -> bool:
     """
-    Check if the amdsmi library (ROCm 6.0+) is available and functional.
+    Check if the AMD SMI system library (libamd_smi.so) is available and functional.
 
-    Attempts to initialize amdsmi to verify it works, not just that it imports.
+    Since v3.40.6 we no longer use the Python ``amdsmi`` pip package; this
+    function directly loads the system ``.so`` via ctypes and attempts a
+    minimal init/shutdown cycle to verify that the C API is usable.
 
     Returns:
-        True if amdsmi can be imported and initialized successfully.
+        True if libamd_smi.so can be loaded and initialized successfully.
     """
-    try:
-        import amdsmi
+    candidates = [
+        "libamd_smi.so",
+        "/opt/rocm/lib/libamd_smi.so",
+        "/opt/rocm/lib/libamd_smi.so.26",
+        "/opt/rocm/lib/libamd_smi.so.26.0.70001",
+        "/usr/lib/x86_64-linux-gnu/libamd_smi.so",
+        "/usr/lib/x86_64-linux-gnu/libamd_smi.so.1",
+        "/usr/lib64/libamd_smi.so",
+        "/usr/lib64/libamd_smi.so.1",
+        "/usr/lib/libamd_smi.so",
+    ]
 
-        amdsmi.amdsmi_init()
-        logger.debug("amdsmi library imported and initialized successfully")
-        return True
-    except ImportError:
-        logger.debug("amdsmi library not installed (ImportError)")
-        return False
-    except AttributeError:
-        # Library exists but amdsmi_init may not be available
-        logger.debug("amdsmi imported but amdsmi_init not found (possibly incompatible version)")
-        return False
-    except Exception as e:
-        logger.debug(f"amdsmi initialization failed: {e}")
-        return False
+    env_path = os.environ.get("FEIXUE_AMD_SMI_PATH")
+    if env_path:
+        candidates.insert(0, env_path)
+
+    for path in candidates:
+        try:
+            lib = ctypes.CDLL(path)
+            lib.amdsmi_init.argtypes = [ctypes.c_uint64]
+            lib.amdsmi_init.restype = ctypes.c_int
+            lib.amdsmi_shut_down.argtypes = []
+            lib.amdsmi_shut_down.restype = ctypes.c_int
+
+            rc = lib.amdsmi_init(1 << 1)  # AMDSMI_INIT_AMD_GPUS
+            if rc == 0:
+                try:
+                    lib.amdsmi_shut_down()
+                except Exception:
+                    pass
+                logger.debug("libamd_smi.so available and initializes successfully at %s", path)
+                return True
+        except OSError:
+            continue
+        except Exception as e:
+            logger.debug("libamd_smi.so probe failed at %s: %s", path, e)
+            continue
+
+    logger.debug("libamd_smi.so not available or initialization failed")
+    return False
 
 
 def check_rocm_smi_lib() -> bool:

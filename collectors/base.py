@@ -548,15 +548,17 @@ class BaseGPUProvider(abc.ABC):
 
         class AMDLinuxProvider(BaseGPUProvider):
             def initialize(self) -> bool:
-                import amdsmi
-                amdsmi.amdsmi_init()
+                self._lib = ctypes.CDLL("libamd_smi.so")
+                self._lib.amdsmi_init(1 << 1)
                 return True
 
             def get_gpu_utilization(self, device_id=0) -> float:
-                return amdsmi.get_gpu_utilization(device_id)
+                # 通过 ctypes 调用系统 libamd_smi.so 获取利用率
+                ...
 
             def shutdown(self) -> None:
-                amdsmi.amdsmi_shutdown()
+                if self._lib:
+                    self._lib.amdsmi_shut_down()
     """
 
     def __init__(self, name: str, priority: int = 100, config: dict | None = None):

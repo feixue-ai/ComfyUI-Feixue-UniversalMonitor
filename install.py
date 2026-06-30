@@ -8,7 +8,7 @@ ComfyUI-Feixue-UniversalMonitor 安装脚本
     - Windows AMD: atiadlxx.dll / atiadlxy.dll (ctypes ADL)
     - Windows NVIDIA: nvml.dll (ctypes NVML)
     - Windows 兜底: pdh.dll (系统性能计数器)
-    - Linux AMD: /sys/class/drm (sysfs), amdsmi（仅在系统 C 库已存在时安装 Python 绑定）
+    - Linux AMD: /sys/class/drm (sysfs 原生接口，零 pip / 零 ROCm), libamd_smi.so (ctypes AMD SMI 增强兜底)
     - Linux NVIDIA: libnvidia-ml.so (ctypes NVML)
 
   不再安装以下不准确或不必要的包：
@@ -239,7 +239,7 @@ def install_windows():
 
 
 def install_linux():
-    """Linux 平台：系统库存在才安装 Python 绑定，否则用 sysfs"""
+    """Linux 平台：原生接口优先，无额外 pip 依赖"""
     print("[飞雪监测器] Linux 平台")
 
     vendors = _detect_linux_gpu_vendors()
@@ -254,10 +254,8 @@ def install_linux():
         has_rocm_smi = _linux_has_rocm_smi()
 
         if has_amd_smi_lib:
-            if not _is_installed("amdsmi"):
-                _pip_install(["amdsmi"], "amdsmi (AMD GPU 监控 Python 绑定)")
-            else:
-                print("  [跳过] amdsmi 已安装")
+            print("  [信息] 检测到系统级 AMD SMI 库（libamd_smi.so）")
+            print("         插件将直接通过 ctypes 调用，无需 pip 包或 C++ 编译")
         else:
             print("  [信息] 未检测到系统级 AMD SMI 库，不安装 amdsmi pip 包")
             print("         将使用 /sys/class/drm (sysfs) 原生接口监控 AMD GPU")

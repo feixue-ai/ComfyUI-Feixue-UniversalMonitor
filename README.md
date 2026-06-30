@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.29.2-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-3.40.6-red" alt="Version" />
   <img src="https://img.shields.io/badge/Styles-5_Colors_%C3%97_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
@@ -20,7 +20,7 @@
 
 ## Preview
 
-![Feixue Universal Monitor Premium UI v3.29.2](screenshot.png)
+![Feixue Universal Monitor Premium UI v3.40.6](screenshot.png)
 
 > The screenshot above shows the Premium UI **Neu** style monitor bar — a white neumorphic design with medical-instrument-style recessed windows, precise groove bases, and soft embossed shadows. It displays six real-time metrics: GPU / VRAM / CPU / RAM / SWAP / TEMP.
 >
@@ -54,7 +54,7 @@ Aurora Ceramic / Deep Sea Blue / Sunset Warm / Forest Green / Midnight Black (ea
 - **Collapsible floating panel** — click the gear icon to open the settings panel with expandable/collapsible sections
 - **Neu medical instrument windows** — monitor bars use precisely inset instrument windows + continuous groove bases for a premium feel
 - **Jade Bamboo monitor bar** — horizontal jade bamboo shape with 8 naturally connected segments, jade cylindrical gloss, and a bamboo-slip settings panel that strongly contrasts with Neu
-- **Cross-platform AMD optimization** — Windows (AMD ADLX native driver-level) and Linux (amdsmi / ROCm / sysfs) with clean source priority
+- **Cross-platform AMD optimization** — Windows (AMD ADLX C++ Bridge DLL first, native driver-level) and Linux (sysfs direct kernel-driver read first, then libamd_smi.so ctypes / rocm_smi / NVIDIA NVML) with clean source priority
 - **WebSocket real-time push** — data pushed with sub-100ms latency, with an HTTP API fallback mode
 - **Zero external frontend dependencies** — single `extension.js` file contains all UI, CSS, events, and data logic
 
@@ -69,9 +69,10 @@ Aurora Ceramic / Deep Sea Blue / Sunset Warm / Forest Green / Midnight Black (ea
 3. Click **Install** → **Restart** ComfyUI
 
 The install script will automatically detect the operating system and GPU vendor, then install dependencies only when necessary:
-- **Windows AMD/NVIDIA**: Uses native driver DLLs (`atiadlxx.dll` / `nvml.dll`) directly — **zero pip dependencies** for GPU monitoring
-- **Windows fallback**: System PDH counters if no native driver interface is available
-- **Linux AMD**: Uses `amdsmi` Python bindings only if the system-level `libamd_smi.so` library is present; otherwise falls back to `sysfs`
+- **Windows AMD**: ADLX C++ Bridge DLL (`libs/feixue_adlx_bridge.dll`) provides full GPU metrics directly from the AMD driver — **zero pip dependencies**
+- **Windows NVIDIA**: Uses native driver `nvml.dll` directly — zero pip dependencies
+- **Windows fallback**: System PDH counters + DXGI if no native driver interface is available
+- **Linux AMD**: Reads GPU metrics directly from the AMDGPU kernel driver via `sysfs` (`/sys/class/drm`) — **zero pip dependencies and zero ROCm dependency**; falls back to system `libamd_smi.so` (ctypes) / `rocm_smi` / NVIDIA NVML
 - **Linux NVIDIA**: Uses the driver's native `libnvidia-ml.so` — no extra pip dependencies
 - **Base dependency**: `psutil` only
 
@@ -116,7 +117,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # Configuration management
 ├── fxm_utils/               # Platform detection, thread safety, performance optimization
 ├── web/
-│   └── extension.js         # Frontend UI (Premium UI v3.29.2)
+│   └── extension.js         # Frontend UI (Premium UI v3.40.6)
 ├── docs/
 │   └── index.html           # Online appearance demo (GitHub Pages)
 └── tests/                   # Unit tests
@@ -128,7 +129,7 @@ ComfyUI-Feixue-UniversalMonitor/
 
 | Layer | Tech Stack |
 |------|--------|
-| **Backend Data Collection** | Python (psutil, amdsmi optional on Linux, ctypes native DLLs on Windows) |
+| **Backend Data Collection** | Python (psutil, ctypes native libraries on Windows/Linux) |
 | **Frontend UI** | Vanilla JavaScript (zero external dependencies, single self-contained file) |
 | **Data Channel** | WebSocket (`feixue.monitor` event) + HTTP REST API |
 | **Compatibility** | ComfyUI (Windows / Linux Ubuntu), AMD / NVIDIA GPU |
@@ -137,27 +138,33 @@ ComfyUI-Feixue-UniversalMonitor/
 
 ```
 GPU data source priority:
-  Windows: AMD ADL (atiadlxx.dll) → NVIDIA NVML (nvml.dll) → AMD ADLX → PDH counters
-  Linux:   amdsmi → rocm_smi → NVIDIA NVML → sysfs
+  Windows: AMD ADLX C++ Bridge DLL → AMD ADL (atiadlxx.dll) → NVIDIA NVML (nvml.dll) → PDH counters + DXGI field-level fallback
+  Linux:   sysfs (/sys/class/drm amdgpu kernel driver) → libamd_smi.so (ctypes) → rocm_smi → NVIDIA NVML
 
 CPU/RAM/Swap: psutil (unified cross-platform)
 ```
 
 All collection operations have timeout protection (≤8s). On exceptions, the system automatically falls back to cached data or safe default values, ensuring the ComfyUI main workflow is not affected. Inaccurate legacy methods (WMI / pynvml-amd-windows) have been removed; fan monitoring has also been removed to reduce complexity.
 
+**Field-level fallback** (Windows): when the primary provider returns an invalid individual metric, DXGI fills missing VRAM and PDH fills missing GPU utilization, so each value is independently sourced from the most reliable interface available.
+
 ---
 
 ## Changelog
 
-### v3.40.5 — Default Collapsed Panel + Registry Clean Publish (Current)
+### v3.40.6 — Linux Zero-Dependency Native Driver Monitoring (Current)
 
-- **ADLX C++ Bridge DLL (first priority)**: Compiled `feixue_adlx_bridge.dll` wraps AMD ADLX SDK via `extern "C"` — provides full GPU metrics (utilization / VRAM used / VRAM total / temperature) directly from the AMD driver. Zero pip dependency, ships as a prebuilt DLL in `libs/`
+- **Linux GPU priority changed to sysfs first**: Linux AMD GPU monitoring now reads the AMDGPU kernel driver directly via `/sys/class/drm/` (zero pip dependency, zero ROCm dependency). This matches the Windows "extract zip and use" design philosophy and survives system/ROCm version changes far better than user-space libraries. `libamd_smi.so` (ctypes) and `rocm_smi` are kept only as fallbacks for richer metrics when available
+- **AmdSmiProvider rewritten with ctypes + multi-version ROCm discovery**: Directly calls the system `libamd_smi.so` without importing the `amdsmi` Python package. Searches `/opt/rocm`, `/opt/rocm-6.x`, `LD_LIBRARY_PATH`, and the `FEIXUE_AMD_SMI_PATH` environment variable. Function bindings are fault-tolerant so older/newer ROCm versions degrade gracefully instead of crashing
+- **ADLX C++ Bridge DLL (Windows first priority)**: Compiled `feixue_adlx_bridge.dll` wraps AMD ADLX SDK via `extern "C"` — provides full GPU metrics (utilization / VRAM used / VRAM total / temperature) directly from the AMD driver. Zero pip dependency, ships as a prebuilt DLL in `libs/`
 - **Field-level tiered fallback**: Instead of whole-provider failover, each metric field is supplemented independently — DXGI fills missing VRAM, PDH fills missing utilization (same data source as Windows Task Manager). First-invalid detection is cached for zero overhead on subsequent calls
 - **PDH persistent query rewrite**: Fixed PDH GPU utilization returning 0% — the old `_Total` filter skipped all 462 GPU Engine instances. Rewritten with persistent PDH queries (one `PdhCollectQueryData` reads all counters) summing all engine instances, capped at 100%
 - **ADLX API signature fixes**: Corrected 6 API mismatches against official ADLX headers (`Name(const char**)`, `GPUUsage(adlx_double*)`, `GPUVRAM(adlx_int* MB)` + `TotalVRAM(adlx_uint*)`, `GPUTotalBoardPower`, `gpuList->At`, `using namespace adlx`)
-- **Stress tested**: 300-collection memory leak test (+0.4 MB), 10-thread concurrency test (500/500 success), boundary tests (repeated init/shutdown, post-shutdown collection), 5-second stability test (313 collections, 11-31ms each)
-- **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40.5
+- **503 fix / monitor stays alive when GPU source fails**: `_MonitorWrapper` no longer sets `is_running = False` just because the GPU provider failed; CPU/RAM monitoring continues and the HTTP/WebSocket APIs remain available
+- **Module shadowing protection**: `__init__.py` now cleans non-plugin `core` modules from `sys.modules` and moves the plugin root to the front of `sys.path`, preventing other custom nodes from shadowing `core.monitor`
+- **Theme switch no blank window**: Switching UI styles now immediately renders the latest cached snapshot into the newly visible theme, removing the ~0.5s empty-data gap
 - **Responsive layout fix**: Dock and Panel now adapt to narrow viewports (Trae CN side panel / mobile remote control) without overlapping or text wrapping artifacts
+- **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40.6
 
 ### v3.30 — PDH VRAM Fix + Capsule Bounce Fix
 

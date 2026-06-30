@@ -9,10 +9,10 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 - WebSocket / HTTP 双通道实时数据推送
 
 作者: Feixue Team
-版本: 3.40.5 (Default Collapsed Panel + Registry Clean Publish)
+版本: 3.40.6 (Linux AMD SMI Native Bridge)
 """
 
-__version__ = "3.40.5"
+__version__ = "3.40.6"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -20,16 +20,31 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.40.5 面板默认收起 + Registry 干净发布)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.40.6 Linux AMD SMI 原生 Bridge)")
 
 # ============================================================================
-# 获取插件根目录（用于导入 core 模块）
+# 获取插件根目录并防止 core 包被其他插件 shadow
 # ============================================================================
 import os
 import sys
+
 _FEIXUE_ROOT = os.path.dirname(os.path.abspath(__file__))
-if _FEIXUE_ROOT not in sys.path:
-    sys.path.insert(0, _FEIXUE_ROOT)
+
+# ComfyUI 多个 custom node 共用 sys.path，其他插件（如 comfyui_workflow_assistant）
+# 也有 core 包，会 shadow 我们的 core。启动前清理非本插件的 core 缓存，
+# 并把本插件根目录放到 sys.path 最前面，确保 from core.xxx 一定解析到我们的模块。
+_core_prefixes = {'core', 'core.'}
+for _mod_name in list(sys.modules.keys()):
+    if _mod_name in _core_prefixes or _mod_name.startswith('core.'):
+        _mod = sys.modules.get(_mod_name)
+        if _mod is not None:
+            _mod_file = getattr(_mod, '__file__', None)
+            if _mod_file is None or not _mod_file.startswith(_FEIXUE_ROOT + os.sep):
+                del sys.modules[_mod_name]
+
+if _FEIXUE_ROOT in sys.path:
+    sys.path.remove(_FEIXUE_ROOT)
+sys.path.insert(0, _FEIXUE_ROOT)
 
 # ============================================================================
 # 启动后端监控服务（非致命，失败不影响 ComfyUI 主流程）
@@ -44,19 +59,13 @@ try:
     
     if _monitor and _monitor.is_running:
         # 获取 GPU 信息用于日志显示
-        gpu_info = "Unknown"
-        if hasattr(_monitor, '_gpu_provider') and _monitor._gpu_provider:
-            _provider = _monitor._gpu_provider
-            source_name = getattr(_provider, '_active_source', 'unknown')
-            device_name = "N/A"
-            try:
-                device_name = _provider.get_device_name(0)
-            except Exception:
-                pass
-            gpu_info = f"{source_name} ({device_name})"
+        gpu_source = _monitor.status.get('gpu_source') or 'none'
+        device_count = _monitor.status.get('device_count', 0)
+        gpu_available = _monitor.status.get('gpu_available', False)
 
-        print(f"[飞雪监测器] ✅ 后端监控已启动 (GPU: {gpu_info})")
+        print(f"[飞雪监测器] ✅ 后端监控已启动")
         print(f"[飞雪监测器]    - CPU/RAM采集器: 运行中")
+        print(f"[飞雪监测器]    - GPU数据源: {gpu_source} (可用: {gpu_available}, 设备数: {device_count})")
         print(f"[飞雪监测器]    - 采集间隔: {_monitor._config.get('refresh_interval', 1.0)}s")
         print(f"[飞雪监测器]    - 状态: {_monitor.status.get('running', False)}")
     else:
@@ -78,35 +87,19 @@ except Exception as e:
 # ============================================================================
 
 def get_monitor():
-    """
-    获取当前监控实例。
-    
-    Returns:
-        UniversalMonitor 实例，如果未启动则返回 None
-        
-    Example::
-        from ComfyUI-Feixue-UniversalMonitor import get_monitor
-        monitor = get_monitor()
-        if monitor:
-            snapshot = monitor.get_snapshot()
-    """
+    """获取监控实例"""
     return _monitor
 
 
+def get_monitor_status():
+    """获取监控状态（供前端状态查询）"""
+    if _monitor is None:
+        return {'running': False, 'error': 'monitor not initialized'}
+    return _monitor.status
+
+
 def get_snapshot():
-    """
-    获取最新的系统监控快照。
-    
-    Returns:
-        MonitorSnapshot 对象，包含 CPU/RAM/GPU 数据
-        如果监控未运行则返回 None
-        
-    Example::
-        from ComfyUI-Feixue-UniversalMonitor import get_snapshot
-        snapshot = get_snapshot()
-        if snapshot and snapshot.cpu_metrics:
-            print(f"CPU: {snapshot.cpu_metrics.cpu_utilization}%")
-    """
+    """获取最新的系统监控快照"""
     if _monitor is None:
         return None
     try:
@@ -116,8 +109,8 @@ def get_snapshot():
 
 
 # ============================================================================
-# HTTP API 端点 - 为前端提供数据访问接口（Task 2: 前后端数据通道）
-# 使用 ComfyUI 标准方式：@PromptServer.instance.routes 装饰器（20+ 插件验证）
+# HTTP API 端点 - 为前端提供数据访问接口
+# 使用 ComfyUI 标准方式：@PromptServer.instance.routes 装饰器
 # ============================================================================
 
 import asyncio

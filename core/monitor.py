@@ -26,7 +26,7 @@ FeixueHardwareInfo - 飞雪监测器简化版数据采集引擎
     }]
 }
 
-Version: 3.40.5 (Default Collapsed Panel + Registry Clean Publish)
+Version: 3.40.6 (Linux AMD SMI Native Bridge)
 Author: Feixue Team
 """
 
@@ -139,43 +139,48 @@ class FeixueHardwareInfo:
     """
 
     # ════════════════════════════════════════════════════════════
-    # 数据源优先级策略 (2024-06-02 更新)
+    # 数据源优先级策略 (2026-06-30 更新)
     # ════════════════════════════════════════════════════════════
     #
-    # 【第一级】amdsmi (ROCm 7.2+ 官方推荐) ★★★★★
-    #   - AMD 官方标记为 rocm-smi 的替代品和未来方向
-    #   - 直接与 AMDGPU KMD 内核驱动通信
-    #   - 轻量级 Ctypes 绑定，无 Python GIL 限制
-    #   - 版本: v26.2.2+ (当前环境)
-    #   - 适用: ROCm 6.0+, Linux 5.14+
+    # 设计原则：优先直接读取系统驱动，不依赖 ROCm/HIP 等用户空间库。
+    # 这样插件下载 zip 解压即可使用，长期不维护也不易受 ROCm 版本迭代影响。
     #
-    # 【第二级】rocm_smi / rocm_smi_lib (传统兼容) ★★★☆☆
-    #   - 旧版 ROCm 的 SMI 工具库
-    #   - AMD 已标记为 deprecated (将被 amdsmi 取代)
-    #   - 仍适用于 ROCm 5.x 和部分 6.x 环境
-    #   - 作为向下兼容的备用方案保留
-    #
-    # 【第三级】sysfs 物理文件读取 (最终保底) ★★☆☆☆
+    # Linux:
+    # 【第一级】sysfs 物理文件读取 (直接读 AMDGPU KMD) ★★★★★
     #   - 通过 /sys/class/drm/card0/device/ 读取硬件信息
-    #   - 最原始但最可靠的方式（无需任何特殊库）
-    #   - 精度较低，格式依赖内核版本
-    #   - 仅在前两级全部失败时启用
+    #   - 零 ROCm 依赖，只要有 AMD 显卡驱动即可工作
+    #   - 内核 ABI 极其稳定，长期不维护仍可用
+    #   - 覆盖利用率、VRAM、温度、功耗等核心指标
     #
-    # 【未来可选】AMDGPU KMD ioctl 接口 (实验性)
+    # 【第二级】amdsmi (ROCm 官方库) ★★★★☆
+    #   - 用户已装 ROCm 时提供更规范、更丰富的指标
+    #   - 通过 ctypes 直接调 libamd_smi.so，无 Python amdsmi pip 包依赖
+    #   - 作为 sysfs 的增强备选
+    #
+    # 【第三级】rocm_smi / rocm_smi_lib (传统兼容) ★★★☆☆
+    #   - 旧版 ROCm 的 SMI 工具库
+    #   - 已标记为 deprecated，作为向下兼容保留
+    #
+    # 【第四级】nvidia_nvml
+    #   - NVIDIA 系统 fallback
+    #
+    # Windows:
+    # 【第一级】ADLX(bridge DLL) 第一优先级，全指标最准确；ADL 次之；NVIDIA 第三；
+    # PDH 仅 GPU 利用率兜底。VRAM 字段级降级由 DXGI Provider 独立补全（不走 source 列表）。
+    #
+    # 未来可选：AMDGPU KMD ioctl 接口 (实验性)
     #   - 通过 /dev/dri/card0 + fcntl.ioctl() 直接通信
     #   - 性能最优（<0.1ms），数据最权威
     #   - 需要特殊权限（root 或 video 组 + DRM master）
     #   - 兼容性敏感（不同内核版本接口可能变化）
     #   - 暂未实现，作为 Phase 3/4 的研究方向
-    #
-    # 设计原则：顺应未来趋势，向下兼容旧版，确保 A 卡完美使用
     # ════════════════════════════════════════════════════════════
-    SOURCE_PRIORITY = ['amdsmi', 'rocm_smi', 'sysfs']
+    SOURCE_PRIORITY = ['sysfs', 'amdsmi', 'rocm_smi']
 
-    # 平台感知的数据源优先级（Windows自动切换）
-    # Linux: AMD 官方 amdsmi 优先；NVIDIA 系统会自然 fallback 到 nvidia_nvml。
-    # nvidia_nvml 放在 sysfs 之前，确保 N 卡优先使用驱动原生接口而非 sysfs 兜底。
-    _SOURCE_PRIORITY_LINUX = ['amdsmi', 'rocm_smi', 'nvidia_nvml', 'sysfs']
+    # 平台感知的数据源优先级
+    # Linux: 优先 sysfs 直接读 AMDGPU 驱动；amdsmi 作为增强 fallback。
+    # nvidia_nvml 放在 sysfs 之后，确保 A 卡优先走 sysfs/amdsmi。
+    _SOURCE_PRIORITY_LINUX = ['sysfs', 'amdsmi', 'rocm_smi', 'nvidia_nvml']
     # Windows: ADLX(bridge DLL) 第一优先级，全指标最准确；ADL 次之；NVIDIA 第三；
     # PDH 仅 GPU 利用率兜底。VRAM 字段级降级由 DXGI Provider 独立补全（不走 source 列表）。
     _SOURCE_PRIORITY_WINDOWS = ['amd_adlx', 'amd_adl', 'nvidia', 'windows_pdh']
@@ -185,13 +190,13 @@ class FeixueHardwareInfo:
     # limited = 系统/半原生接口，可能缺少温度/功耗/风扇等部分指标
     # minimal = 兜底接口，仅保证核心利用率与显存可用，其余指标缺失
     _SOURCE_QUALITY = {
+        'sysfs': 'limited',
         'amdsmi': 'full',
         'rocm_smi': 'full',
         'nvidia_nvml': 'full',
         'nvidia': 'full',
         'amd_adl': 'full',
         'amd_adlx': 'full',
-        'sysfs': 'limited',
         'windows_pdh': 'minimal',
     }
 
@@ -396,137 +401,22 @@ class FeixueHardwareInfo:
     # ------------------------------------------------------------------
 
     def _init_amdsmi(self) -> bool:
-        """初始化 amdsmi 数据源（ROCm 7.2+ 官方推荐）"""
-        try:
-            import amdsmi
-        except ImportError:
-            logger.debug("amdsmi: 库未安装 (pip install amdsmi)")
+        """初始化 amdsmi 数据源：ctypes 直接调用 libamd_smi.so。"""
+        provider = AmdSmiProvider()
+        if not provider.initialize():
+            logger.debug("amdsmi: AmdSmiProvider ctypes 初始化失败")
             return False
 
-        logger.info("尝试初始化 amdsmi (ROCm 7.2+)...")
-        init_succeeded = False
+        self._gpu_provider = provider
+        self._device_count = provider.get_device_count()
+        self._device_names = [provider.get_device_name(i) for i in range(self._device_count)]
+        self._source_instance = 'amdsmi_provider'
 
-        try:
-            # amdsmi_init() 是 void 函数，直接调用即可
-            # 它会返回 None，这是正常的
-            try:
-                amdsmi.amdsmi_init()
-                logger.debug("amdsmi_init() 调用成功")
-            except Exception as init_error:
-                logger.warning(f"amdsmi_init() 失败: {init_error}")
-                return False
-
-            # 获取所有处理器句柄（无参数调用）
-            handles = amdsmi.amdsmi_get_processor_handles()
-            logger.info(f"amdsmi 发现 {len(handles)} 个处理器设备")
-
-            if not handles:
-                logger.warning("amdsmi: 未找到任何处理器设备")
-                return False
-
-            def _is_amdsmi_gpu_type(ptype):
-                """兼容不同 amdsmi 版本的 processor_type 返回值。"""
-                try:
-                    if hasattr(amdsmi.AmdSmiDeviceType, 'GPU') and ptype == amdsmi.AmdSmiDeviceType.GPU:
-                        return True
-                    if isinstance(ptype, dict) and 'gpu' in str(ptype.get('processor_type', '')).lower():
-                        return True
-                    if 'gpu' in str(ptype).lower():
-                        return True
-                except Exception:
-                    pass
-                return False
-
-            def _extract_amdsmi_name(info, handle, fallback):
-                """兼容不同 amdsmi 版本的 processor_info 返回值。"""
-                if info is not None and not isinstance(info, str):
-                    name = str(getattr(info, 'market_name', '') or getattr(info, 'device_name', '') or '').strip()
-                    if name:
-                        return name
-
-                if isinstance(info, str):
-                    idx_str = info.strip()
-                    if idx_str:
-                        try:
-                            asic_info = amdsmi.amdsmi_get_gpu_asic_info(handle)
-                            if isinstance(asic_info, dict):
-                                name = str(asic_info.get('market_name', '')).strip()
-                                if name:
-                                    return name
-                        except Exception:
-                            pass
-
-                return fallback
-
-            # 尝试识别 GPU 设备（宽松匹配）
-            gpu_handles = []
-            for handle in handles:
-                try:
-                    ptype = amdsmi.amdsmi_get_processor_type(handle)
-                    logger.debug(f"处理器类型: {ptype} (GPU={getattr(amdsmi.AmdSmiDeviceType, 'GPU', 'N/A')})")
-
-                    # 宽松匹配：只要是 GPU 类型或者是唯一设备就加入
-                    if _is_amdsmi_gpu_type(ptype) or len(handles) == 1:
-                        gpu_handles.append(handle)
-                    else:
-                        # 如果类型不确定但看起来像 GPU，也尝试添加
-                        info = amdsmi.amdsmi_get_processor_info(handle)
-                        device_name = _extract_amdsmi_name(info, handle, "").lower()
-                        if any(keyword in device_name for keyword in ['radeon', 'gpu', 'graphics', 'device']):
-                            gpu_handles.append(handle)
-                            logger.info(f"通过名称识别到 GPU: {device_name}")
-                        else:
-                            logger.debug(f"跳过非 GPU 设备: type={ptype}, name={device_name}")
-                except Exception as e:
-                    # 如果无法判断类型，且只有1个设备就假设是 GPU
-                    if len(handles) == 1:
-                        gpu_handles.append(handle)
-                        logger.warning(f"无法确定设备类型，假设为 GPU (唯一设备)")
-                    else:
-                        logger.debug(f"设备类型检查异常: {e}")
-
-            # 最终保底：如果没找到 GPU 但有设备，使用第一个
-            if not gpu_handles and handles:
-                logger.warning("amdsmi: 未明确找到 GPU 设备，使用第一个处理器")
-                gpu_handles = [handles[0]]
-
-            if not gpu_handles:
-                logger.error("amdsmi: 无法获取任何可用的 GPU 句柄")
-                return False
-
-            self._device_count = len(gpu_handles)
-            self._source_instance = {'lib': amdsmi, 'handles': gpu_handles}
-
-            # 获取设备名称
-            self._device_names = []
-            for i, handle in enumerate(gpu_handles):
-                try:
-                    info = amdsmi.amdsmi_get_processor_info(handle)
-                    name = _extract_amdsmi_name(info, handle, f"AMD Device {i}")
-                    self._device_names.append(str(name))
-                    logger.info(f"GPU [{i}]: {name}")
-                except Exception as e:
-                    self._device_names.append(f"AMD Device {i}")
-                    logger.warning(f"获取设备[{i}]名称失败: {e}")
-
-            logger.info(f"✅ amdsmi 初始化成功: {self._device_count}个GPU设备")
-            init_succeeded = True
-            return True
-
-        except Exception as e:
-            logger.error(f"amdsmi 初始化异常: {e}")
-            import traceback
-            logger.debug(traceback.format_exc())
-            return False
-        finally:
-            if not init_succeeded:
-                for attr in ('amdsmi_shut_down', 'amdsmi_shutdown'):
-                    if hasattr(amdsmi, attr):
-                        try:
-                            getattr(amdsmi, attr)()
-                            break
-                        except Exception:
-                            pass
+        logger.info(
+            f"✅ amdsmi 初始化成功 (ctypes): {self._device_count}个GPU设备 "
+            f"({', '.join(self._device_names)})"
+        )
+        return True
 
     def _init_rocm_smi(self) -> bool:
         """初始化 rocm_smi 数据源（ROCm 5.x 兼容层）"""
@@ -796,7 +686,7 @@ class FeixueHardwareInfo:
                 'data_source_quality': self._SOURCE_QUALITY.get(
                     self._active_source, 'unknown'
                 ),
-                'version': '3.40.5',
+                'version': '3.40.6',
             }
 
             # 辅助指标采集（每个独立try-except，单个失败不影响整体）
@@ -1177,146 +1067,52 @@ class FeixueHardwareInfo:
     # ------------------------------------------------------------------
 
     def _collect_amdsmi_gpu(self, device_id: int = 0) -> Dict[str, Any]:
-        """通过 amdsmi 采集 GPU 数据 (v26.2.2 适配版)"""
-
-        lib = self._source_instance['lib']
-        handles = self._source_instance['handles']
-
-        if device_id >= len(handles):
-            logger.error(f"设备ID {device_id} 超出范围 (共{len(handles)}个设备)")
-            return self._get_default_gpu_data()
-
-        handle = handles[device_id]
-        gpu_data = {}
+        """通过 AmdSmiProvider (ctypes 调用 libamd_smi.so) 采集 GPU 数据。"""
+        if self._gpu_provider is None or device_id >= self._device_count:
+            return self._get_default_gpu_data(device_id)
 
         try:
-            # 1. VRAM 信息 (已验证可用 ✅)
-            vram_info = lib.amdsmi_get_gpu_vram_usage(handle)
-            if vram_info and isinstance(vram_info, dict):
-                vram_total_mb = vram_info.get('vram_total', 0)
-                vram_used_mb = vram_info.get('vram_used', 0)
-
-                gpu_data['vram_used_mb'] = int(vram_used_mb)
-                gpu_data['vram_total_mb'] = int(vram_total_mb)
-                gpu_data['vram_percent'] = self._calculate_vram_percent(
-                    int(vram_used_mb), int(vram_total_mb)
-                )
-                logger.debug(f"VRAM: {vram_used_mb}/{vram_total_mb} MB ({gpu_data['vram_percent']}%)")
-            else:
-                logger.warning(f"VRAM数据格式异常: {type(vram_info)}")
-                raise ValueError("Invalid VRAM data format")
-
-            # 2. GPU 利用率 (EMA 平滑，解决 amdsmi gfx_activity 瞬时跳动)
-            try:
-                activity = lib.amdsmi_get_gpu_activity(handle)
-                if activity and isinstance(activity, dict):
-                    raw_util = (
-                        activity.get('gfx_activity') or
-                        activity.get('gpu_activity') or
-                        activity.get('activity') or
-                        0
-                    )
-                    # EMA 指数移动平均：alpha=0.25，约 4 个采样周期达到稳态
-                    with self._ema_lock:
-                        if self._ema_gpu_util == 0:
-                            self._ema_gpu_util = float(raw_util)
-                        else:
-                            self._ema_gpu_util = self._ema_alpha * float(raw_util) + (1 - self._ema_alpha) * self._ema_gpu_util
-                        gpu_data['gpu_utilization'] = int(round(self._ema_gpu_util))
-                else:
-                    gpu_data['gpu_utilization'] = 0
-            except Exception as e:
-                logger.debug(f"GPU利用率获取失败: {e}")
-                gpu_data['gpu_utilization'] = 0
-
-            # 3. 温度信息 (直接从 metrics 获取，单位已是摄氏度)
-            try:
-                metrics_info = lib.amdsmi_get_gpu_metrics_info(handle)
-                if metrics_info:
-                    # amdsmi v26.2.2 格式：温度字段在顶层，单位为摄氏度 (°C)
-                    # 可选字段：temperature_edge, temperature_hotspot, temperature_mem
-                    temp_edge = metrics_info.get('temperature_edge', 0)
-                    if temp_edge and temp_edge > 0:
-                        # 直接使用，无需单位转换（已经是 °C）
-                        gpu_data['gpu_temperature'] = round(float(temp_edge), 1)
-                    else:
-                        # 备用：尝试其他温度字段
-                        temp_hotspot = metrics_info.get('temperature_hotspot', 0)
-                        if temp_hotspot and temp_hotspot > 0:
-                            gpu_data['gpu_temperature'] = round(float(temp_hotspot), 1)
-                        else:
-                            gpu_data['gpu_temperature'] = 0.0
-                    logger.debug(f"温度原始数据: edge={temp_edge}°C")
-            except Exception as e:
-                logger.debug(f"温度获取失败: {e}")
-                gpu_data['gpu_temperature'] = 0.0
-
-            # 4. 功耗信息 (从 metrics 获取，单位已是瓦特)
-            try:
-                # 注意：amdsmi_get_power_measurements() 在 v26.2.2 中不存在
-                # 应使用 get_gpu_metrics_info() 的 average_socket_power 字段
-                if 'metrics_info' not in locals():
-                    metrics_info = lib.amdsmi_get_gpu_metrics_info(handle)
-
-                if metrics_info:
-                    # amdsmi v26.2.2 格式：功耗字段在顶层，单位为瓦特 (W)
-                    power_avg = metrics_info.get('average_socket_power', 0)
-                    if power_avg and power_avg > 0:
-                        # 直接使用，无需单位转换（已经是 W）
-                        gpu_data['power_draw'] = round(float(power_avg), 1)
-                    else:
-                        # 尝试 current_socket_power（如果可用）
-                        power_current = metrics_info.get('current_socket_power', 0)
-                        if power_current and power_current > 0:
-                            gpu_data['power_draw'] = round(float(power_current), 1)
-                        else:
-                            gpu_data['power_draw'] = 0.0
-                    logger.debug(f"功耗原始数据: average={power_avg}W")
-            except Exception as e:
-                logger.debug(f"功耗获取失败: {e}")
-                gpu_data['power_draw'] = 0.0
-
-            # 4.1 sysfs 降级：当 amdsmi 返回 0 时尝试从 sysfs 获取
-            if gpu_data.get('gpu_temperature', 0) == 0.0 or gpu_data.get('power_draw', 0) == 0.0:
-                logger.debug("amdsmi 温度/功耗为0，尝试 sysfs 降级...")
-                sysfs_temp = self._get_temperature_from_sysfs()
-                sysfs_power = self._get_power_from_sysfs()
-
-                if sysfs_temp > 0 and gpu_data.get('gpu_temperature', 0) == 0.0:
-                    gpu_data['gpu_temperature'] = sysfs_temp
-                    logger.info(f"sysfs 降级成功: 温度={sysfs_temp}°C")
-
-                if sysfs_power > 0 and gpu_data.get('power_draw', 0) == 0.0:
-                    gpu_data['power_draw'] = sysfs_power
-                    logger.info(f"sysfs 降级成功: 功耗={sysfs_power}W")
-
-            # 5. 设置设备名称
-            gpu_data['device_name'] = self._device_names[device_id] if device_id < len(self._device_names) else "AMD Device"
-
-            # 缓存成功的GPU数据
-            self._cached_gpu_data = gpu_data.copy()
-
-            logger.debug(
-                f"amdsmi GPU[{device_id}] 采集完成: "
-                f"util={gpu_data.get('gpu_utilization', 0)}%, "
-                f"vram={gpu_data.get('vram_percent', 0)}%, "
-                f"temp={gpu_data.get('gpu_temperature', 0)}°C, "
-                f"power={gpu_data.get('power_draw', 0)}W"
-            )
-
-            return gpu_data
-
+            metrics = self._gpu_provider.get_metrics(device_id)
         except Exception as e:
-            logger.error(f"amdsmi GPU[{device_id}] 采集失败: {e}")
-            import traceback
-            logger.debug(traceback.format_exc())
+            logger.debug(f"amdsmi provider get_metrics failed: {e}")
+            return self._get_default_gpu_data(device_id)
 
-            # 返回缓存数据或默认值
-            if self._cached_gpu_data:
-                logger.info(f"使用缓存GPU数据 (来自上次成功采集)")
-                return self._cached_gpu_data.copy()
+        gpu_data = {
+            'gpu_utilization': int(metrics.gpu_utilization),
+            'vram_used_mb': int(metrics.vram_used),
+            'vram_total_mb': int(metrics.vram_total),
+            'vram_percent': self._calculate_vram_percent(metrics.vram_used, metrics.vram_total),
+            'gpu_temperature': metrics.temperature if metrics.temperature is not None else 0.0,
+            'power_draw': metrics.power_usage if metrics.power_usage is not None else 0.0,
+            'device_name': metrics.device_name or self._get_device_name(device_id),
+        }
 
-            return self._get_default_gpu_data()
+        # sysfs 降级：当温度/功耗为 0 时尝试从 sysfs 获取
+        if gpu_data.get('gpu_temperature', 0) == 0.0 or gpu_data.get('power_draw', 0) == 0.0:
+            logger.debug("amdsmi 温度/功耗为0，尝试 sysfs 降级...")
+            sysfs_temp = self._get_temperature_from_sysfs()
+            sysfs_power = self._get_power_from_sysfs()
+
+            if sysfs_temp > 0 and gpu_data.get('gpu_temperature', 0) == 0.0:
+                gpu_data['gpu_temperature'] = sysfs_temp
+                logger.info(f"sysfs 降级成功: 温度={sysfs_temp}°C")
+
+            if sysfs_power > 0 and gpu_data.get('power_draw', 0) == 0.0:
+                gpu_data['power_draw'] = sysfs_power
+                logger.info(f"sysfs 降级成功: 功耗={sysfs_power}W")
+
+        # 缓存成功的GPU数据
+        self._cached_gpu_data = gpu_data.copy()
+
+        logger.debug(
+            f"amdsmi GPU[{device_id}] 采集完成: "
+            f"util={gpu_data.get('gpu_utilization', 0)}%, "
+            f"vram={gpu_data.get('vram_percent', 0)}%, "
+            f"temp={gpu_data.get('gpu_temperature', 0)}°C, "
+            f"power={gpu_data.get('power_draw', 0)}W"
+        )
+
+        return gpu_data
 
     def _collect_rocm_smi_gpu(self, device_id: int = 0) -> Dict[str, Any]:
         """通过 rocm_smi 采集 GPU 数据"""
@@ -1709,7 +1505,7 @@ class FeixueHardwareInfo:
             'gpus': [self._get_default_gpu_data()],
             'data_source': 'error_fallback',
             'data_source_quality': 'unknown',
-            'version': '3.40.5',
+            'version': '3.40.6',
             'disk_io': None,
             'network_io': None,
         }
@@ -1774,25 +1570,14 @@ class FeixueHardwareInfo:
         logger.info(f"Shutting down FeixueHardwareInfo (source={self._active_source})")
 
         try:
-            if self._active_source == 'amdsmi' and self._source_instance is not None:
-                if isinstance(self._source_instance, dict) and 'lib' in self._source_instance:
-                    amdsmi_lib = self._source_instance['lib']
-                    for attr in ('amdsmi_shut_down', 'amdsmi_shutdown'):
-                        if hasattr(amdsmi_lib, attr):
-                            try:
-                                getattr(amdsmi_lib, attr)()
-                                break
-                            except Exception as e:
-                                logger.warning(f"amdsmi {attr} error: {e}")
-
-            elif self._active_source == 'rocm_smi' and self._source_instance is not None:
+            if self._active_source == 'rocm_smi' and self._source_instance is not None:
                 if hasattr(self._source_instance, 'rocm_smi_shutdown'):
                     try:
                         self._source_instance.rocm_smi_shutdown()
                     except Exception as e:
                         logger.warning(f"rocm_smi shutdown error: {e}")
 
-            # 关闭 GPU provider（ADLX 等需要显式释放资源）
+            # 关闭 GPU provider（ADLX / AmdSmi 等需要显式释放资源）
             if self._gpu_provider is not None:
                 try:
                     self._gpu_provider.shutdown()
@@ -1843,7 +1628,7 @@ class FeixueHardwareInfo:
             'last_success_time': self._last_success_time,
             'has_cached_data': self._cached_gpu_data is not None,
             'stats': self._stats.copy(),
-            'version': '3.40.5',
+            'version': '3.40.6',
         }
 
     @property
@@ -1943,22 +1728,27 @@ class _MonitorWrapper:
         self._thread = None
         self._stop_event = threading.Event()
         self._config = {'refresh_interval': 0.5}
-        self.status = {'running': False}
         self._latest_snapshot = None
         self._snapshot_lock = threading.Lock()
         self._start_time = time.time()  # 记录启动时间用于 uptime 计算
 
-        # 检查硬件信息是否成功初始化（通过 _active_source 判断）
-        _is_init = hasattr(self._hw, '_active_source') and self._hw._active_source is not None
+        # GPU 数据源是否可用（不影响 CPU/RAM 监控）
+        _gpu_available = hasattr(self._hw, '_active_source') and self._hw._active_source is not None
 
-        if _is_init:
-            self._start_background_thread()
-            self.is_running = True
-            self.status['running'] = True
-            logger.info("✅ 监控服务已启动（后台线程模式）")
+        # 即使 GPU 初始化失败，CPU/RAM 采集仍然可用，因此监控服务始终启动
+        self._start_background_thread()
+        self.is_running = True
+        self.status = {
+            'running': True,
+            'gpu_available': _gpu_available,
+            'gpu_source': getattr(self._hw, '_active_source', None),
+            'device_count': getattr(self._hw, '_device_count', 0),
+        }
+
+        if _gpu_available:
+            logger.info("✅ 监控服务已启动（后台线程模式，GPU 数据源可用）")
         else:
-            logger.warning("⚠️ 硬件信息初始化失败，监控服务不可用")
-            self.is_running = False
+            logger.warning("⚠️ GPU 数据源不可用，但 CPU/RAM 监控服务仍已启动")
 
     def _start_background_thread(self):
         """启动后台采集线程"""
