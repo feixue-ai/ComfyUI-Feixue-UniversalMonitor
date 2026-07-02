@@ -8,7 +8,7 @@ FeixueHardwareInfo - 飞雪监测器简化版数据采集引擎
 1. 简洁性：从 1200+ 行精简至 <500 行
 2. 可靠性：get_snapshot() 永不返回 None 或异常
 3. 容错性：爆显存(VRAM=100%)时显示具体数值而非 "--"
-4. 降级策略：ROCm SMI -> amdsmi -> sysfs 三级 Fallback
+4. 降级策略：amdsmi (ctypes) -> sysfs 零依赖兜底，字段级 fallback 补全缺失字段
 5. 线程安全：所有操作不影响 ComfyUI 主线程
 
 接口契约（JSON 格式）:
@@ -26,7 +26,7 @@ FeixueHardwareInfo - 飞雪监测器简化版数据采集引擎
     }]
 }
 
-Version: 3.40.6 (Linux AMD SMI Native Bridge)
+Version: 3.40.7 (Linux AMD SMI Native Bridge)
 Author: Feixue Team
 """
 
@@ -175,12 +175,13 @@ class FeixueHardwareInfo:
     #   - 兼容性敏感（不同内核版本接口可能变化）
     #   - 暂未实现，作为 Phase 3/4 的研究方向
     # ════════════════════════════════════════════════════════════
-    SOURCE_PRIORITY = ['sysfs', 'amdsmi', 'rocm_smi']
+    SOURCE_PRIORITY = ['amdsmi', 'sysfs', 'rocm_smi']
 
     # 平台感知的数据源优先级
-    # Linux: 优先 sysfs 直接读 AMDGPU 驱动；amdsmi 作为增强 fallback。
-    # nvidia_nvml 放在 sysfs 之后，确保 A 卡优先走 sysfs/amdsmi。
-    _SOURCE_PRIORITY_LINUX = ['sysfs', 'amdsmi', 'rocm_smi', 'nvidia_nvml']
+    # Linux: amdsmi (ctypes 直接调 libamd_smi.so) 最准确，放第一；
+    # sysfs 作为零依赖兜底；rocm_smi 兼容旧 ROCm 5.x；nvidia_nvml 用于 N 卡。
+    # 当 amdsmi 缺少个别字段时，由 sysfs 字段级 fallback 补全（见 _supplement_fields_from_fallback）。
+    _SOURCE_PRIORITY_LINUX = ['amdsmi', 'sysfs', 'rocm_smi', 'nvidia_nvml']
     # Windows: ADLX(bridge DLL) 第一优先级，全指标最准确；ADL 次之；NVIDIA 第三；
     # PDH 仅 GPU 利用率兜底。VRAM 字段级降级由 DXGI Provider 独立补全（不走 source 列表）。
     _SOURCE_PRIORITY_WINDOWS = ['amd_adlx', 'amd_adl', 'nvidia', 'windows_pdh']
@@ -240,6 +241,13 @@ class FeixueHardwareInfo:
         self._device_count: int = 0
         self._device_names: List[str] = []
 
+        # Linux 字段级降级兜底 Provider：当主 Provider（如 amdsmi）缺少某个字段时，
+        # 由 sysfs 读取该字段补全。主 Provider 字段有效时跳过 fallback，零额外开销。
+        self._fallback_provider: Optional[BaseGPUProvider] = None
+        self._fallback_source: Optional[str] = None
+        # {device_id: {field_name: bool}} True 表示该字段需要 fallback 补全
+        self._field_fallback_cache: Dict[int, Dict[str, bool]] = {}
+
         # 字段级降级：DXGI 作为 VRAM 补充 Provider（独立于主 source 优先级链）
         # 当主 Provider 的 VRAM 字段无效时，从此 Provider 补全（与任务管理器同源）
         self._dxgi_provider: Optional[DXGIProvider] = None
@@ -297,6 +305,8 @@ class FeixueHardwareInfo:
                     f"(quality={quality}), device_count={self._device_count}"
                 )
                 self._log_source_quality_hint(source, quality)
+                # Linux 下初始化 sysfs 作为字段级降级兜底 Provider
+                self._init_linux_sysfs_fallback(source)
                 # 初始化 DXGI 作为 VRAM 字段级降级补充 Provider（不参与主 source 选择）
                 # 即使主 source 是 ADLX，DXGI 仍作为 VRAM 保底；若 ADLX VRAM 完全可用则永不触发
                 self._init_dxgi_supplement()
@@ -358,6 +368,33 @@ class FeixueHardwareInfo:
                 logger.debug("PDH 补充 Provider 初始化失败")
         except Exception as e:
             logger.debug(f"PDH 补充 Provider 初始化异常: {e}")
+
+    def _init_linux_sysfs_fallback(self, active_source: str) -> None:
+        """Linux 下初始化 sysfs 作为字段级降级兜底 Provider。
+
+        当主 Provider（amdsmi/rocm_smi）缺少某个字段时，由 sysfs 读取该字段补全。
+        若主 Provider 本身就是 sysfs，或当前不是 Linux，则不初始化 fallback。
+        """
+        import platform
+        if platform.system() != 'Linux':
+            return
+        if active_source == 'sysfs':
+            return
+        if self._fallback_provider is not None and self._fallback_provider.is_available():
+            return
+        try:
+            provider = AmdSysfsProvider()
+            if provider.initialize():
+                self._fallback_provider = provider
+                self._fallback_source = 'sysfs'
+                logger.info(
+                    f"sysfs 字段级降级 Provider 已就绪: {provider.get_device_count()} 个设备 "
+                    f"(为主 Provider 缺失字段补全)"
+                )
+            else:
+                logger.debug("sysfs 字段级降级 Provider 初始化失败")
+        except Exception as e:
+            logger.debug(f"sysfs 字段级降级 Provider 初始化异常: {e}")
 
     def _log_source_quality_hint(self, source: str, quality: str) -> None:
         """当使用有限/兜底数据源时，向用户打印一次性提示"""
@@ -686,7 +723,7 @@ class FeixueHardwareInfo:
                 'data_source_quality': self._SOURCE_QUALITY.get(
                     self._active_source, 'unknown'
                 ),
-                'version': '3.40.6',
+                'version': '3.40.7',
             }
 
             # 辅助指标采集（每个独立try-except，单个失败不影响整体）
@@ -982,6 +1019,8 @@ class FeixueHardwareInfo:
             self._supplement_vram_from_dxgi(gpu_data, device_id)
             # 字段级降级：GPU 利用率无效时由 PDH 补全（与任务管理器同源）
             self._supplement_util_from_pdh(gpu_data, device_id)
+            # Linux 字段级降级：主 Provider 任意字段缺失/为 0 时由 sysfs 补全
+            self._supplement_fields_from_fallback(gpu_data, device_id)
             return gpu_data
         except Exception as e:
             logger.debug(f"GPU {device_id} collection error: {e}")
@@ -1062,6 +1101,64 @@ class FeixueHardwareInfo:
         except Exception as e:
             logger.debug(f"PDH 利用率补全失败 (device {device_id}): {e}")
 
+    def _supplement_fields_from_fallback(self, gpu_data: Dict[str, Any], device_id: int) -> None:
+        """Linux 通用字段级降级：主 Provider 字段缺失/为 0 时由 fallback Provider 补全。
+
+        适用于 amdsmi/rocm_smi 作为主 Provider 时，某些字段（温度/功耗/利用率）
+        因 ROCm 版本或显卡型号不支持而返回 0，此时用 sysfs 读取该字段补全。
+
+        锁死策略：
+        - 每个字段首次检测主 Provider 是否有效（>0 视为有效）
+        - 有效则后续永不 fallback 该字段
+        - 无效则后续每次从 fallback Provider 读取该字段
+        - fallback Provider 不可用时直接返回，不影响主数据
+        """
+        if self._fallback_provider is None or not self._fallback_provider.is_available():
+            return
+        if device_id >= self._fallback_provider.get_device_count():
+            return
+
+        field_map = {
+            'gpu_utilization': ('gpu_utilization', lambda m: m.gpu_utilization),
+            'vram_used_mb': ('vram_used', lambda m: m.vram_used),
+            'vram_total_mb': ('vram_total', lambda m: m.vram_total),
+            'gpu_temperature': ('temperature', lambda m: m.temperature),
+            'power_draw': ('power_usage', lambda m: m.power_usage),
+        }
+
+        cache = self._field_fallback_cache.setdefault(device_id, {})
+
+        for gpu_key, (metric_key, extractor) in field_map.items():
+            need_fallback = cache.get(gpu_key)
+            if need_fallback is None:
+                # 首次检测：数值为 0/None/空视为无效
+                val = gpu_data.get(gpu_key, 0) or 0
+                need_fallback = val <= 0
+                cache[gpu_key] = need_fallback
+                if need_fallback:
+                    logger.info(
+                        f"GPU {device_id}: 主数据源 {gpu_key} 无效，"
+                        f"启用 {self._fallback_source} 字段级降级补全"
+                    )
+
+            if not need_fallback:
+                continue
+
+            try:
+                metrics = self._fallback_provider.get_metrics(device_id)
+                fallback_val = extractor(metrics)
+                if fallback_val is not None and fallback_val > 0:
+                    gpu_data[gpu_key] = fallback_val
+            except Exception as e:
+                logger.debug(f"{self._fallback_source} 字段 {gpu_key} 补全失败: {e}")
+
+        # 补全后重新计算 VRAM 百分比
+        if any(cache.get(k) for k in ('vram_used_mb', 'vram_total_mb')):
+            gpu_data['vram_percent'] = self._calculate_vram_percent(
+                gpu_data.get('vram_used_mb', 0) or 0,
+                gpu_data.get('vram_total_mb', 0) or 0,
+            )
+
     # ------------------------------------------------------------------
     # 各数据源的采集实现
     # ------------------------------------------------------------------
@@ -1087,19 +1184,7 @@ class FeixueHardwareInfo:
             'device_name': metrics.device_name or self._get_device_name(device_id),
         }
 
-        # sysfs 降级：当温度/功耗为 0 时尝试从 sysfs 获取
-        if gpu_data.get('gpu_temperature', 0) == 0.0 or gpu_data.get('power_draw', 0) == 0.0:
-            logger.debug("amdsmi 温度/功耗为0，尝试 sysfs 降级...")
-            sysfs_temp = self._get_temperature_from_sysfs()
-            sysfs_power = self._get_power_from_sysfs()
-
-            if sysfs_temp > 0 and gpu_data.get('gpu_temperature', 0) == 0.0:
-                gpu_data['gpu_temperature'] = sysfs_temp
-                logger.info(f"sysfs 降级成功: 温度={sysfs_temp}°C")
-
-            if sysfs_power > 0 and gpu_data.get('power_draw', 0) == 0.0:
-                gpu_data['power_draw'] = sysfs_power
-                logger.info(f"sysfs 降级成功: 功耗={sysfs_power}W")
+        # 字段级降级已统一由 _supplement_fields_from_fallback 处理，此处不再重复
 
         # 缓存成功的GPU数据
         self._cached_gpu_data = gpu_data.copy()
@@ -1195,17 +1280,21 @@ class FeixueHardwareInfo:
         device_subpath = self._device_path / "device"
 
         # --- 温度 (mC -> C) ---
+        # 优先读取 junction (temp2_input)，与 rocm-smi 保持一致；不存在时 fallback 到 edge (temp1_input)
         temperature = 0.0
-        temp_raw = self._read_hwmon_value(device_subpath, "temp1_input")
-        if temp_raw is not None:
-            try:
-                temp_mc = int(temp_raw)
-                if 1000 <= temp_mc <= 120000:
-                    temperature = round(temp_mc / 1000.0, 1)
-                elif 0 <= temp_mc <= 150:
-                    temperature = float(temp_mc)
-            except ValueError:
-                pass
+        for temp_sensor in ("temp2_input", "temp1_input"):
+            temp_raw = self._read_hwmon_value(device_subpath, temp_sensor)
+            if temp_raw is not None:
+                try:
+                    temp_mc = int(temp_raw)
+                    if 1000 <= temp_mc <= 120000:
+                        temperature = round(temp_mc / 1000.0, 1)
+                        break
+                    elif 0 <= temp_mc <= 150:
+                        temperature = float(temp_mc)
+                        break
+                except ValueError:
+                    continue
 
         # --- VRAM Total ---
         vram_total_mb = 0
@@ -1363,30 +1452,19 @@ class FeixueHardwareInfo:
                 if not hwmon_dir.is_dir():
                     continue
 
-                # 尝试读取 temp1_input（通常是边缘温度，单位：毫摄氏度）
-                temp_file = hwmon_dir / "temp1_input"
-                if temp_file.exists():
-                    try:
-                        temp_millidegrees = int(temp_file.read_text().strip())
-                        # 验证合理性（10-120°C）
-                        temp_celsius = temp_millidegrees / 1000.0
-                        if 10 <= temp_celsius <= 120:
-                            logger.debug(f"sysfs 温度读取成功: {temp_celsius}°C (来自 {temp_file})")
-                            return round(temp_celsius, 1)
-                    except (ValueError, IOError):
-                        continue
-
-                # 备用：尝试 temp2_input（可能是热点温度）
-                temp_file2 = hwmon_dir / "temp2_input"
-                if temp_file2.exists():
-                    try:
-                        temp_millidegrees = int(temp_file2.read_text().strip())
-                        temp_celsius = temp_millidegrees / 1000.0
-                        if 10 <= temp_celsius <= 120:
-                            logger.debug(f"sysfs 温度读取成功: {temp_celsius}°C (来自 {temp_file2})")
-                            return round(temp_celsius, 1)
-                    except (ValueError, IOError):
-                        continue
+                # 优先读取 temp2_input（junction / 热点温度），与 rocm-smi 保持一致
+                for temp_name in ("temp2_input", "temp1_input"):
+                    temp_file = hwmon_dir / temp_name
+                    if temp_file.exists():
+                        try:
+                            temp_millidegrees = int(temp_file.read_text().strip())
+                            # 验证合理性（10-120°C）
+                            temp_celsius = temp_millidegrees / 1000.0
+                            if 10 <= temp_celsius <= 120:
+                                logger.debug(f"sysfs 温度读取成功: {temp_celsius}°C (来自 {temp_file})")
+                                return round(temp_celsius, 1)
+                        except (ValueError, IOError):
+                            continue
 
         except Exception as e:
             logger.debug(f"sysfs 温度读取异常: {e}")
@@ -1505,7 +1583,7 @@ class FeixueHardwareInfo:
             'gpus': [self._get_default_gpu_data()],
             'data_source': 'error_fallback',
             'data_source_quality': 'unknown',
-            'version': '3.40.6',
+            'version': '3.40.7',
             'disk_io': None,
             'network_io': None,
         }
@@ -1628,7 +1706,7 @@ class FeixueHardwareInfo:
             'last_success_time': self._last_success_time,
             'has_cached_data': self._cached_gpu_data is not None,
             'stats': self._stats.copy(),
-            'version': '3.40.6',
+            'version': '3.40.7',
         }
 
     @property

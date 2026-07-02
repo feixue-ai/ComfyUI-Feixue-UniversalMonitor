@@ -8,7 +8,7 @@ ComfyUI-Feixue-UniversalMonitor 安装脚本
     - Windows AMD: atiadlxx.dll / atiadlxy.dll (ctypes ADL)
     - Windows NVIDIA: nvml.dll (ctypes NVML)
     - Windows 兜底: pdh.dll (系统性能计数器)
-    - Linux AMD: /sys/class/drm (sysfs 原生接口，零 pip / 零 ROCm), libamd_smi.so (ctypes AMD SMI 增强兜底)
+    - Linux AMD: libamd_smi.so (ctypes AMD SMI, 精度优先), /sys/class/drm (sysfs 原生接口，零 pip / 零 ROCm 兜底)
     - Linux NVIDIA: libnvidia-ml.so (ctypes NVML)
 
   不再安装以下不准确或不必要的包：

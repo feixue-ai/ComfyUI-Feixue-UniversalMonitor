@@ -69,7 +69,9 @@ class AmdSysfsProvider(BaseGPUProvider):
                 continue
 
             self._device_paths[device_id] = card_path
-            cache_ttl = self.config.get("sysfs_cache_ttl", 0.5)
+            # 缓存 TTL 从 0.5s 降到 0.1s：在高负载/显存快速变化时减少滞后，
+            # 同时保留一定缓存避免 sysfs 高频 IO 拖慢监控。
+            cache_ttl = self.config.get("sysfs_cache_ttl", 0.1)
             self._readers[device_id] = BatchSysfsReader(
                 base_path=str(device_link),
                 cache_ttl=cache_ttl,
@@ -239,18 +241,22 @@ class AmdSysfsProvider(BaseGPUProvider):
                 except ValueError:
                     continue
 
-        # 温度
+        # 温度：优先读取 junction (temp2_input)，与 rocm-smi 保持一致；
+        # 不存在时再 fallback 到 edge (temp1_input)
         temperature: Optional[float] = None
-        temp_raw = self._find_hwmon_value(device_id, "temp1_input")
-        if temp_raw is not None:
-            try:
-                temp_mc = int(temp_raw)
-                if 1000 <= temp_mc <= 120000:
-                    temperature = round(temp_mc / 1000.0, 1)
-                elif 0 <= temp_mc <= 150:
-                    temperature = float(temp_mc)
-            except ValueError:
-                pass
+        for temp_sensor in ("temp2_input", "temp1_input"):
+            temp_raw = self._find_hwmon_value(device_id, temp_sensor)
+            if temp_raw is not None:
+                try:
+                    temp_mc = int(temp_raw)
+                    if 1000 <= temp_mc <= 120000:
+                        temperature = round(temp_mc / 1000.0, 1)
+                        break
+                    elif 0 <= temp_mc <= 150:
+                        temperature = float(temp_mc)
+                        break
+                except ValueError:
+                    continue
 
         # 功耗
         power_usage: Optional[float] = None

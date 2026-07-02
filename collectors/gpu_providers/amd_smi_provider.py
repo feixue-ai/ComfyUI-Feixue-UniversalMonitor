@@ -456,10 +456,10 @@ class AmdSmiProvider(BaseGPUProvider):
             except Exception as e:
                 logger.debug("amd-smi: gpu activity error: %s", e)
 
-        # Temperature: edge first, fallback to hotspot/junction
+        # Temperature: hotspot/junction first (align with rocm-smi), fallback to edge
         temperature: Optional[float] = None
         if "amdsmi_get_temp_metric" in self._available_functions:
-            for sensor_type in (AMDSMI_TEMPERATURE_TYPE_EDGE, AMDSMI_TEMPERATURE_TYPE_HOTSPOT):
+            for sensor_type in (AMDSMI_TEMPERATURE_TYPE_HOTSPOT, AMDSMI_TEMPERATURE_TYPE_EDGE):
                 try:
                     temp = ctypes.c_int64(0)
                     rc = lib.amdsmi_get_temp_metric(

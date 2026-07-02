@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.40.6-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-3.40.7-red" alt="Version" />
   <img src="https://img.shields.io/badge/Styles-5_Colors_%C3%97_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
@@ -20,7 +20,7 @@
 
 ## Preview
 
-![Feixue Universal Monitor Premium UI v3.40.6](screenshot.png)
+![Feixue Universal Monitor Premium UI v3.40.7](screenshot.png)
 
 > The screenshot above shows the Premium UI **Neu** style monitor bar — a white neumorphic design with medical-instrument-style recessed windows, precise groove bases, and soft embossed shadows. It displays six real-time metrics: GPU / VRAM / CPU / RAM / SWAP / TEMP.
 >
@@ -54,7 +54,7 @@ Aurora Ceramic / Deep Sea Blue / Sunset Warm / Forest Green / Midnight Black (ea
 - **Collapsible floating panel** — click the gear icon to open the settings panel with expandable/collapsible sections
 - **Neu medical instrument windows** — monitor bars use precisely inset instrument windows + continuous groove bases for a premium feel
 - **Jade Bamboo monitor bar** — horizontal jade bamboo shape with 8 naturally connected segments, jade cylindrical gloss, and a bamboo-slip settings panel that strongly contrasts with Neu
-- **Cross-platform AMD optimization** — Windows (AMD ADLX C++ Bridge DLL first, native driver-level) and Linux (sysfs direct kernel-driver read first, then libamd_smi.so ctypes / rocm_smi / NVIDIA NVML) with clean source priority
+- **Cross-platform AMD optimization** — Windows (AMD ADLX C++ Bridge DLL first, native driver-level) and Linux (libamd_smi.so ctypes first for accuracy, then sysfs direct kernel-driver read as zero-dependency fallback, plus rocm_smi / NVIDIA NVML) with clean source priority
 - **WebSocket real-time push** — data pushed with sub-100ms latency, with an HTTP API fallback mode
 - **Zero external frontend dependencies** — single `extension.js` file contains all UI, CSS, events, and data logic
 
@@ -117,7 +117,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # Configuration management
 ├── fxm_utils/               # Platform detection, thread safety, performance optimization
 ├── web/
-│   └── extension.js         # Frontend UI (Premium UI v3.40.6)
+│   └── extension.js         # Frontend UI (Premium UI v3.40.7)
 ├── docs/
 │   └── index.html           # Online appearance demo (GitHub Pages)
 └── tests/                   # Unit tests
@@ -139,7 +139,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ```
 GPU data source priority:
   Windows: AMD ADLX C++ Bridge DLL → AMD ADL (atiadlxx.dll) → NVIDIA NVML (nvml.dll) → PDH counters + DXGI field-level fallback
-  Linux:   sysfs (/sys/class/drm amdgpu kernel driver) → libamd_smi.so (ctypes) → rocm_smi → NVIDIA NVML
+  Linux:   libamd_smi.so (ctypes) → sysfs (/sys/class/drm amdgpu kernel driver) → rocm_smi → NVIDIA NVML
 
 CPU/RAM/Swap: psutil (unified cross-platform)
 ```
@@ -152,19 +152,21 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.40.6 — Linux Zero-Dependency Native Driver Monitoring (Current)
+### v3.40.7 — Linux AMD SMI Accuracy + Field-Level Fallback (Current)
 
-- **Linux GPU priority changed to sysfs first**: Linux AMD GPU monitoring now reads the AMDGPU kernel driver directly via `/sys/class/drm/` (zero pip dependency, zero ROCm dependency). This matches the Windows "extract zip and use" design philosophy and survives system/ROCm version changes far better than user-space libraries. `libamd_smi.so` (ctypes) and `rocm_smi` are kept only as fallbacks for richer metrics when available
-- **AmdSmiProvider rewritten with ctypes + multi-version ROCm discovery**: Directly calls the system `libamd_smi.so` without importing the `amdsmi` Python package. Searches `/opt/rocm`, `/opt/rocm-6.x`, `LD_LIBRARY_PATH`, and the `FEIXUE_AMD_SMI_PATH` environment variable. Function bindings are fault-tolerant so older/newer ROCm versions degrade gracefully instead of crashing
+- **Linux GPU priority changed to amdsmi first**: After an accuracy comparison against `rocm-smi` and direct `sysfs` reads, `AmdSmiProvider` (ctypes direct call to `libamd_smi.so`) is now the primary Linux AMD source. It provides the most accurate GPU utilization, VRAM, temperature, and power readings under both idle and load. `sysfs` remains as the zero-dependency fallback, and `rocm_smi` is kept for legacy ROCm 5.x compatibility
+- **Zero pip dependency preserved**: `AmdSmiProvider` still does **not** require the `amdsmi` Python package; it binds `libamd_smi.so` via ctypes and searches `/opt/rocm`, `/opt/rocm-6.x`, `LD_LIBRARY_PATH`, and `FEIXUE_AMD_SMI_PATH`. If the library is unavailable, monitoring automatically falls back to `sysfs`
+- **Linux field-level fallback (数值分段降级)**: When the primary provider (amdsmi/rocm_smi) returns 0 or missing values for individual fields — common across different ROCm versions or GPU models — the same field is independently filled from `sysfs`. Each field is evaluated once and cached, so valid fields incur zero fallback overhead
+- **Temperature aligned with rocm-smi**: All Linux temperature reads now prefer junction/hotspot sensors (`temp2_input` for sysfs, `AMDSMI_TEMPERATURE_TYPE_HOTSPOT` for amdsmi) before falling back to edge temperature, matching the values shown by `rocm-smi` and vitals tools
+- **Sysfs cache TTL reduced**: `BatchSysfsReader` default cache TTL lowered from 0.5s to 0.1s to reduce VRAM lag during rapid workload changes
+- **Field-level tiered fallback (Windows)**: Each metric field is supplemented independently — DXGI fills missing VRAM, PDH fills missing utilization (same data source as Windows Task Manager). First-invalid detection is cached for zero overhead on subsequent calls
+- **AmdSmiProvider rewritten with ctypes + multi-version ROCm discovery**: Directly calls the system `libamd_smi.so` without importing the `amdsmi` Python package. Function bindings are fault-tolerant so older/newer ROCm versions degrade gracefully instead of crashing
 - **ADLX C++ Bridge DLL (Windows first priority)**: Compiled `feixue_adlx_bridge.dll` wraps AMD ADLX SDK via `extern "C"` — provides full GPU metrics (utilization / VRAM used / VRAM total / temperature) directly from the AMD driver. Zero pip dependency, ships as a prebuilt DLL in `libs/`
-- **Field-level tiered fallback**: Instead of whole-provider failover, each metric field is supplemented independently — DXGI fills missing VRAM, PDH fills missing utilization (same data source as Windows Task Manager). First-invalid detection is cached for zero overhead on subsequent calls
-- **PDH persistent query rewrite**: Fixed PDH GPU utilization returning 0% — the old `_Total` filter skipped all 462 GPU Engine instances. Rewritten with persistent PDH queries (one `PdhCollectQueryData` reads all counters) summing all engine instances, capped at 100%
-- **ADLX API signature fixes**: Corrected 6 API mismatches against official ADLX headers (`Name(const char**)`, `GPUUsage(adlx_double*)`, `GPUVRAM(adlx_int* MB)` + `TotalVRAM(adlx_uint*)`, `GPUTotalBoardPower`, `gpuList->At`, `using namespace adlx`)
 - **503 fix / monitor stays alive when GPU source fails**: `_MonitorWrapper` no longer sets `is_running = False` just because the GPU provider failed; CPU/RAM monitoring continues and the HTTP/WebSocket APIs remain available
 - **Module shadowing protection**: `__init__.py` now cleans non-plugin `core` modules from `sys.modules` and moves the plugin root to the front of `sys.path`, preventing other custom nodes from shadowing `core.monitor`
 - **Theme switch no blank window**: Switching UI styles now immediately renders the latest cached snapshot into the newly visible theme, removing the ~0.5s empty-data gap
 - **Responsive layout fix**: Dock and Panel now adapt to narrow viewports (Trae CN side panel / mobile remote control) without overlapping or text wrapping artifacts
-- **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40.6
+- **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40.7
 
 ### v3.30 — PDH VRAM Fix + Capsule Bounce Fix
 
