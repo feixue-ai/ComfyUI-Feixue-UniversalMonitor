@@ -1,20 +1,20 @@
 /**
- * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.40.7
+ * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.40.8
  *
  * 设计原则：不透明实底背景 + 发光边框灯条 + 药丸/胶囊形状 + 3D圆柱横截面效果 + CSS芯片图标 + 渐变状态条 + 5色主题系统
- * @version 3.40.7
+ * @version 3.40.8
  */
 
 (function() {
     'use strict';
 
-    console.log('[飞雪监测器] 🚀 Premium UI v3.40.7 启动...');
+    console.log('[飞雪监测器] 🚀 Premium UI v3.40.8 启动...');
 
     // ============================================================
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.40.7',
+        version: '3.40.8',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -540,6 +540,7 @@
     /* 尺寸令牌 (Design Tokens) */
     --neu-dock-height: 86px;
     --neu-dock-width: 900px;
+    --neu-dock-scale-y: 1;
     --neu-panel-width: 340px;
     --neu-panel-radius: 24px;
     --neu-card-radius: 18px;
@@ -690,24 +691,31 @@ body.neu-active {
 
 /* ============================================
    4. DOCK 组件 - 监测条主容器
-   扁长胶囊形，720x60px，fixed定位居中
+   扁长胶囊形，fixed定位顶部居中（贴在工作流标签栏下方）
    ============================================ */
 #neu-dock {
     position: fixed;
-    top: 16px;
+    top: 46px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scaleY(var(--neu-dock-scale-y, 1));
+    transform-origin: top center;
     width: var(--neu-dock-width);
+    max-width: calc(100vw - 16px);
     height: var(--neu-dock-height);
+    box-sizing: border-box;
     z-index: 99999;
     display: flex;
     align-items: center;
+    flex-wrap: nowrap;
     gap: 10px;
     padding: 0 68px 0 62px;
+    overflow: hidden;
 
     /* 厚实医疗陶瓷/硅胶仪表带 */
     background-color: var(--neu-base-color);
-    border-radius: 44px;
+    /* 使用椭圆 border-radius 并随 scaleY 动态调整水平半径，
+       确保高度压缩后端部仍保持圆润的半圆pill形状，不会变尖 */
+    border-radius: calc(43px * var(--neu-dock-scale-y, 1)) / 43px;
 
     /* 强悬浮感 + 清晰厚度截面 + 外框双层边缘 */
     box-shadow:
@@ -783,7 +791,8 @@ body.neu-active {
     right: 116px;
     top: 13px;
     bottom: 13px;
-    border-radius: 26px;
+    /* 内轨道同样使用椭圆 border-radius 随 scaleY 动态调整，保持整体圆弧协调 */
+    border-radius: calc(30px * var(--neu-dock-scale-y, 1)) / 30px;
     background: linear-gradient(180deg,
         rgba(0, 0, 0, 0.07) 0%,
         rgba(0, 0, 0, 0.03) 45%,
@@ -826,6 +835,7 @@ body.neu-active {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     height: 56px;
     padding: 7px 12px 11px 12px;
@@ -847,9 +857,9 @@ body.neu-active {
     white-space: nowrap;
     position: relative;
     z-index: 1;
-    flex: 1;
+    flex: 1 0 auto;
     min-width: 96px;
-    max-width: 126px;
+    max-width: 200px;
     overflow: hidden;
 }
 
@@ -1183,90 +1193,6 @@ body.neu-active {
         inset -1px 0 0 rgba(255, 255, 255, 0.22);
     transform: scale(0.95);
 }
-
-/* 核心指标区 - 3列大数字卡片 */
-.neu-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: var(--neu-space-lg);
-}
-
-.neu-metric-card {
-    background-color: var(--neu-base-color);
-    border-radius: var(--neu-card-radius);
-    padding: 12px 8px;
-    box-shadow:
-        var(--neu-shadow-convex-medium),
-        /* 上/左高光边 */
-        inset 0 1px 0 rgba(255, 255, 255, 0.70),
-        inset 1px 0 0 rgba(255, 255, 255, 0.42),
-        /* 下/右暗边 */
-        inset 0 -1px 0 rgba(0, 0, 0, 0.07),
-        inset -1px 0 0 rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    text-align: center;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.neu-metric-card:hover {
-    transform: translateY(-3px);
-    box-shadow:
-        var(--neu-shadow-hover-medium),
-        inset 0 1px 0 rgba(255, 255, 255, 0.78),
-        inset 1px 0 0 rgba(255, 255, 255, 0.48),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.08),
-        inset -1px 0 0 rgba(0, 0, 0, 0.06);
-}
-
-/* 卡片顶部彩色条 */
-.neu-metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--metric-color, var(--neu-gradient-primary));
-    opacity: 0.85;
-}
-
-.neu-metric-label {
-    font-size: 9px;
-    font-weight: 600;
-    color: var(--neu-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 4px;
-}
-
-.neu-metric-value {
-    font-size: 22px;
-    font-weight: 700;
-    font-family: var(--neu-font-mono);
-    color: var(--metric-color, var(--neu-text-primary));
-    line-height: 1;
-    margin-bottom: 4px;
-}
-
-.neu-metric-unit {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--neu-text-secondary);
-}
-
-.neu-metric-trend {
-    height: 24px;
-    margin-top: 4px;
-    opacity: 0.65;
-}
-
-/* 指标颜色映射 */
-.neu-metric-card[data-metric="gpu"] { --metric-color: #00d4ff; }
-.neu-metric-card[data-metric="cpu"] { --metric-color: #38a169; }
-.neu-metric-card[data-metric="ram"] { --metric-color: #805ad5; }
 
 /* 可折叠详情区 - Accordion机制 */
 .neu-detail-section {
@@ -1712,23 +1638,6 @@ body.neu-active {
         padding: 16px;
     }
 
-    .neu-metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px;
-    }
-
-    .neu-metric-card {
-        padding: 10px 6px;
-    }
-
-    .neu-metric-value {
-        font-size: 18px;
-    }
-
-    .neu-metric-label {
-        font-size: 8px;
-        letter-spacing: 0.4px;
-    }
 }
 
 @media (max-width: 600px) {
@@ -1770,23 +1679,6 @@ body.neu-active {
         height: 3px;
     }
 
-    .neu-metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
-    }
-
-    .neu-metric-card {
-        padding: 8px 4px;
-    }
-
-    .neu-metric-value {
-        font-size: 16px;
-    }
-
-    .neu-metric-label {
-        font-size: 8px;
-    }
-
     #neu-panel {
         right: 12px;
         padding: 14px;
@@ -1818,22 +1710,6 @@ body.neu-active {
         font-size: 10px;
     }
 
-    .neu-metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
-    }
-
-    .neu-metric-card {
-        padding: 6px 3px;
-    }
-
-    .neu-metric-value {
-        font-size: 14px;
-    }
-
-    .neu-metric-unit {
-        font-size: 9px;
-    }
 }
 
 /* ============================================
@@ -1912,6 +1788,9 @@ body.neu-active {
 
       /* Spacing & Sizing */
       --dock-height: 52px;
+      --retro-dock-width: 920px;
+      --retro-dock-height: 60px;
+      --retro-dock-scale-y: 1;
       --panel-width: 320px;
       --border-radius-chassis: 12px;
       --border-radius-screen: 8px;
@@ -1992,14 +1871,20 @@ body.neu-active {
     /* Screen Well (Embedded Deep Display) */
     .retro-screen-well {
       position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      box-sizing: border-box;
       background: radial-gradient(
         ellipse at center,
         var(--screen-surface) 0%,
         var(--screen-mid) 70%,
         var(--screen-deep) 100%
       );
-      border-radius: var(--border-radius-screen);
-      border: 3px solid #0a0b0d;
+      /* 使用 counter-scaled 边框，抵消整体 scaleY 对边框的纵向压缩，
+         使上下边框视觉宽度与左右一致，避免“下面框窄”的变形 */
+      border-radius: var(--border-radius-screen) / calc(var(--border-radius-screen) / var(--retro-dock-scale-y, 1));
+      border: calc(3px / var(--retro-dock-scale-y, 1)) solid #0a0b0d;
       box-shadow:
         /* Deep well shadow */
         inset 0 4px 12px rgba(0, 0, 0, 0.9),
@@ -2106,20 +1991,32 @@ body.neu-active {
 
     #retro-dock {
       position: fixed;
-      top: 20px;
+      top: 46px;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) scaleY(var(--retro-dock-scale-y, 1));
+      transform-origin: top center;
       z-index: 99999;
-      min-width: 640px;
-      max-width: 920px;
+      width: var(--retro-dock-width);
+      max-width: calc(100vw - 16px);
+      height: var(--retro-dock-height, 60px);
+      box-sizing: border-box;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
     }
 
     .retro-dock-inner {
       display: flex;
       align-items: center;
+      justify-content: center;
+      flex-wrap: nowrap;
       gap: 8px;
+      width: 100%;
+      height: 100%;
       padding: 10px 16px;
       white-space: nowrap;
+      overflow: hidden;
     }
 
     /* Drag Handle */
@@ -2155,12 +2052,15 @@ body.neu-active {
     .retro-metric {
       display: flex;
       align-items: center;
+      flex: 1 0 118px;
       gap: 4px;
       padding: 4px 8px;
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.04);
       border-radius: 4px;
       min-width: 118px;
+      max-width: 220px;
+      overflow: hidden;
     }
 
     .retro-metric-label {
@@ -2821,6 +2721,7 @@ body.neu-active {
     /* --- 尺寸令牌 --- */
     --lux-dock-width: 940px; /* Task 4 polish: 再宽 20px，让设置按钮更从容 */
     --lux-dock-height: 70px;
+    --lux-dock-scale-y: 1;
     --lux-panel-width: 360px;
     --lux-panel-height: auto;
     --lux-radius-dock: 16px;
@@ -2876,16 +2777,18 @@ body.lux-active::before {
 /* ============================================
    3. DOCK 组件 - 精密仪器监测条
    Layer 1-5 复合材质结构
-   尺寸：740x70px，fixed定位居中
+   尺寸：740x70px，fixed定位顶部居中（贴在工作流标签栏下方）
    ============================================ */
 #lux-dock {
     position: fixed;
-    top: 20px;
+    top: 46px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scaleY(var(--lux-dock-scale-y, 1));
+    transform-origin: top center;
     width: var(--lux-dock-width);
     max-width: calc(100vw - 16px); /* Phase 6 fix: 限制最大宽度，防止在小视口溢出 */
     height: var(--lux-dock-height);
+    box-sizing: border-box;
     z-index: 99999;
     display: flex;
     align-items: center;
@@ -2893,6 +2796,7 @@ body.lux-active::before {
     gap: 0;
     padding: 8px 14px;
     border-radius: var(--lux-radius-dock);
+    overflow: hidden;
 
     /* Layer 1: 拉丝钛金属底座 */
     background:
@@ -2982,10 +2886,12 @@ body.lux-active::before {
 .lux-module-slot {
     position: relative;
     flex: 1 0 118px; /* Phase 6 fix: 允许增长但禁止收缩，保证 6 个模块不被挤压 */
+    min-width: 118px;
     height: 52px;
     margin: 0 3px;
     padding: 4px;
     border-radius: 10px;
+    overflow: hidden;
 
     /* CNC凹槽深阴影 */
     box-shadow:
@@ -3015,6 +2921,7 @@ body.lux-active::before {
     height: 100%;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 0 10px;
     border-radius: 8px;
@@ -3328,82 +3235,6 @@ body.lux-active::before {
 .lux-action-btn:active {
     transform: scale(0.95);
 }
-
-/* 核心指标区 - 玻璃卡片式布局 */
-.lux-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: var(--lux-space-lg);
-    position: relative;
-    z-index: 1;
-}
-
-.lux-metric-card {
-    backdrop-filter: blur(10px) saturate(140%);
-    -webkit-backdrop-filter: blur(10px) saturate(140%);
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: var(--lux-radius-card);
-    padding: 12px 8px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    text-align: center;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.lux-metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--card-accent, var(--lux-gold));
-    opacity: 0.8;
-}
-
-.lux-metric-card:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 16px var(--card-glow, rgba(212, 175, 55, 0.1));
-}
-
-.lux-metric-label {
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--lux-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 4px;
-}
-
-.lux-metric-value {
-    font-size: 22px;
-    font-weight: 700;
-    font-family: var(--lux-font-mono);
-    color: #ffffff;
-    line-height: 1;
-    margin-bottom: 4px;
-    text-shadow: 0 0 10px var(--card-accent, rgba(255, 255, 255, 0.2));
-}
-
-.lux-metric-unit {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--lux-text-secondary);
-}
-
-.lux-metric-trend {
-    height: 24px;
-    margin-top: 4px;
-    opacity: 0.6;
-}
-
-.lux-metric-card[data-metric="gpu"] { --card-accent: var(--lux-gold); --card-glow: color-mix(in srgb, var(--lux-gold) 15%, transparent); }
-.lux-metric-card[data-metric="cpu"] { --card-accent: var(--lux-gold); --card-glow: color-mix(in srgb, var(--lux-gold) 15%, transparent); }
-.lux-metric-card[data-metric="ram"] { --card-accent: var(--lux-gold); --card-glow: color-mix(in srgb, var(--lux-gold) 15%, transparent); }
 
 /* 可折叠详情区 - Accordion机制 */
 .lux-detail-section {
@@ -3928,19 +3759,6 @@ body.lux-active::before {
 }
 
 @media (max-width: 600px) {
-    .lux-metrics-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-    }
-
-    .lux-metric-card {
-        padding: 10px 6px;
-    }
-
-    .lux-metric-value {
-        font-size: 18px;
-    }
-
     #lux-panel {
         width: calc(100vw - 32px);
         padding: var(--lux-space-md);
@@ -4008,6 +3826,7 @@ body.lux-active::before {
     /* 尺寸令牌 */
     --cyber-dock-width: 920px;
     --cyber-dock-height: 92px;
+    --cyber-dock-scale-y: 1;
     --cyber-panel-width: 390px;
 
     /* 字体系统 */
@@ -4029,23 +3848,25 @@ body.cyber-active {
    ============================================ */
 #cyber-dock {
     position: fixed;
-    top: 18px;
+    top: 46px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scaleY(var(--cyber-dock-scale-y, 1));
+    transform-origin: top center;
     width: var(--cyber-dock-width);
     max-width: calc(100vw - 16px);
     height: var(--cyber-dock-height);
+    box-sizing: border-box;
     z-index: 99999;
     display: flex;
     align-items: center;
-    box-sizing: border-box;
+    flex-wrap: nowrap;
     padding: 0 78px;
     user-select: none;
     transition: transform 0.2s ease;
 }
 
 #cyber-dock:hover {
-    transform: translateX(-50%) translateY(-2px);
+    transform: translateX(-50%) translateY(-2px) scaleY(var(--cyber-dock-scale-y, 1));
 }
 
 /* 飞船主体外壳 — CNC钛金铣削质感 */
@@ -4114,8 +3935,8 @@ body.cyber-active {
 .cyber-wing {
     position: absolute;
     top: 50%;
-    width: 72px;
-    height: 82px;
+    width: 60px;
+    height: 80px;
     transform: translateY(-50%);
     background:
         linear-gradient(180deg, #3a3d48 0%, #22242c 50%, #121319 100%);
@@ -4129,20 +3950,21 @@ body.cyber-active {
         inset 3px 0 5px rgba(0,0,0,0.55),
         /* 底部厚度 */
         inset 0 -2px 0 rgba(0,0,0,0.8),
-        /* 外部悬浮影 */
-        0 8px 18px rgba(0,0,0,0.75);
+        /* 外部悬浮影：减小偏移/模糊，避免在翼底形成“方形底座”视觉 */
+        0 5px 12px rgba(0,0,0,0.65);
     pointer-events: none;
     z-index: -1;
 }
 .cyber-wing.left {
-    left: -38px;
-    clip-path: polygon(100% 0%, 100% 100%, 0% 85%, 0% 15%);
-    border-radius: 14px 0 0 14px;
+    left: -32px;
+    /* 内缘切入更深（12%-88%），削弱与机身衔接处的方形厚重感 */
+    clip-path: polygon(100% 0%, 100% 100%, 0% 88%, 0% 12%);
+    border-radius: 10px 0 0 10px;
 }
 .cyber-wing.right {
-    right: -38px;
-    clip-path: polygon(0% 0%, 0% 100%, 100% 85%, 100% 15%);
-    border-radius: 0 14px 14px 0;
+    right: -32px;
+    clip-path: polygon(0% 0%, 0% 100%, 100% 88%, 100% 12%);
+    border-radius: 0 10px 10px 0;
 }
 
 /* 机翼表面散热格栅纹理 */
@@ -4231,8 +4053,8 @@ body.cyber-active {
 /* 六个数据舱 — 微凸仪表格 */
 .cyber-pod {
     position: relative;
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 1 0 auto;
+    min-width: 88px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -4249,6 +4071,7 @@ body.cyber-active {
             transparent 80%,
             rgba(0,0,0,0.18) 100%);
     transition: background 0.2s ease;
+    overflow: hidden;
 }
 .cyber-pod:last-child {
     border-right: none;
@@ -4510,71 +4333,6 @@ body.cyber-active {
 .cyber-panel-clock {
     font-size: 12px;
     font-family: var(--cyber-font-mono);
-    color: var(--cyber-text-dim);
-}
-
-/* 核心指标卡片网格 */
-.cyber-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.cyber-metric-card {
-    position: relative;
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.1) 100%);
-    border-radius: 14px;
-    padding: 14px 6px;
-    text-align: center;
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.06),
-        inset 0 -1px 0 rgba(0,0,0,0.4),
-        0 3px 6px rgba(0,0,0,0.35);
-    transition: all 0.2s ease;
-    overflow: hidden;
-}
-.cyber-metric-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 2px;
-    background: var(--card-accent, var(--cyber-primary));
-    opacity: 0.8;
-}
-.cyber-metric-card[data-metric="gpu"] { --card-accent: var(--cyber-primary); }
-.cyber-metric-card[data-metric="cpu"] { --card-accent: var(--cyber-success); }
-.cyber-metric-card[data-metric="ram"] { --card-accent: var(--cyber-secondary); }
-
-.cyber-metric-card:hover {
-    transform: translateY(-2px);
-}
-
-.cyber-metric-label {
-    font-size: 8px;
-    font-weight: 800;
-    color: var(--cyber-text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 6px;
-}
-
-.cyber-metric-value {
-    font-size: 22px;
-    font-weight: 700;
-    font-family: var(--cyber-font-mono);
-    font-variant-numeric: tabular-nums;
-    color: var(--card-accent, var(--cyber-text));
-    line-height: 1;
-}
-
-.cyber-metric-unit {
-    font-size: 10px;
-    font-weight: 600;
     color: var(--cyber-text-dim);
 }
 
@@ -4933,11 +4691,11 @@ body.cyber-active {
     }
 
     .cyber-wing {
-        width: 52px;
-        height: 64px;
+        width: 46px;
+        height: 60px;
     }
-    .cyber-wing.left { left: -24px; }
-    .cyber-wing.right { right: -24px; }
+    .cyber-wing.left { left: -20px; clip-path: polygon(100% 0%, 100% 100%, 0% 88%, 0% 12%); }
+    .cyber-wing.right { right: -20px; clip-path: polygon(0% 0%, 0% 100%, 100% 88%, 100% 12%); }
 
     .cyber-status-led { left: 18px; width: 7px; height: 7px; }
     .cyber-handle { left: 34px; width: 18px; }
@@ -4977,9 +4735,6 @@ body.cyber-active {
 
     .cyber-pod:nth-child(3) { border-right: none; }
     .cyber-pod:nth-child(n+4) { border-bottom: none; }
-
-    .cyber-metrics-grid { gap: 6px; }
-    .cyber-metric-value { font-size: 18px; }
 
     #cyber-panel {
         width: calc(100vw - 32px);
@@ -5102,21 +4857,33 @@ body.cyber-active {
     --metric-fill-end: #ffffff;
 }
 
+/* 玉竹 Dock 默认宽度变量 */
+.ind-theme-aurora,
+.ind-theme-ocean,
+.ind-theme-sunset,
+.ind-theme-forest,
+.ind-theme-midnight {
+    --ind-dock-width: 900px;
+    --ind-dock-height: 100px;
+    --ind-dock-scale-y: 1;
+}
+
 #ind-dock {
     position: fixed;
-    top: 14px;
+    top: 46px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scaleY(var(--ind-dock-scale-y, 1));
+    transform-origin: top center;
     z-index: 10001;
-    width: auto;
-    min-width: 720px;
-    max-width: 960px;
-    height: 100px;
+    width: var(--ind-dock-width);
+    max-width: calc(100vw - 16px);
+    height: var(--ind-dock-height, 100px);
     background: transparent;
     color: var(--text-light, #f1f8f3);
     font-family: var(--neu-font-ui, 'Inter', sans-serif);
     box-sizing: border-box;
     transition: opacity 0.3s ease, transform 0.3s ease;
+    overflow: hidden;
 }
 
 /* SVG 玉竹本体：单一路径实体，overflow hidden 防止 filter/drop-shadow 产生矩形虚影 */
@@ -5169,12 +4936,13 @@ body.cyber-active {
     display: flex;
     flex-wrap: nowrap;
     align-items: stretch;
+    overflow: hidden;
 }
 
 /* 指标模块：仅承载内容，无背景，内容不溢出 */
 .ind-metric {
     position: relative;
-    flex: 1 1 auto;
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -5184,7 +4952,7 @@ body.cyber-active {
     background: transparent;
     border: none;
     color: inherit;
-    min-width: 0;
+    min-width: 96px;
     overflow: hidden;
 }
 
@@ -5411,47 +5179,6 @@ body.cyber-active {
 .ind-action-btn:hover {
     background: linear-gradient(180deg, var(--jade), var(--jade-mid));
     box-shadow: 0 0 12px var(--glow);
-}
-
-.ind-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 16px;
-}
-.ind-metric-card {
-    position: relative;
-    padding: 12px 6px;
-    background:
-        radial-gradient(ellipse 70% 40% at 50% 18%, rgba(255,255,255,0.12) 0%, transparent 55%),
-        linear-gradient(180deg,
-            rgba(60,100,65,0.55) 0%,
-            rgba(40,75,45,0.65) 100%
-        );
-    border: 1px solid rgba(160,220,170,0.15);
-    border-radius: 10px;
-    text-align: center;
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.1),
-        0 2px 4px rgba(0,0,0,0.2);
-}
-.ind-metric-card-label {
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: rgba(200,230,205,0.65);
-    margin-bottom: 5px;
-}
-.ind-metric-card-value {
-    font-size: 18px;
-    font-weight: 700;
-    font-family: var(--neu-font-mono, monospace);
-    color: var(--jade-light, #e8f5e9);
-    text-shadow: 0 0 10px var(--glow);
-}
-.ind-metric-card-unit {
-    font-size: 10px;
-    color: rgba(200,230,205,0.55);
 }
 
 .ind-section {
@@ -5731,6 +5458,53 @@ body.cyber-active {
 }
 
 /* ============================================
+   Dock Responsive Utilities (Task 3)
+   供滑块动态调整 Dock 宽度时切换显示/隐藏
+   ============================================ */
+.fxm-dock-metric {
+    flex-shrink: 0;
+    min-width: max-content;
+}
+
+.fxm-dock-trend {
+    flex-shrink: 0;
+}
+
+.fxm-dock-label-full {
+    display: inline;
+}
+
+.fxm-dock-label-short {
+    display: none;
+}
+
+/* 当 Dock 被显式标记为 narrow 时，隐藏完整标签、趋势图、次要徽章 */
+.fxm-dock-narrow .fxm-dock-label-full,
+.fxm-dock-narrow .fxm-dock-trend,
+.fxm-dock-narrow .fxm-dock-badge-secondary {
+    display: none !important;
+}
+
+.fxm-dock-narrow .fxm-dock-label-short {
+    display: inline !important;
+}
+
+/* 各主题在 narrow 状态下的兜底：隐藏标签、趋势条，保留图标+数值 */
+.fxm-dock-narrow .neu-metric-chip .neu-chip-label,
+.fxm-dock-narrow .lux-module-label,
+.fxm-dock-narrow .cyber-pod-label,
+.fxm-dock-narrow .ind-metric-label,
+.fxm-dock-narrow .retro-metric-label {
+    display: none !important;
+}
+
+/* 极窄时连图标也隐藏，仅保留数值（可选，由 JS 控制 .fxm-dock-tiny） */
+.fxm-dock-tiny .fxm-dock-metric {
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* ============================================
    Smart Memory Cleanup Controls (Task 3)
    为 5 种主题提供统一的智能清理控件样式
    ============================================ */
@@ -5825,6 +5599,70 @@ body.cyber-active {
 .fxm-segmented-btn.fxm-disabled {
     cursor: wait;
     opacity: 0.6;
+}
+
+/* Layout Dropdown Row (settings-row style, per-theme below) */
+.fxm-layout-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.fxm-layout-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+/* 下拉按钮往左偏移，拉开与拖拽开关的距离 */
+.fxm-dropdown-btn {
+    margin-right: 8px;
+}
+/* 拖拽开关文字标识 */
+.fxm-drag-label {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+    opacity: 0.9;
+}
+#neu-panel .fxm-drag-label { color: var(--neu-text-secondary); }
+#lux-panel .fxm-drag-label { color: var(--lux-text-secondary); }
+#cyber-panel .fxm-drag-label { color: var(--cyber-text-dim); }
+#retro-panel .fxm-drag-label { color: var(--retro-phosphor-dim, var(--retro-dim)); }
+#ind-panel .fxm-drag-label { color: rgba(230,245,232,0.75); }
+.fxm-dropdown-icon {
+    display: inline-block;
+    font-size: 10px;
+    transition: transform 0.25s ease;
+}
+/* 拖拽开关复用各主题 toggle-switch，避免被其它样式覆盖 */
+.fxm-drag-toggle {
+    flex-shrink: 0;
+}
+.fxm-layout-dropdown {
+    display: none;
+}
+.fxm-layout-dropdown.open {
+    display: block;
+}
+.fxm-layout-dropdown-btn[aria-expanded="true"] .fxm-dropdown-icon {
+    transform: rotate(180deg);
+}
+.fxm-layout-dropdown-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 /* Neu 主题 */
@@ -6433,6 +6271,110 @@ body.cyber-active {
     border-color: rgba(160,220,170,0.22);
 }
 
+/* Layout Section per-theme overrides */
+
+/* Neu: 下拉按钮与 sound toggle 同高同圆角，形成统一操作组 */
+#neu-panel .fxm-layout-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--neu-base-color);
+    color: var(--neu-text-secondary);
+    box-shadow: var(--neu-shadow-convex-small);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#neu-panel .fxm-layout-btn.active {
+    color: var(--neu-text-accent);
+    box-shadow: var(--neu-shadow-concave-mini);
+}
+#neu-panel .fxm-layout-btn:hover:not(.active) {
+    color: var(--neu-text-primary);
+}
+#neu-panel .fxm-layout-dropdown-inner {
+    padding: 10px 0;
+}
+
+/* Retro */
+#retro-panel .fxm-layout-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--retro-phosphor-dim, var(--retro-dim));
+    font-family: var(--mono-display);
+    font-size: 9px;
+}
+#retro-panel .fxm-layout-btn.active {
+    color: var(--retro-phosphor-primary, var(--retro-primary));
+    border-color: var(--retro-phosphor-primary, var(--retro-primary));
+    box-shadow: 0 0 8px var(--retro-phosphor-glow, var(--retro-glow));
+    text-shadow: 0 0 4px var(--retro-phosphor-glow, var(--retro-glow));
+}
+#retro-panel .fxm-layout-dropdown-inner {
+    padding: 6px 0;
+}
+
+/* Lux */
+#lux-panel .fxm-layout-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 13px;
+    background: rgba(0, 0, 0, 0.25);
+    color: var(--lux-text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+#lux-panel .fxm-layout-btn.active {
+    background: linear-gradient(145deg, var(--lux-gold-light), var(--lux-gold-mid));
+    color: var(--lux-titanium-dark);
+    border-color: transparent;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+#lux-panel .fxm-layout-dropdown-inner {
+    padding: 10px 0;
+}
+
+/* Cyber */
+#cyber-panel .fxm-layout-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: rgba(0,0,0,0.2);
+    color: var(--cyber-text-dim);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-family: var(--cyber-font-mono);
+    font-size: 8px;
+    font-weight: 700;
+}
+#cyber-panel .fxm-layout-btn.active {
+    color: var(--cyber-primary);
+    border-color: var(--cyber-primary);
+    box-shadow: 0 0 6px rgba(var(--cyber-primary-rgb), 0.25);
+}
+#cyber-panel .fxm-layout-dropdown-inner {
+    padding: 10px 0;
+}
+
+/* Ind / 玉竹 */
+#ind-panel .fxm-layout-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    background: rgba(60,100,65,0.5);
+    border: 1px solid rgba(160,220,170,0.18);
+    color: rgba(200,230,205,0.75);
+    font-size: 9px;
+    font-weight: 700;
+}
+#ind-panel .fxm-layout-btn.active {
+    background: linear-gradient(180deg, rgba(60,100,65,0.6), rgba(40,75,45,0.7));
+    color: var(--jade-light, #e8f5e9);
+    border-color: rgba(160,220,170,0.35);
+}
+#ind-panel .fxm-layout-dropdown-inner {
+    padding: 8px 0;
+}
+
 
 /* ============================================================
    智能内存清理 Toast 提示
@@ -6546,6 +6488,11 @@ body.cyber-active {
             trigger_threshold: '触发阈值',
             idle_confirm_delay: '空闲确认延时',
             free_memory_now: '立即深度释放',
+            layout: '界面布局',
+            width: '宽度',
+            height: '高度',
+            reset_default: '恢复默认',
+            drag: '拖拽',
             // 风格名称
             theme_name_neu: '拟物白', theme_name_ind: '玉竹', theme_name_retro: '复古终端',
             theme_name_lux: '珠宝柜', theme_name_cyber: '量子核',
@@ -6583,6 +6530,11 @@ body.cyber-active {
             trigger_threshold: 'Trigger Threshold',
             idle_confirm_delay: 'Idle Confirm Delay',
             free_memory_now: 'Deep Free Now',
+            layout: 'Layout',
+            width: 'Width',
+            height: 'Height',
+            reset_default: 'Reset',
+            drag: 'Drag',
             theme_name_neu: 'Neu', theme_name_ind: 'Jade Bamboo', theme_name_retro: 'Retro',
             theme_name_lux: 'Lux', theme_name_cyber: 'Cyber',
             color_name_forest: 'Forest', color_name_ocean: 'Ocean', color_name_sunset: 'Sunset',
@@ -6632,10 +6584,368 @@ body.cyber-active {
     let currentColor = 'forest';
 
     // ============================================================
+    // Dock 尺寸调节常量
+    // ============================================================
+
+    /** 各主题默认 Dock 尺寸与范围 */
+    const DOCK_SIZE_DEFAULTS = {
+        neu:   { width: 900, heightScale: 1, minWidth: 520, maxWidth: 1050 },
+        lux:   { width: 940, heightScale: 1, minWidth: 520, maxWidth: 1100 },
+        cyber: { width: 920, heightScale: 1, minWidth: 520, maxWidth: 1000 },
+        retro: { width: 900, heightScale: 1, minWidth: 520, maxWidth: 1000 },
+        ind:   { width: 900, heightScale: 1, minWidth: 520, maxWidth: 1000 }
+    };
+
+    /** 各主题默认 Dock 高度（视觉高度 = defaultHeight * heightScale） */
+    const DOCK_DEFAULT_HEIGHTS = {
+        neu: 86,
+        lux: 70,
+        cyber: 92,
+        retro: 60,
+        ind: 100
+    };
+
+    /** Dock 高度缩放范围 */
+    const DOCK_HEIGHT_SCALE_LIMITS = { min: 0.75, max: 1.25 };
+
+    // ============================================================
     // 拖拽状态（新5主题系统）
     // 注意：isDragging, dragStartX, dragStartY, barStartLeft, barStartTop, savedBarLeft, savedBarTop
     //       均已在L429~436声明，此处不重复声明以避免SyntaxError
     // ============================================================
+
+    // ============================================================
+    // Dock 尺寸调节工具函数
+    // ============================================================
+
+    /**
+     * 从 localStorage 读取指定主题的 Dock 尺寸
+     * @param {string} style - 主题名
+     * @returns {{width:number, heightScale:number}} 已钳位的尺寸对象
+     */
+    function getDockSize(style) {
+        const defaultSize = DOCK_SIZE_DEFAULTS[style] || DOCK_SIZE_DEFAULTS.neu;
+        let width = defaultSize.width;
+        let heightScale = defaultSize.heightScale;
+        try {
+            const raw = localStorage.getItem('fxm_dock_size_' + style);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') {
+                    if (Number.isFinite(parsed.width)) width = parsed.width;
+                    if (Number.isFinite(parsed.heightScale)) {
+                        heightScale = parsed.heightScale;
+                    } else if (Number.isFinite(parsed.height)) {
+                        // 兼容旧版：旧保存值为 px 高度，转换为缩放比例
+                        const defaultHeight = DOCK_DEFAULT_HEIGHTS[style] || DOCK_DEFAULT_HEIGHTS.neu;
+                        heightScale = parsed.height / defaultHeight;
+                    }
+                }
+            }
+        } catch (e) { /* ignore */ }
+        const viewportMaxWidth = Math.max(defaultSize.minWidth, Math.floor((typeof window !== 'undefined' ? window.innerWidth : 1920) - 16));
+        width = Math.max(defaultSize.minWidth, Math.min(Math.min(defaultSize.maxWidth, viewportMaxWidth), width));
+        heightScale = Math.max(DOCK_HEIGHT_SCALE_LIMITS.min, Math.min(DOCK_HEIGHT_SCALE_LIMITS.max, heightScale));
+        return { width, heightScale };
+    }
+
+    /**
+     * 持久化指定主题的 Dock 尺寸
+     * @param {string} style - 主题名
+     * @param {number} width - 宽度（px）
+     * @param {number} heightScale - 高度缩放比例
+     */
+    function setDockSize(style, width, heightScale) {
+        try {
+            localStorage.setItem('fxm_dock_size_' + style, JSON.stringify({ width, heightScale }));
+        } catch (e) { /* ignore */ }
+    }
+
+    /**
+     * 将指定主题的 Dock 尺寸应用到对应 DOM 元素的 CSS 变量
+     * @param {string} style - 主题名
+     * @param {number} width - 宽度（px）
+     * @param {number} heightScale - 高度缩放比例
+     */
+    function applyDockSize(style, width, heightScale) {
+        const dock = document.getElementById(style + '-dock');
+        if (!dock) return;
+        dock.style.setProperty('--' + style + '-dock-width', width + 'px');
+        dock.style.setProperty('--' + style + '-dock-scale-y', heightScale.toString());
+
+        // 居中状态由 CSS transform + transform-origin: top center 统一处理，
+        // 拖拽状态由 applyDockPosition 设置的内联 transform（使用变量）处理，
+        // 这样 hover 效果不会被覆盖，高度滑块也能实时生效。
+        // 仅当存在旧版硬编码的内联 transform 时同步覆盖。
+        if (dock.style.transform && !dock.style.transform.includes('var(--' + style + '-dock-scale-y')) {
+            const isCentered = !dock.style.left || dock.style.left === '50%';
+            if (isCentered) {
+                dock.style.transform = 'translateX(-50%) scaleY(' + heightScale + ')';
+            } else {
+                dock.style.transform = 'scaleY(' + heightScale + ')';
+            }
+        }
+
+        // 根据宽度阈值自动降级布局，隐藏/精简次要元素
+        dock.classList.toggle('fxm-dock-narrow', width < 680);
+        dock.classList.toggle('fxm-dock-tiny', width < 560);
+    }
+
+    /**
+     * 获取指定主题的默认 Dock 高度（px）
+     * @param {string} style - 主题名
+     * @returns {number}
+     */
+    function getDockDefaultHeight(style) {
+        return DOCK_DEFAULT_HEIGHTS[style] || DOCK_DEFAULT_HEIGHTS.neu;
+    }
+
+    /**
+     * 重置指定主题的 Dock 尺寸为默认值并清除持久化
+     * @param {string} style - 主题名
+     */
+    function resetDockSize(style) {
+        try {
+            localStorage.removeItem('fxm_dock_size_' + style);
+            localStorage.removeItem('fxm_drag_pos_' + style);
+        } catch (e) { /* ignore */ }
+        const defaultSize = DOCK_SIZE_DEFAULTS[style] || DOCK_SIZE_DEFAULTS.neu;
+        applyDockSize(style, defaultSize.width, defaultSize.heightScale);
+    }
+
+    /**
+     * 各主题拖拽手柄选择器映射
+     */
+    const DOCK_HANDLE_SELECTORS = {
+        neu:   '.neu-dock-handle',
+        lux:   '.lux-dock-handle',
+        cyber: '.cyber-handle',
+        retro: '.retro-drag-handle',
+        ind:   '.ind-dock-handle'
+    };
+
+    const LAYOUT_ROW_CLASSES = {
+        neu:   'neu-setting-row',
+        lux:   'lux-setting-row',
+        cyber: 'cyber-control-row',
+        retro: 'retro-control-row',
+        ind:   'ind-setting-row'
+    };
+
+    const LAYOUT_LABEL_CLASSES = {
+        neu:   'neu-setting-label',
+        lux:   'lux-setting-label',
+        cyber: 'cyber-control-label',
+        retro: 'retro-control-label',
+        ind:   'ind-setting-label'
+    };
+
+    const LAYOUT_TOGGLE_CLASSES = {
+        neu:   'neu-toggle-switch',
+        lux:   'lux-toggle-switch',
+        cyber: 'cyber-toggle-switch',
+        retro: 'retro-toggle-switch',
+        ind:   'ind-toggle-switch'
+    };
+
+    const LAYOUT_THUMB_CLASSES = {
+        neu:   'neu-toggle-thumb',
+        lux:   'lux-toggle-thumb',
+        cyber: 'cyber-toggle-thumb',
+        retro: 'retro-toggle-thumb',
+        ind:   'ind-toggle-thumb'
+    };
+
+    /**
+     * 设置指定主题的拖拽模式开关状态
+     * @param {string} style - 主题名
+     * @param {boolean} enabled - 是否启用拖拽
+     */
+    function setDragModeForStyle(style, enabled) {
+        isDragEnabled = !!enabled;
+        const dock = document.getElementById(style + '-dock');
+        if (dock) {
+            const handle = dock.querySelector(DOCK_HANDLE_SELECTORS[style]);
+            if (handle) handle.style.pointerEvents = isDragEnabled ? 'auto' : 'none';
+            // 关闭拖拽模式时不再强制归位，保留用户调整后的固定位置；
+            // 只有点击"恢复默认"时才显式归位并清除持久化位置。
+        }
+    }
+
+    /**
+     * 生成“界面布局”设置行 HTML（放在声音提示行之后）
+     * @param {string} style - 主题名
+     * @returns {string}
+     */
+    function getLayoutSectionHTML(style) {
+        const defaults = DOCK_SIZE_DEFAULTS[style] || DOCK_SIZE_DEFAULTS.neu;
+        const viewportMaxWidth = Math.max(defaults.minWidth, Math.floor((typeof window !== 'undefined' ? window.innerWidth : 1920) - 16));
+        const maxWidth = Math.min(defaults.maxWidth, viewportMaxWidth);
+        const defaultHeight = getDockDefaultHeight(style);
+        const defaultVisualHeight = Math.round(defaultHeight * defaults.heightScale);
+        const rowClass = LAYOUT_ROW_CLASSES[style] || LAYOUT_ROW_CLASSES.neu;
+        const labelClass = LAYOUT_LABEL_CLASSES[style] || LAYOUT_LABEL_CLASSES.neu;
+        const toggleClass = LAYOUT_TOGGLE_CLASSES[style] || LAYOUT_TOGGLE_CLASSES.neu;
+        const thumbClass = LAYOUT_THUMB_CLASSES[style] || LAYOUT_THUMB_CLASSES.neu;
+        return '<div class="' + rowClass + ' fxm-layout-setting-row">' +
+                '<label class="' + labelClass + '">' + t('layout') + '</label>' +
+                '<div class="fxm-layout-actions">' +
+                    '<button class="fxm-layout-btn fxm-dropdown-btn" id="' + style + '-layoutDropdownBtn" type="button" aria-expanded="false" aria-label="' + t('layout') + '">' +
+                        '<span class="fxm-dropdown-icon">&#x25BC;</span>' +
+                    '</button>' +
+                    '<span class="fxm-drag-label" id="' + style + '-dragLabel">' + t('drag') + '</span>' +
+                    '<button class="' + toggleClass + ' fxm-drag-toggle" id="' + style + '-dragToggle" type="button" role="switch" aria-checked="false" aria-label="' + t('drag') + '">' +
+                        '<span class="' + thumbClass + '"></span>' +
+                    '</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="fxm-layout-dropdown" id="' + style + '-layoutDropdown" aria-hidden="true">' +
+                '<div class="fxm-layout-dropdown-inner">' +
+                    '<div class="fxm-cleanup-row">' +
+                        '<label class="fxm-cleanup-label" for="' + style + '-dockWidth">' + t('width') + '</label>' +
+                        '<div class="fxm-cleanup-slider-wrap">' +
+                            '<input type="range" class="fxm-cleanup-slider" id="' + style + '-dockWidth" min="' + defaults.minWidth + '" max="' + maxWidth + '" value="' + defaults.width + '" step="10" aria-label="' + t('width') + '">' +
+                            '<span class="fxm-threshold-value" id="' + style + '-dockWidthValue">' + defaults.width + 'px</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="fxm-cleanup-row">' +
+                        '<label class="fxm-cleanup-label" for="' + style + '-dockHeight">' + t('height') + '</label>' +
+                        '<div class="fxm-cleanup-slider-wrap">' +
+                            '<input type="range" class="fxm-cleanup-slider" id="' + style + '-dockHeight" min="' + DOCK_HEIGHT_SCALE_LIMITS.min + '" max="' + DOCK_HEIGHT_SCALE_LIMITS.max + '" value="' + defaults.heightScale + '" step="0.01" aria-label="' + t('height') + '">' +
+                            '<span class="fxm-threshold-value" id="' + style + '-dockHeightValue">' + defaultVisualHeight + 'px</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<button class="fxm-cleanup-btn" id="' + style + '-dockSizeReset" type="button">' + t('reset_default') + '</button>' +
+                '</div>' +
+            '</div>';
+    }
+
+    /**
+     * 绑定“界面布局”设置行及下拉区域事件
+     * @param {HTMLElement} panel - 当前面板
+     * @param {string} style - 主题名
+     */
+    function bindLayoutSection(panel, style) {
+        const dropdownBtn = panel.querySelector('#' + style + '-layoutDropdownBtn');
+        const dropdown = panel.querySelector('#' + style + '-layoutDropdown');
+        const dragToggle = panel.querySelector('#' + style + '-dragToggle');
+        const widthSlider = panel.querySelector('#' + style + '-dockWidth');
+        const heightSlider = panel.querySelector('#' + style + '-dockHeight');
+        const resetBtn = panel.querySelector('#' + style + '-dockSizeReset');
+
+        function setDropdownOpen(open) {
+            if (!dropdown || !dropdownBtn) return;
+            dropdown.classList.toggle('open', open);
+            dropdown.setAttribute('aria-hidden', (!open).toString());
+            dropdownBtn.setAttribute('aria-expanded', open.toString());
+        }
+
+        if (dropdownBtn) {
+            dropdownBtn.addEventListener('click', function() {
+                const willOpen = !dropdown.classList.contains('open');
+                setDropdownOpen(willOpen);
+            });
+            dropdownBtn.addEventListener('mousedown', e => e.stopPropagation());
+            dropdownBtn.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        if (dragToggle) {
+            dragToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+                const isActive = this.classList.contains('active');
+                this.setAttribute('aria-checked', isActive.toString());
+                console.log('[飞雪监测器] ' + style + ' Drag Mode:', isActive);
+                setDragModeForStyle(style, isActive);
+            });
+            dragToggle.addEventListener('mousedown', e => e.stopPropagation());
+            dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        if (widthSlider) {
+            widthSlider.addEventListener('input', function() {
+                const width = parseInt(this.value, 10);
+                const heightScale = parseFloat(heightSlider ? heightSlider.value : DOCK_SIZE_DEFAULTS[style].heightScale);
+                const widthValue = panel.querySelector('#' + style + '-dockWidthValue');
+                if (widthValue) widthValue.textContent = width + 'px';
+                setDockSize(style, width, heightScale);
+                applyDockSize(style, width, heightScale);
+            });
+            widthSlider.addEventListener('mousedown', e => e.stopPropagation());
+            widthSlider.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        if (heightSlider) {
+            heightSlider.addEventListener('input', function() {
+                const heightScale = parseFloat(this.value);
+                const width = parseInt(widthSlider ? widthSlider.value : DOCK_SIZE_DEFAULTS[style].width, 10);
+                const visualHeight = Math.round(getDockDefaultHeight(style) * heightScale);
+                const heightValue = panel.querySelector('#' + style + '-dockHeightValue');
+                if (heightValue) heightValue.textContent = visualHeight + 'px';
+                setDockSize(style, width, heightScale);
+                applyDockSize(style, width, heightScale);
+            });
+            heightSlider.addEventListener('mousedown', e => e.stopPropagation());
+            heightSlider.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                resetDockSize(style);
+                const defaults = DOCK_SIZE_DEFAULTS[style] || DOCK_SIZE_DEFAULTS.neu;
+                const viewportMaxWidth = Math.max(defaults.minWidth, Math.floor((typeof window !== 'undefined' ? window.innerWidth : 1920) - 16));
+                const maxWidth = Math.min(defaults.maxWidth, viewportMaxWidth);
+                if (widthSlider) { widthSlider.value = defaults.width; widthSlider.max = maxWidth; }
+                if (heightSlider) heightSlider.value = defaults.heightScale;
+                const widthValue = panel.querySelector('#' + style + '-dockWidthValue');
+                const heightValue = panel.querySelector('#' + style + '-dockHeightValue');
+                if (widthValue) widthValue.textContent = defaults.width + 'px';
+                if (heightValue) heightValue.textContent = Math.round(getDockDefaultHeight(style) * defaults.heightScale) + 'px';
+                if (dragToggle) {
+                    dragToggle.classList.remove('active');
+                    dragToggle.setAttribute('aria-checked', 'false');
+                }
+                setDragModeForStyle(style, false);
+                // 恢复默认时同步将 Dock 归位并清除已保存的拖拽位置
+                const dock = document.getElementById(style + '-dock');
+                if (dock) resetDockPosition(dock);
+                setDropdownOpen(false);
+                syncLayoutControls();
+            });
+            resetBtn.addEventListener('mousedown', e => e.stopPropagation());
+        }
+    }
+
+    /**
+     * 同步所有主题的界面布局控件到当前状态
+     */
+    function syncLayoutControls() {
+        VALID_STYLES.forEach(style => {
+            const panel = document.getElementById(style + '-panel');
+            if (!panel) return;
+            const dragToggle = panel.querySelector('#' + style + '-dragToggle');
+            const widthSlider = panel.querySelector('#' + style + '-dockWidth');
+            const heightSlider = panel.querySelector('#' + style + '-dockHeight');
+            const widthValue = panel.querySelector('#' + style + '-dockWidthValue');
+            const heightValue = panel.querySelector('#' + style + '-dockHeightValue');
+            const size = getDockSize(style);
+            const defaults = DOCK_SIZE_DEFAULTS[style] || DOCK_SIZE_DEFAULTS.neu;
+            const viewportMaxWidth = Math.max(defaults.minWidth, Math.floor((typeof window !== 'undefined' ? window.innerWidth : 1920) - 16));
+            const maxWidth = Math.min(defaults.maxWidth, viewportMaxWidth);
+            const visualHeight = Math.round(getDockDefaultHeight(style) * size.heightScale);
+            if (dragToggle) {
+                dragToggle.classList.toggle('active', isDragEnabled);
+                dragToggle.setAttribute('aria-checked', isDragEnabled.toString());
+            }
+            if (widthSlider) {
+                widthSlider.max = maxWidth;
+                widthSlider.value = size.width;
+            }
+            if (heightSlider) heightSlider.value = size.heightScale;
+            if (widthValue) widthValue.textContent = size.width + 'px';
+            if (heightValue) heightValue.textContent = visualHeight + 'px';
+        });
+    }
 
     // ============================================================
     // Dock DOM 创建 — 为全部5种风格创建Dock容器
@@ -7311,28 +7621,11 @@ body.cyber-active {
             '<div class="neu-panel-header">' +
                 '<div class="neu-header-brand">' +
                     '<div class="neu-brand-icon">\u2744</div>' +
-                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.7</span></div>' +
+                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.8</span></div>' +
                 '</div>' +
                 '<div class="neu-header-actions">' +
                     '<button class="neu-action-btn" id="neu-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="neu-action-btn neu-close-btn" id="neu-closeBtn" title="' + t('close') + '">&times;</button>' +
-                '</div>' +
-            '</div>' +
-            '<div class="neu-metrics-grid" role="region" aria-label="' + t('core_metrics') + '">' +
-                '<div class="neu-metric-card" data-metric="gpu">' +
-                    '<div class="neu-metric-label">' + t('gpu') + ' ' + t('load') + '</div>' +
-                    '<div class="neu-metric-value"><span id="np-gpu-val">--</span><span class="neu-metric-unit">%</span></div>' +
-                    '<svg class="neu-metric-trend" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline fill="none" stroke="#00d4ff" stroke-width="2" points="0,20 12,18 24,19 36,15 48,17 60,14 72,16 80,12"/></svg>' +
-                '</div>' +
-                '<div class="neu-metric-card" data-metric="cpu">' +
-                    '<div class="neu-metric-label">' + t('cpu') + ' ' + t('usage') + '</div>' +
-                    '<div class="neu-metric-value"><span id="np-cpu-val">--</span><span class="neu-metric-unit">%</span></div>' +
-                    '<svg class="neu-metric-trend" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline fill="none" stroke="#38a169" stroke-width="2" points="0,18 12,16 24,17 36,14 48,15 60,13 72,14 80,11"/></svg>' +
-                '</div>' +
-                '<div class="neu-metric-card" data-metric="ram">' +
-                    '<div class="neu-metric-label">' + t('ram') + '</div>' +
-                    '<div class="neu-metric-value"><span id="np-ram-val">--</span><span class="neu-metric-unit">%</span></div>' +
-                    '<svg class="neu-metric-trend" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline fill="none" stroke="#805ad5" stroke-width="2" points="0,8 12,9 24,7 36,10 48,8 60,9 72,7 80,6"/></svg>' +
                 '</div>' +
             '</div>' +
             // Detail Section 1: GPU & VRAM Details (默认展开)
@@ -7422,11 +7715,8 @@ body.cyber-active {
                         '<label class="neu-setting-label" for="neu-soundToggle">' + t('sound_alert') + '</label>' +
                         '<button class="neu-toggle-switch active" id="neu-soundToggle" role="switch" aria-checked="true" aria-label="' + t('sound_alert') + '"><span class="neu-toggle-thumb"></span></button>' +
                     '</div>' +
-                    // Drag Mode Toggle
-                    '<div class="neu-setting-row">' +
-                        '<label class="neu-setting-label" for="neu-dragToggle">' + t('drag_mode') + '</label>' +
-                        '<button class="neu-toggle-switch" id="neu-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="neu-toggle-thumb"></span></button>' +
-                    '</div>' +
+                    // Layout Row
+                    getLayoutSectionHTML('neu') +
                     // Theme Selection
                     '<div class="neu-setting-row"><label class="neu-setting-label">' + t('theme') + '</label>' +
                         '<div class="neu-radio-group" role="radiogroup" aria-label="' + t('theme') + '">' +
@@ -7472,7 +7762,7 @@ body.cyber-active {
             // Footer
             '<footer class="neu-panel-footer">' +
                 '<div class="neu-footer-left"><span class="neu-status-dot"></span><span id="np-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.40.7 Build 2026.07.01</span>' +
+                '<span>v3.40.8 Build 2026.07.01</span>' +
             '</footer>';
 
         // 绑定关闭按钮
@@ -7519,30 +7809,11 @@ body.cyber-active {
             soundToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
 
-        // Drag Mode toggle — 锁定位置语义（OFF=锁定不可拖拽, ON=允许拖拽）
-        const dragToggle = panel.querySelector('#neu-dragToggle');
-        if (dragToggle) {
-            dragToggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-                const isActive = this.classList.contains('active');
-                isDragEnabled = isActive;
-                this.setAttribute('aria-checked', isActive.toString());
-                console.log('[飞雪监测器] Neu Drag Mode:', isActive);
-                const dock = document.getElementById('neu-dock');
-                if (dock) {
-                    const handle = dock.querySelector('.neu-dock-handle');
-                    if (handle) handle.style.pointerEvents = isActive ? 'auto' : 'none';
-                    if (!isActive) resetDockPosition(dock); // 关闭 Drag Mode 时 dock 自动归位
-                }
-            });
-            // 防止拖拽系统拦截toggle点击
-            dragToggle.addEventListener('mousedown', e => e.stopPropagation());
-            dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-        }
+        // Layout section controls
+        bindLayoutSection(panel, 'neu');
 
         // Smart Memory Cleanup section toggle
-        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
-        if (cleanupHeader) {
+        panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
             cleanupHeader.addEventListener('click', function() {
                 this.classList.toggle('collapsed');
                 const expanded = !this.classList.contains('collapsed');
@@ -7555,7 +7826,7 @@ body.cyber-active {
                 }
             });
             cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
-        }
+        });
 
         // Smart Memory Cleanup mode selector
         bindCleanupModeSelector(panel, 'neu-cleanupMode');
@@ -7628,7 +7899,11 @@ body.cyber-active {
                 '<div class="retro-io-card"><div class="retro-io-title">' + t('network_io') + '</div><div class="retro-io-values"><div class="retro-io-line"><span>' + t('net_down') + '</span><span id="rp-net-down">-- MB/s</span></div><div class="retro-io-line"><span>' + t('net_up') + '</span><span id="rp-net-up">-- MB/s</span></div></div></div>' +
             '</div></div>' +
             // 模块5: Control Toggles
-            '<div class="retro-section"><div class="retro-control-row" style="display:flex;align-items:center;justify-content:center;gap:24px;"><label class="retro-control-label">' + t('sound_alert') + '</label><button class="retro-toggle-switch active" id="retro-soundToggle" role="switch" aria-checked="true"><span class="retro-toggle-thumb"></span></button><label class="retro-control-label">' + t('drag_mode') + '</label><button class="retro-toggle-switch" id="retro-dragToggle" role="switch" aria-checked="false"><span class="retro-toggle-thumb"></span></button></div></div>' +
+            '<div class="retro-section">' +
+                '<div class="retro-control-row" style="display:flex;align-items:center;justify-content:center;gap:24px;"><label class="retro-control-label">' + t('sound_alert') + '</label><button class="retro-toggle-switch active" id="retro-soundToggle" role="switch" aria-checked="true"><span class="retro-toggle-thumb"></span></button></div>' +
+                // Layout Row
+                getLayoutSectionHTML('retro') +
+            '</div>' +
             // 模块6: Smart Memory Cleanup
             '<div class="retro-section fxm-cleanup-section">' +
                 '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
@@ -7643,7 +7918,7 @@ body.cyber-active {
                 '</div>' +
             '</div>' +
             // V19 Footer
-            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.40.7</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.07.01</div></div>' +
+            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.40.8</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.07.01</div></div>' +
             '<div class="retro-source-text" id="retro-source-text">[ AMD SMI ]</div>' +
             '</div></div>';
 
@@ -7675,30 +7950,11 @@ body.cyber-active {
             st.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
 
-        // Drag Toggle
-        const dt = panel.querySelector('#retro-dragToggle');
-        if (dt) dt.addEventListener('click', function() {
-            this.classList.toggle('active');
-            const isActive = this.classList.contains('active');
-            isDragEnabled = isActive;
-            this.setAttribute('aria-checked', isActive.toString());
-            console.log('[飞雪监测器] Retro Drag Mode:', isActive);
-            const dock = document.getElementById('retro-dock');
-            if (dock) {
-                const handle = dock.querySelector('.retro-drag-handle');
-                if (handle) handle.style.pointerEvents = isActive ? 'auto' : 'none';
-                if (!isActive) resetDockPosition(dock); // 关闭 Drag Mode 时 dock 自动归位
-            }
-        });
-        // 防止拖拽系统拦截toggle点击
-        if (dt) {
-            dt.addEventListener('mousedown', e => e.stopPropagation());
-            dt.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-        }
+        // Layout section controls
+        bindLayoutSection(panel, 'retro');
 
         // Smart Memory Cleanup section toggle
-        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
-        if (cleanupHeader) {
+        panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
             cleanupHeader.addEventListener('click', function() {
                 this.classList.toggle('collapsed');
                 const expanded = !this.classList.contains('collapsed');
@@ -7711,7 +7967,7 @@ body.cyber-active {
                 }
             });
             cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
-        }
+        });
 
         // Smart Memory Cleanup mode selector
         bindCleanupModeSelector(panel, 'retro-cleanupMode');
@@ -7752,11 +8008,8 @@ body.cyber-active {
     /** 构建Lux Panel内容 */
     function buildLuxPanel(panel) {
         panel.innerHTML =
-            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.40.7</span></div>' +
+            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.40.8</span></div>' +
                 '<div class="lux-header-actions"><button class="lux-action-btn lux-close-btn" title="' + t('close') + '">&times;</button></div></div>' +
-            '<div class="lux-metrics-grid"><div class="lux-metric-card"><div class="lux-metric-label">' + t('gpu') + ' ' + t('load') + '</div><div class="lux-metric-value"><span id="lp-gpu-val">--</span>%</div></div>' +
-                '<div class="lux-metric-card"><div class="lux-metric-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="lux-metric-value"><span id="lp-cpu-val">--</span>%</div></div>' +
-                '<div class="lux-metric-card"><div class="lux-metric-label">' + t('ram') + '</div><div class="lux-metric-value"><span id="lp-ram-val">--</span>%</div></div></div>' +
             '<div class="lux-detail-section"><div class="lux-section-header"><div class="lux-section-title">' + t('performance') + '</div></div><div class="lux-section-content">' +
                 '<div class="lux-progress-row"><div class="lux-progress-header"><span class="lux-progress-label">' + t('core_usage') + '</span><span class="lux-progress-badge" id="lp-gpu-badge">--%</span></div>' +
                     '<div class="lux-progress-track"><div class="lux-progress-fill" id="lp-gpu-pb" style="width:0%"></div></div></div>' +
@@ -7785,9 +8038,8 @@ body.cyber-active {
                 '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(212,175,55,0.08);border-radius:10px;border:1px solid rgba(212,175,55,0.2);"><span style="color:#d4af37;font-size:11px;font-weight:600;">' + t('sound_alert') + '</span>' +
                     '<button class="lux-toggle-switch active" id="lux-soundToggle" role="switch" aria-checked="true" aria-label="' + t('sound_alert') + '"><span class="lux-toggle-thumb"></span></button>' +
                 '</div>' +
-                '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(212,175,55,0.08);border-radius:10px;border:1px solid rgba(212,175,55,0.2);"><span style="color:#d4af37;font-size:11px;font-weight:600;">' + t('drag_mode') + '</span>' +
-                    '<button class="lux-toggle-switch" id="lux-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="lux-toggle-thumb"></span></button>' +
-                '</div>' +
+                // Layout Row
+                getLayoutSectionHTML('lux') +
             '</div></div>' +
             // Smart Memory Cleanup Section
             '<div class="fxm-cleanup-section">' +
@@ -7802,7 +8054,7 @@ body.cyber-active {
                     '<button class="fxm-cleanup-btn" id="lux-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
-            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.40.7 Build 2026.07.01</span></footer>';
+            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.40.8 Build 2026.07.01</span></footer>';
 
         panel.querySelector('.lux-close-btn').addEventListener('click', () => togglePanel('lux'));
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -7830,30 +8082,11 @@ body.cyber-active {
             soundToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
 
-        // Drag Mode toggle — 锁定位置语义
-        const dragToggle = panel.querySelector('#lux-dragToggle');
-        if (dragToggle) {
-            dragToggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-                const isActive = this.classList.contains('active');
-                isDragEnabled = isActive;
-                this.setAttribute('aria-checked', isActive.toString());
-                console.log('[飞雪监测器] Lux Drag Mode:', isActive);
-                const dock = document.getElementById('lux-dock');
-                if (dock) {
-                    const handle = dock.querySelector('.lux-dock-handle');
-                    if (handle) handle.style.pointerEvents = isActive ? 'auto' : 'none';
-                    if (!isActive) resetDockPosition(dock); // 关闭 Drag Mode 时 dock 自动归位
-                }
-            });
-            // 防止拖拽系统拦截toggle点击
-            dragToggle.addEventListener('mousedown', e => e.stopPropagation());
-            dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-        }
+        // Layout section controls
+        bindLayoutSection(panel, 'lux');
 
         // Smart Memory Cleanup section toggle
-        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
-        if (cleanupHeader) {
+        panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
             cleanupHeader.addEventListener('click', function() {
                 this.classList.toggle('collapsed');
                 const expanded = !this.classList.contains('collapsed');
@@ -7866,7 +8099,7 @@ body.cyber-active {
                 }
             });
             cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
-        }
+        });
 
         // Smart Memory Cleanup mode selector
         bindCleanupModeSelector(panel, 'lux-cleanupMode');
@@ -7923,11 +8156,6 @@ body.cyber-active {
                     '<button class="cyber-mode-btn" id="cyber-closeBtn" title="' + t('close') + '" aria-label="' + t('close') + '">&#x2715;</button>' +
                 '</div>' +
             '</div>' +
-            '<div class="cyber-metrics-grid">' +
-                '<div class="cyber-metric-card" data-metric="gpu"><div class="cyber-metric-label">' + t('gpu') + ' ' + t('load') + '</div><div class="cyber-metric-value"><span id="cp-gpu-val">--</span><span class="cyber-metric-unit">%</span></div></div>' +
-                '<div class="cyber-metric-card" data-metric="cpu"><div class="cyber-metric-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="cyber-metric-value"><span id="cp-cpu-val">--</span><span class="cyber-metric-unit">%</span></div></div>' +
-                '<div class="cyber-metric-card" data-metric="ram"><div class="cyber-metric-label">' + t('ram') + '</div><div class="cyber-metric-value"><span id="cp-ram-val">--</span><span class="cyber-metric-unit">%</span></div></div>' +
-            '</div>' +
             '<div class="cyber-detail-section">' +
                 '<div class="cyber-section-header" role="button" tabindex="0" aria-expanded="true"><div class="cyber-section-title"><span class="cyber-section-icon">&#x25B6;</span>' + t('performance') + '</div><span class="cyber-section-toggle">&#x25BC;</span></div>' +
                 '<div class="cyber-section-content">' +
@@ -7960,9 +8188,8 @@ body.cyber-active {
                 '<div class="cyber-control-row"><label class="cyber-control-label" for="cyber-soundToggle">' + t('sound_alert') + '</label>' +
                     '<button class="cyber-toggle-switch active" id="cyber-soundToggle" role="switch" aria-checked="true" aria-label="' + t('sound_alert') + '"><span class="cyber-toggle-thumb"></span></button>' +
                 '</div>' +
-                '<div class="cyber-control-row"><label class="cyber-control-label" for="cyber-dragToggle">' + t('drag_mode') + '</label>' +
-                    '<button class="cyber-toggle-switch" id="cyber-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="cyber-toggle-thumb"></span></button>' +
-                '</div>' +
+                // Layout Row
+                getLayoutSectionHTML('cyber') +
             '</div></div>' +
             // Smart Memory Cleanup Section
             '<div class="fxm-cleanup-section">' +
@@ -7977,7 +8204,7 @@ body.cyber-active {
                     '<button class="fxm-cleanup-btn" id="cyber-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
-            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.40.7 Build 2026.07.01</span></div>';
+            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.40.8 Build 2026.07.01</span></div>';
 
         // 主题切换按钮
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -8019,30 +8246,11 @@ body.cyber-active {
             soundToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
 
-        // Drag Mode toggle — 锁定位置语义
-        const dragToggle = panel.querySelector('#cyber-dragToggle');
-        if (dragToggle) {
-            dragToggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-                const isActive = this.classList.contains('active');
-                isDragEnabled = isActive;
-                this.setAttribute('aria-checked', isActive.toString());
-                console.log('[飞雪监测器] Cyber Drag Mode:', isActive);
-                const dock = document.getElementById('cyber-dock');
-                if (dock) {
-                    const handle = dock.querySelector('.cyber-handle');
-                    if (handle) handle.style.pointerEvents = isActive ? 'auto' : 'none';
-                    if (!isActive) resetDockPosition(dock); // 关闭 Drag Mode 时 dock 自动归位
-                }
-            });
-            // 防止拖拽系统拦截toggle点击
-            dragToggle.addEventListener('mousedown', e => e.stopPropagation());
-            dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-        }
+        // Layout section controls
+        bindLayoutSection(panel, 'cyber');
 
         // Smart Memory Cleanup section toggle
-        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
-        if (cleanupHeader) {
+        panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
             cleanupHeader.addEventListener('click', function() {
                 this.classList.toggle('collapsed');
                 const expanded = !this.classList.contains('collapsed');
@@ -8055,7 +8263,7 @@ body.cyber-active {
                 }
             });
             cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
-        }
+        });
 
         // Smart Memory Cleanup mode selector
         bindCleanupModeSelector(panel, 'cyber-cleanupMode');
@@ -8098,16 +8306,11 @@ body.cyber-active {
     function buildIndPanel(panel) {
         panel.innerHTML =
             '<div class="ind-panel-header">' +
-                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.7</span></div>' +
+                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.8</span></div>' +
                 '<div class="ind-header-actions">' +
                     '<button class="ind-action-btn" id="ind-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="ind-action-btn" id="ind-closeBtn" title="' + t('close') + '">&times;</button>' +
                 '</div>' +
-            '</div>' +
-            '<div class="ind-metrics-grid">' +
-                '<div class="ind-metric-card"><div class="ind-metric-card-label">' + t('gpu') + ' ' + t('load') + '</div><div class="ind-metric-card-value"><span id="gp-gpu-val">--</span><span class="ind-metric-card-unit">%</span></div></div>' +
-                '<div class="ind-metric-card"><div class="ind-metric-card-label">' + t('cpu') + ' ' + t('usage') + '</div><div class="ind-metric-card-value"><span id="gp-cpu-val">--</span><span class="ind-metric-card-unit">%</span></div></div>' +
-                '<div class="ind-metric-card"><div class="ind-metric-card-label">' + t('ram') + '</div><div class="ind-metric-card-value"><span id="gp-ram-val">--</span><span class="ind-metric-card-unit">%</span></div></div>' +
             '</div>' +
             '<section class="ind-section">' +
                 '<div class="ind-section-header" role="button" tabindex="0" aria-expanded="true"><div class="ind-section-title"><span class="ind-section-icon">&#x1F3AE;</span>' + t('gpu_vram_details') + '</div><span class="ind-section-toggle">&#x25BC;</span></div>' +
@@ -8135,7 +8338,8 @@ body.cyber-active {
             '<div class="ind-section">' +
                 '<div class="ind-section-content" style="padding-top:12px;">' +
                     '<div class="ind-setting-row"><label class="ind-setting-label" for="ind-soundToggle">' + t('sound_alert') + '</label><button class="ind-toggle-switch active" id="ind-soundToggle" role="switch" aria-checked="true" aria-label="' + t('sound_alert') + '"><span class="ind-toggle-thumb"></span></button></div>' +
-                    '<div class="ind-setting-row"><label class="ind-setting-label" for="ind-dragToggle">' + t('drag_mode') + '</label><button class="ind-toggle-switch" id="ind-dragToggle" role="switch" aria-checked="false" aria-label="' + t('drag_mode') + '"><span class="ind-toggle-thumb"></span></button></div>' +
+                    // Layout Row
+                    getLayoutSectionHTML('ind') +
                     '<div class="ind-setting-row" style="flex-direction:column;align-items:flex-start;"><label class="ind-setting-label">' + t('theme') + '</label><div class="ind-radio-group">' +
                         VALID_STYLES.map(s => '<button class="ind-radio-btn'+(s==='ind'?' active':'')+'" data-target="'+s+'">'+t('theme_name_' + s)+'</button>').join('') +
                     '</div></div>' +
@@ -8159,7 +8363,7 @@ body.cyber-active {
             '</div>' +
             '<footer class="ind-panel-footer">' +
                 '<div><span class="ind-status-dot"></span><span id="gp-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.40.7 Build 2026.07.01</span>' +
+                '<span>v3.40.8 Build 2026.07.01</span>' +
             '</footer>';
 
         const closeBtn = panel.querySelector('#ind-closeBtn');
@@ -8197,28 +8401,11 @@ body.cyber-active {
             soundToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
         }
 
-        const dragToggle = panel.querySelector('#ind-dragToggle');
-        if (dragToggle) {
-            dragToggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-                const isActive = this.classList.contains('active');
-                isDragEnabled = isActive;
-                this.setAttribute('aria-checked', isActive.toString());
-                console.log('[飞雪监测器] Ind Drag Mode:', isActive);
-                const dock = document.getElementById('ind-dock');
-                if (dock) {
-                    const handle = dock.querySelector('.ind-dock-handle');
-                    if (handle) handle.style.pointerEvents = isActive ? 'auto' : 'none';
-                    if (!isActive) resetDockPosition(dock);
-                }
-            });
-            dragToggle.addEventListener('mousedown', e => e.stopPropagation());
-            dragToggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
-        }
+        // Layout section controls
+        bindLayoutSection(panel, 'ind');
 
         // Smart Memory Cleanup section toggle
-        const cleanupHeader = panel.querySelector('.fxm-cleanup-section-header');
-        if (cleanupHeader) {
+        panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
             cleanupHeader.addEventListener('click', function() {
                 this.classList.toggle('collapsed');
                 const expanded = !this.classList.contains('collapsed');
@@ -8231,7 +8418,7 @@ body.cyber-active {
                 }
             });
             cleanupHeader.addEventListener('mousedown', e => e.stopPropagation());
-        }
+        });
 
         // Smart Memory Cleanup mode selector
         bindCleanupModeSelector(panel, 'ind-cleanupMode');
@@ -8338,14 +8525,20 @@ body.cyber-active {
         } catch(e) { /* ignore */ }
 
         // 重新绑定拖拽到新激活的 dock（解决主题切换后拖拽失效问题）
+        // bindDragToDock 会读取该主题已保存的位置并恢复，不再强制重置，
+        // 确保用户拖动后的位置在重启或切换回该主题时仍然保留。
         const newDock = document.getElementById(currentStyle + '-dock');
         if (newDock) {
             unbindDrag();
             bindDragToDock(newDock, currentStyle);
-            // 主题切换后重置到默认顶部居中，避免旧主题保存的位置影响新主题
-            try { localStorage.removeItem('fxm_drag_pos_' + currentStyle); } catch(e) {}
-            resetDockPosition(newDock);
         }
+
+        // 应用当前主题保存的 Dock 尺寸
+        const savedSize = getDockSize(currentStyle);
+        applyDockSize(currentStyle, savedSize.width, savedSize.heightScale);
+
+        // 同步所有界面布局控件
+        syncLayoutControls();
 
         // 同步声音开关状态到新显示的主题面板
         syncSoundToggles();
@@ -8568,11 +8761,6 @@ body.cyber-active {
         setElWidth('neu-chip-swap-progress', Math.min(swapPct, 100));
 
         setElText('neu-chip-temp-value', temp !== null ? Math.round(temp) + '\u00B0C' : '--');
-
-        // Panel metric cards
-        setElText('np-gpu-val', gpu !== null ? Math.round(gpu) : '--');
-        setElText('np-cpu-val', cpu !== null ? Math.round(cpu) : '--');
-        setElText('np-ram-val', ram !== null ? Math.round(ram) : '--');
 
         // Detail Section 1: GPU & VRAM - Progress bars + badges
         setElWidth('np-gpu-pb', gpu !== null ? Math.min(gpu, 100) : 0);
@@ -8976,6 +9164,29 @@ body.cyber-active {
      * - fxm_emerald_theme_v13 → fxm_current_style (theme概念已合并到style)
      * - fxm_style_v31 → fxm_current_style
      */
+    /** 面板版本标记，用于升级时清理可能损坏的旧数据 */
+    const FXM_PANEL_VERSION = '3.40.8';
+
+    /**
+     * 版本迁移：升级到新版本时清理旧版可能损坏的拖拽位置缓存，
+     * 避免旧版本遗留的 fxm_drag_pos_* 脏数据导致主题切换后 Dock 偏左。
+     */
+    function migratePanelVersion() {
+        try {
+            const storedVersion = localStorage.getItem('fxm_panel_version');
+            if (storedVersion === FXM_PANEL_VERSION) return;
+
+            // 清理所有主题的拖拽位置缓存，让用户重新以默认居中位置启动
+            VALID_STYLES.forEach(style => {
+                localStorage.removeItem('fxm_drag_pos_' + style);
+            });
+            localStorage.setItem('fxm_panel_version', FXM_PANEL_VERSION);
+            console.log(`[飞雪监测器] ♻️ 面板版本已升级至 ${FXM_PANEL_VERSION}，已清理旧版拖拽位置缓存`);
+        } catch(e) {
+            console.warn('[飞雪监测器] ⚠️ 面板版本迁移失败:', e.message);
+        }
+    }
+
     function migrateV3Config() {
         try {
             // 检查是否已有V4格式配置，有则跳过迁移
@@ -9098,8 +9309,11 @@ body.cyber-active {
      * 7. 初始化拖拽
      */
     async function init() {
-        console.log('[飞雪监测器] 🚀 Premium UI v3.40.7 启动...');
+        console.log('[飞雪监测器] 🚀 Premium UI v3.40.8 启动...');
         try {
+            // 0. 版本迁移：清理旧版可能损坏的缓存
+            migratePanelVersion();
+
             // 1. 注入新CSS
             injectPremiumCSS();
 
@@ -9123,6 +9337,11 @@ body.cyber-active {
             if (!COLOR_WHITELIST.includes(savedColor)) savedColor = 'forest';
             switchColor(savedColor);
 
+            // 5.1 应用当前主题保存的 Dock 尺寸并同步布局控件
+            const initSize = getDockSize(currentStyle);
+            applyDockSize(currentStyle, initSize.width, initSize.heightScale);
+            syncLayoutControls();
+
             // 6. 如果有缓存数据，立即渲染一次
             if (cachedData) {
                 renderToCurrentTheme(cachedData);
@@ -9137,6 +9356,13 @@ body.cyber-active {
             // 8. 初始化拖拽
             initDrag();
 
+            // 8.1 监听窗口大小变化，钳位当前主题宽度并同步滑块上限
+            window.addEventListener('resize', () => {
+                const size = getDockSize(currentStyle);
+                applyDockSize(currentStyle, size.width, size.heightScale);
+                syncLayoutControls();
+            });
+
             // 9. 阻止浏览器自动翻译监测器界面文字
             const fxmSelectors = '#neu-dock,#ind-dock,#retro-dock,#lux-dock,#cyber-dock,#neu-panel,#ind-panel,#retro-panel,#lux-panel,#cyber-panel';
             document.querySelectorAll(fxmSelectors).forEach(el => el.setAttribute('translate', 'no'));
@@ -9146,7 +9372,7 @@ body.cyber-active {
                 }).observe(document.body, { childList: true, subtree: true });
             }
 
-            console.log('[飞雪监测器] ✅ Premium UI v3.40.7 initialized successfully!');
+            console.log('[飞雪监测器] ✅ Premium UI v3.40.8 initialized successfully!');
         } catch(e) {
             console.error('[飞雪监测器] ❌ Init failed:', e);
         }
@@ -9910,14 +10136,15 @@ body.cyber-active {
     // ============================================================
 
     /**
-     * 关闭 Drag Mode 时将当前 dock 平滑归位到默认顶部
+     * 将当前 dock 平滑归位到默认顶部居中、工作流标签栏下方的位置
      */
     function resetDockPosition(dockEl) {
         if (!dockEl) return;
         dockEl.style.transition = 'top 0.3s ease, left 0.3s ease, transform 0.3s ease';
-        dockEl.style.top = '12px';
+        dockEl.style.top = '46px';
         dockEl.style.left = '50%';
-        dockEl.style.transform = 'translateX(-50%)';
+        // 移除内联 transform，让 CSS 统一处理居中 + scaleY，保留 hover 效果
+        dockEl.style.transform = '';
         setTimeout(() => { dockEl.style.transition = ''; }, 300);
     }
 
@@ -10061,9 +10288,11 @@ body.cyber-active {
      * @param {number} top - 上偏移
      */
     function applyDockPosition(dock, left, top) {
+        const style = dock.id.replace('-dock', '');
         dock.style.left = left + 'px';
         dock.style.top = top + 'px';
-        dock.style.transform = 'none';
+        // 使用 CSS 变量实现 scaleY，确保高度滑块在拖拽状态下也能实时生效
+        dock.style.transform = 'scaleY(var(--' + style + '-dock-scale-y, 1))';
         dock.style.transition = 'none';
     }
 
@@ -10081,7 +10310,7 @@ body.cyber-active {
         getSnapshot: () => fetchFromBackend()
     };
 
-    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.40.7)');
+    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.40.8)');
 
     // ============================================================
     // ComfyUI 工作流完成/出错声音提示

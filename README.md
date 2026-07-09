@@ -1,14 +1,14 @@
-# ComfyUI-Feixue-UniversalMonitor
+# ComfyUI-Feixue-UniversalMonitor — ComfyUI Hardware Monitor / ComfyUI Monitor
 
 <p align="center">
-  <strong>Feixue Universal Monitor</strong> — AMD-focused · Cross-platform · 5 Colors × 5 Styles · Real-time Hardware Monitor
+  <strong>Feixue Universal Monitor</strong> — AMD-focused · Cross-platform · 5 Colors × 5 Styles · Real-time Hardware Monitor for ComfyUI
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.40.7-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-3.40.8-red" alt="Version" />
   <img src="https://img.shields.io/badge/Styles-5_Colors_%C3%97_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
@@ -16,11 +16,19 @@
   <a href="https://feixue-ai.github.io/ComfyUI-Feixue-UniversalMonitor/?demo">🖥️ Live Preview (Live Demo)</a>
 </p>
 
+<p align="center">
+  <strong>English:</strong> A real-time ComfyUI hardware monitor widget. Track GPU utilization, VRAM, CPU, RAM, swap, temperature, disk I/O, and network speed right inside ComfyUI. Zero pip dependency on Windows; zero ROCm dependency on Linux AMD. If this project helps your workflow, please consider giving us a ⭐ — it means a lot!
+</p>
+
+<p align="center">
+  <strong>中文：</strong>飞雪监测器是一款 ComfyUI 实时硬件监测插件，在 ComfyUI 界面内悬浮显示 GPU/显存/CPU/内存/SWAP/温度/磁盘/网络。Windows 零 pip 依赖，Linux AMD 零 ROCm 依赖。如果觉得有用，欢迎 <a href="https://github.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor">点个 ⭐</a> 支持我们！
+</p>
+
 ---
 
 ## Preview
 
-![Feixue Universal Monitor Premium UI v3.40.7](screenshot.png)
+![Feixue Universal Monitor Premium UI v3.40.8](screenshot.png)
 
 > The screenshot above shows the Premium UI **Neu** style monitor bar — a white neumorphic design with medical-instrument-style recessed windows, precise groove bases, and soft embossed shadows. It displays six real-time metrics: GPU / VRAM / CPU / RAM / SWAP / TEMP.
 >
@@ -117,7 +125,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # Configuration management
 ├── fxm_utils/               # Platform detection, thread safety, performance optimization
 ├── web/
-│   └── extension.js         # Frontend UI (Premium UI v3.40.7)
+│   └── extension.js         # Frontend UI (Premium UI v3.40.8)
 ├── docs/
 │   └── index.html           # Online appearance demo (GitHub Pages)
 └── tests/                   # Unit tests
@@ -152,7 +160,14 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.40.7 — Linux AMD SMI Accuracy + Field-Level Fallback (Current)
+### v3.40.8 — Position Persistence Hardening + SEO / Docs Polish (Current)
+
+- **Position persistence hardening**: Added `fxm_panel_version` migration. When upgrading to v3.40.8, stale `fxm_drag_pos_*` entries from older builds are automatically cleared, preventing the Jade Bamboo / Luxury Cabinet themes from appearing off-center after a theme switch
+- **Dock default centering preserved**: All themes still default to horizontally centered, below the ComfyUI workflow tab bar (`top: 46px; left: 50%; transform: translateX(-50%)`). User-dragged positions continue to be saved per theme and restored only while drag mode is enabled
+- **SEO & discoverability**: README title and pyproject metadata now include "ComfyUI Hardware Monitor" / "ComfyUI Monitor" keywords to improve English search visibility; added English introduction and star-call-to-action in README
+- **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40.8
+
+### v3.40.7 — Linux AMD SMI Accuracy + Field-Level Fallback
 
 - **Linux GPU priority changed to amdsmi first**: After an accuracy comparison against `rocm-smi` and direct `sysfs` reads, `AmdSmiProvider` (ctypes direct call to `libamd_smi.so`) is now the primary Linux AMD source. It provides the most accurate GPU utilization, VRAM, temperature, and power readings under both idle and load. `sysfs` remains as the zero-dependency fallback, and `rocm_smi` is kept for legacy ROCm 5.x compatibility
 - **Zero pip dependency preserved**: `AmdSmiProvider` still does **not** require the `amdsmi` Python package; it binds `libamd_smi.so` via ctypes and searches `/opt/rocm`, `/opt/rocm-6.x`, `LD_LIBRARY_PATH`, and `FEIXUE_AMD_SMI_PATH`. If the library is unavailable, monitoring automatically falls back to `sysfs`

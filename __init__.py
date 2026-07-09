@@ -9,10 +9,10 @@ ComfyUI-Feixue-UniversalMonitor - 飞雪通用监测器
 - WebSocket / HTTP 双通道实时数据推送
 
 作者: Feixue Team
-版本: 3.40.7 (Linux AMD SMI Native Bridge)
+版本: 3.40.8 (Linux AMD SMI Native Bridge)
 """
 
-__version__ = "3.40.7"
+__version__ = "3.40.8"
 __author__ = "Feixue Team"
 
 NODE_CLASS_MAPPINGS = {}
@@ -20,7 +20,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 
 WEB_DIRECTORY = "./web"
 
-print("[飞雪监测器] ✅ 插件加载完成 (v3.40.7 Linux AMD SMI 原生 Bridge)")
+print("[飞雪监测器] ✅ 插件加载完成 (v3.40.8 Linux AMD SMI 原生 Bridge)")
 
 # ============================================================================
 # 获取插件根目录并防止 core 包被其他插件 shadow
