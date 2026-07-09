@@ -160,10 +160,11 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.40.8 — Position Persistence Hardening + UI Polish (Current)
+### v3.40.8 — Dock Size Controls + Position Hardening (Current)
 
+- **Dock width & height adjustment**: Added per-theme width slider and height scale slider in the settings panel. Each of the 5 styles can be resized independently; values are saved to `localStorage` and restored on restart
 - **Position persistence hardening**: Added `fxm_panel_version` migration. When upgrading to v3.40.8, stale `fxm_drag_pos_*` entries from older builds are automatically cleared, preventing the Jade Bamboo / Luxury Cabinet themes from appearing off-center after a theme switch
-- **Dock default centering preserved**: All themes still default to horizontally centered, below the ComfyUI workflow tab bar (`top: 46px; left: 50%; transform: translateX(-50%)`). User-dragged positions continue to be saved per theme and restored only while drag mode is enabled
+- **Dock default centering preserved**: All themes still default to horizontally centered, below the ComfyUI workflow tab bar (`top: 46px; left: 50%; transform: translateX(-50%)`). User-dragged positions continue to be saved per theme and restored while drag mode is enabled
 - **UI text polish**: README now includes an English introduction and a friendlier call-to-action for users who find the plugin helpful
 - **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40.8
 
