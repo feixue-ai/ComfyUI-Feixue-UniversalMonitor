@@ -723,7 +723,8 @@ class FeixueHardwareInfo:
                 'data_source_quality': self._SOURCE_QUALITY.get(
                     self._active_source, 'unknown'
                 ),
-                'version': '3.40.7',
+                'version': '3.40.10',
+                'platform': platform.system(),
             }
 
             # 辅助指标采集（每个独立try-except，单个失败不影响整体）
@@ -1583,7 +1584,8 @@ class FeixueHardwareInfo:
             'gpus': [self._get_default_gpu_data()],
             'data_source': 'error_fallback',
             'data_source_quality': 'unknown',
-            'version': '3.40.7',
+            'version': '3.40.10',
+            'platform': platform.system(),
             'disk_io': None,
             'network_io': None,
         }

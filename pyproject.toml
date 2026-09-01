@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ComfyUI-Feixue-UniversalMonitor"
-version = "3.40.8"
+version = "3.40.10"
 description = "ComfyUI Hardware Monitor — Feixue Universal Monitor: real-time GPU/CPU/RAM monitoring for ComfyUI, AMD optimized."
 readme = "README.md"
 license = {text = "MIT"}
@@ -27,7 +27,7 @@ include = ["core*", "collectors*", "fxm_utils*", "config*"]
 PublisherId = "feixue"
 DisplayName = "飞雪监测器 - Feixue Universal Monitor"
 Icon = "https://raw.githubusercontent.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor/main/feixue-icon.png"
-Description = "ComfyUI Hardware Monitor (Feixue Universal Monitor / 飞雪监测器) — v3.40.8 real-time hardware monitor for ComfyUI. Track GPU utilization, VRAM, CPU, RAM, swap memory, GPU temperature, disk I/O, and network speed. Zero pip dependency on Windows: AMD ADLX C++ Bridge DLL, AMD ADL (atiadlxx.dll), NVIDIA NVML (nvml.dll), PDH/DXGI counters. On Linux: sysfs AMDGPU kernel-driver read first (zero ROCm dependency), then libamd_smi.so ctypes / rocm-smi / NVML. Premium UI with 5 colors × 5 styles, WebSocket real-time push, position memory, smart memory cleanup. Keywords: comfyui monitor, comfyui hardware monitor, gpu monitor, system monitor, hardware monitor, feixue, monitor, gpu, vram, cpu, ram, temperature, system, resource, performance, amd, rocm, nvidia, widget, overlay, status, dashboard, swap, disk, network, style, theme."
+Description = "ComfyUI Hardware Monitor (Feixue Universal Monitor / 飞雪监测器) — v3.40.10 real-time hardware monitor for ComfyUI. Track GPU utilization, VRAM, CPU, RAM, swap memory, GPU temperature, disk I/O, and network speed. Zero pip dependency on Windows: AMD ADLX C++ Bridge DLL, AMD ADL (atiadlxx.dll), NVIDIA NVML (nvml.dll), PDH/DXGI counters. On Linux: sysfs AMDGPU kernel-driver read first (zero ROCm dependency), then libamd_smi.so ctypes / rocm-smi / NVML. Premium UI with 5 colors × 5 styles, WebSocket real-time push, position memory, smart memory cleanup. Keywords: comfyui monitor, comfyui hardware monitor, gpu monitor, system monitor, hardware monitor, feixue, monitor, gpu, vram, cpu, ram, temperature, system, resource, performance, amd, rocm, nvidia, widget, overlay, status, dashboard, swap, disk, network, style, theme."
 
 [tool.black]
 line-length = 100

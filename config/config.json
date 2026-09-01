@@ -2,11 +2,29 @@
   "refresh_interval": 1.0,
   "ui": {
     "theme": "neu",
-    "position": {"x": 20, "y": 20},
+    "position": {
+      "x": 20,
+      "y": 20
+    },
     "show_on_startup": true
   },
   "data_sources": {
-    "linux_amd_priority": ["amdsmi", "rocm_smi_lib", "sysfs"],
-    "windows_amd_priority": ["adlx"]
+    "linux_amd_priority": [
+      "amdsmi",
+      "rocm_smi_lib",
+      "sysfs"
+    ],
+    "windows_amd_priority": [
+      "adlx"
+    ]
+  },
+  "diag": {
+    "enabled": false,
+    "notification": [
+      "panel"
+    ],
+    "error_dict_version": "1.0.0",
+    "snapshot_ring_path": "~/.cache/feixue_monitor/snapshot_ring.jsonl",
+    "snapshot_ring_max_entries": 120
   }
 }

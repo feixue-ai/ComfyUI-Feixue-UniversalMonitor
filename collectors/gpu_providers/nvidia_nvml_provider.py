@@ -79,7 +79,9 @@ class _NVMLWrapper:
             "nvmlDeviceGetName": (void_p, ctypes.c_char_p, ctypes.c_uint),
             "nvmlDeviceGetUtilizationRates": (void_p, ctypes.c_void_p),
             "nvmlDeviceGetMemoryInfo": (void_p, ctypes.c_void_p),
+            "nvmlDeviceGetMemoryInfo_v2": (void_p, ctypes.c_void_p),
             "nvmlDeviceGetTemperature": (void_p, ctypes.c_uint, ctypes.POINTER(ctypes.c_uint)),
+            "nvmlDeviceGetTemperatureV2": (void_p, ctypes.c_uint, ctypes.POINTER(ctypes.c_uint)),
             "nvmlDeviceGetPowerUsage": (void_p, ctypes.POINTER(ctypes.c_uint)),
         }
 
@@ -173,6 +175,25 @@ class _NVMLWrapper:
     def get_memory(self, handle: Any) -> Tuple[Optional[int], Optional[int]]:
         import ctypes
 
+        # 优先尝试 v2 API（Blackwell RTX 50 必需）
+        proc_v2 = self._procs.get("nvmlDeviceGetMemoryInfo_v2")
+        if proc_v2 is not None:
+            class NVMLMemoryV2(ctypes.Structure):
+                _fields_ = [
+                    ("version", ctypes.c_uint),
+                    ("total", ctypes.c_ulonglong),
+                    ("reserved", ctypes.c_ulonglong),
+                    ("free", ctypes.c_ulonglong),
+                    ("used", ctypes.c_ulonglong),
+                ]
+
+            mem = NVMLMemoryV2()
+            mem.version = ctypes.sizeof(NVMLMemoryV2) | (2 << 24)
+            ret = proc_v2(handle, ctypes.byref(mem))
+            if ret == self.NVML_SUCCESS and mem.total > 0:
+                return int(mem.total) // (1024 * 1024), int(mem.used) // (1024 * 1024)
+
+        # 回退 v1
         proc = self._procs.get("nvmlDeviceGetMemoryInfo")
         if proc is None:
             return None, None
@@ -193,6 +214,15 @@ class _NVMLWrapper:
     def get_temperature(self, handle: Any) -> Optional[float]:
         import ctypes
 
+        # 优先尝试 v2 API（部分 Blackwell 驱动需要）
+        proc_v2 = self._procs.get("nvmlDeviceGetTemperatureV2")
+        if proc_v2 is not None:
+            temp = ctypes.c_uint(0)
+            ret = proc_v2(handle, self.NVML_TEMPERATURE_GPU, ctypes.byref(temp))
+            if ret == self.NVML_SUCCESS and temp.value > 0:
+                return float(temp.value)
+
+        # 回退 v1
         proc = self._procs.get("nvmlDeviceGetTemperature")
         if proc is None:
             return None

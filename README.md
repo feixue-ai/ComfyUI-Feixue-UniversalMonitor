@@ -8,7 +8,8 @@
   <img src="https://img.shields.io/badge/ComfyUI-Compatible-brightgreen" alt="ComfyUI Compatible" />
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/GPU-AMD_Optimized-orange" alt="GPU Support" />
-  <img src="https://img.shields.io/badge/Version-3.40.8-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-3.40.10-red" alt="Version" />
+  <img src="https://img.shields.io/badge/Looking%20for%20Maintainers-Join%20Us-green" alt="Looking for Maintainers" />
   <img src="https://img.shields.io/badge/Styles-5_Colors_%C3%97_5_Styles-blueviolet" alt="25 Combinations" />
 </p>
 
@@ -24,11 +25,15 @@
   <strong>中文：</strong>飞雪监测器是一款 ComfyUI 实时硬件监测插件，在 ComfyUI 界面内悬浮显示 GPU/显存/CPU/内存/SWAP/温度/磁盘/网络。Windows 零 pip 依赖，Linux AMD 零 ROCm 依赖。如果觉得有用，欢迎 <a href="https://github.com/feixue-ai/ComfyUI-Feixue-UniversalMonitor">点个 ⭐</a> 支持我们！
 </p>
 
+<p align="center">
+  <strong>🙋 寻找维护者：</strong>如果你熟悉 ComfyUI 插件、Python ctypes、GPU 驱动/NVML/ROCm 或前端开发，欢迎提交 PR 共同维护。详见 <a href="MAINTAINER_GUIDE.md">MAINTAINER_GUIDE.md</a>。
+</p>
+
 ---
 
 ## Preview
 
-![Feixue Universal Monitor Premium UI v3.40.8](screenshot.png)
+![Feixue Universal Monitor Premium UI v3.40.10](screenshot.png)
 
 > The screenshot above shows the Premium UI **Neu** style monitor bar — a white neumorphic design with medical-instrument-style recessed windows, precise groove bases, and soft embossed shadows. It displays six real-time metrics: GPU / VRAM / CPU / RAM / SWAP / TEMP.
 >
@@ -125,7 +130,7 @@ ComfyUI-Feixue-UniversalMonitor/
 ├── config/                  # Configuration management
 ├── fxm_utils/               # Platform detection, thread safety, performance optimization
 ├── web/
-│   └── extension.js         # Frontend UI (Premium UI v3.40.8)
+│   └── extension.js         # Frontend UI (Premium UI v3.40.10)
 ├── docs/
 │   └── index.html           # Online appearance demo (GitHub Pages)
 └── tests/                   # Unit tests
@@ -160,13 +165,21 @@ All collection operations have timeout protection (≤8s). On exceptions, the sy
 
 ## Changelog
 
-### v3.40.8 — Dock Size Controls + Position Hardening (Current)
+### v3.40.10 — RTX 50 / Blackwell GPU Metrics Fix (Current)
+
+- **Blackwell NVML v2 support**: `nvidia_provider.py` now calls `nvmlDeviceGetMemoryInfo_v2` and `nvmlDeviceGetTemperatureV2` via ctypes to correctly read VRAM and temperature on NVIDIA RTX 50-series GPUs (e.g. RTX 5090), where the legacy NVML v1 APIs return 0
+- **nvidia-smi fallback**: If NVML v2 is unavailable or still returns zeros, the provider automatically falls back to `nvidia-smi` for VRAM and temperature, with a 5-second cache to avoid subprocess overhead
+- **NvidiaNvmlProvider v2 support**: The ctypes-native zero-dependency provider (`nvidia_nvml_provider.py`) was also updated to use NVML v2 APIs when available
+- **DIAG diagnostic foundation (default off)**: Initial integration of the error-dictionary diagnoser, health-check API, crash log reader, and WebSocket hook. `config.json` ships with `"diag.enabled": false`, so the feature stays hidden until the dictionary coverage and frontend integration are finalized
+- **Maintainer handover docs**: Added `MAINTAINER_GUIDE.md` and a startup log line inviting new contributors; README now shows a "Looking for Maintainers" badge
+
+### v3.40.9 — Dock Size Controls + Position Hardening
 
 - **Dock width & height adjustment**: Added per-theme width slider and height scale slider in the settings panel. Each of the 5 styles can be resized independently; values are saved to `localStorage` and restored on restart
-- **Position persistence hardening**: Added `fxm_panel_version` migration. When upgrading to v3.40.8, stale `fxm_drag_pos_*` entries from older builds are automatically cleared, preventing the Jade Bamboo / Luxury Cabinet themes from appearing off-center after a theme switch
+- **Position persistence hardening**: Added `fxm_panel_version` migration. When upgrading to v3.40.9, stale `fxm_drag_pos_*` entries from older builds are automatically cleared, preventing the Jade Bamboo / Luxury Cabinet themes from appearing off-center after a theme switch
 - **Dock default centering preserved**: All themes still default to horizontally centered, below the ComfyUI workflow tab bar (`top: 46px; left: 50%; transform: translateX(-50%)`). User-dragged positions continue to be saved per theme and restored while drag mode is enabled
 - **UI text polish**: README now includes an English introduction and a friendlier call-to-action for users who find the plugin helpful
-- **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40.8
+- **Version unification**: All code, UI panel, package metadata, and snapshot format unified to v3.40.9
 
 ### v3.40.7 — Linux AMD SMI Accuracy + Field-Level Fallback
 

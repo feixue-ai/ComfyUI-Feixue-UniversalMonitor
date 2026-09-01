@@ -25,8 +25,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from collections import deque
+from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
 # 配置日志
 logger = logging.getLogger('FeixueMonitor')
@@ -121,6 +123,14 @@ class FeixueMonitorService:
             f"[飞雪] FeixueMonitorService initialized with rate={self.rate}s"
         )
 
+        # 安装 WebSocket 错误监听钩子：始终捕获 ComfyUI execution_error，
+        # DIAG 开关只控制是否自动向前端推送翻译报告。
+        try:
+            install_diag_websocket_hook()
+        except Exception:
+            # 安装失败不影响监控服务
+            pass
+
     @property
     def rate(self) -> float:
         """当前刷新率（秒），读取线程安全"""
@@ -214,10 +224,20 @@ class FeixueMonitorService:
             # 1. 采集数据（get_snapshot 保证永不失败）
             data = get_snapshot()
 
-            # 2. 推送到客户端
+            # 2. DIAG：将快照追加到环形缓冲区（非阻塞，失败不影响后续流程）
+            try:
+                from config.config_manager import get_config_manager
+                if get_config_manager().get("diag.enabled", True):
+                    from .snapshot_persistence import append_snapshot
+                    append_snapshot(data)
+            except Exception:
+                # 静默降级：快照持久化失败不应影响主监控流程
+                pass
+
+            # 3. 推送到客户端
             push_success = await self.send_message(data)
 
-            # 3. 更新统计
+            # 4. 更新统计
             self._stats['total_pushes'] += 1
             if push_success:
                 self._stats['successful_pushes'] += 1
@@ -514,7 +534,9 @@ class FeixueMonitorService:
                 self._effective_interval * self.BACKOFF_MULTIPLIER,
                 self.BACKOFF_MAX_INTERVAL,
             )
-            logger.warning(
+            # 使用 DEBUG 级别避免黄色 WARNING 日志遮挡 ComfyUI 前端工作流日志，
+            # 性能监控数据仍可通过 get_ws_stats() 获取，开启 DEBUG 后仍可在控制台查看。
+            logger.debug(
                 f"[飞雪] WebSocket 发送耗时 {send_duration_ms:.1f}ms 超过阈值 "
                 f"{self.SLOW_SEND_THRESHOLD_MS:.0f}ms，"
                 f"连续慢发送={self._ws_health['consecutive_slow_sends']}，"
@@ -551,6 +573,33 @@ class FeixueMonitorService:
             'rate': self._rate,
             'delta_enabled': self._delta_enabled,
         }
+
+    def set_diag_enabled(self, enabled: bool) -> bool:
+        """
+        动态开启或关闭 DIAG 自动诊断报告推送。
+
+        报错捕获钩子始终安装；本开关只控制是否自动向前端推送 feixue.diag。
+
+        Args:
+            enabled: True 开启自动推送，False 关闭自动推送。
+
+        Returns:
+            bool: 当前钩子是否已安装。
+        """
+        try:
+            from config.config_manager import get_config_manager
+
+            cfg = get_config_manager()
+            cfg.set("diag.enabled", bool(enabled))
+            cfg.save()
+        except Exception as e:
+            logger.warning(f"[飞雪] DIAG 配置保存失败: {e}")
+
+        # 钩子始终安装，仅用于缓存报错；开启时如未安装则补装
+        if enabled:
+            install_diag_websocket_hook()
+
+        return is_diag_hook_installed()
 
     def stop(self) -> None:
         """
@@ -713,6 +762,308 @@ def reset_monitor_service() -> None:
         except Exception:
             pass
         _global_service = None
+
+
+# ============================================================================
+# DIAG WebSocket 错误监听钩子（自动诊断）
+# ============================================================================
+#
+# 通过 monkey-patch PromptServer.send_sync 拦截 ComfyUI 原生 WebSocket 事件：
+# - execution_error: 缓存事件、调用 DiagEngine.diagnose()、推送 feixue.diag
+# - executed:        推送 {"status": "ok"} 清除诊断状态
+# - execution_start: 记录当前执行上下文（prompt_id 等）
+#
+# 设计约束：
+# - 纯事后分析：仅在 ComfyUI 实际报错后触发，不做预判。
+# - 轻量：事件名过滤后才读取配置；诊断只做正则词库匹配。
+# - 安全：所有操作包裹 try/except，任何失败都不影响 ComfyUI 原生消息推送。
+# - 幂等：install_diag_websocket_hook() 可多次调用，仅安装一次。
+# ============================================================================
+
+_diag_engine: Optional[DiagEngine] = None
+_diag_engine_lock = threading.Lock()
+_last_execution_error: Optional[Dict[str, Any]] = None
+_last_execution_context: Optional[Dict[str, Any]] = None
+_last_diag_report: Optional[Dict[str, Any]] = None
+_last_error_prompt_id: Optional[str] = None
+_last_error_timestamp: Optional[float] = None
+_execution_error_history: Deque[Dict[str, Any]] = deque(maxlen=5)
+_original_send_sync: Optional[Callable] = None
+_diag_hook_installed = False
+
+
+def _is_diag_enabled() -> bool:
+    """读取 DIAG 功能开关配置。"""
+    try:
+        from config.config_manager import get_config_manager
+
+        return bool(get_config_manager().get("diag.enabled", True))
+    except Exception:
+        return False
+
+
+def _get_diag_engine() -> Optional[DiagEngine]:
+    """懒加载 DIAG 引擎（首次诊断时才初始化）。"""
+    global _diag_engine
+    if _diag_engine is not None:
+        return _diag_engine
+
+    with _diag_engine_lock:
+        if _diag_engine is not None:
+            return _diag_engine
+        try:
+            from .diagnoser import DiagEngine
+
+            _diag_engine = DiagEngine()
+            logger.info("[飞雪] DIAG 引擎已初始化")
+            return _diag_engine
+        except Exception as e:
+            logger.warning(f"[飞雪] DIAG 引擎初始化失败: {e}")
+            return None
+
+
+def _send_feixue_diag(server_instance, payload: Dict[str, Any]) -> None:
+    """通过原始 send_sync 推送 feixue.diag 事件，避免递归进入钩子。"""
+    if _original_send_sync is None or server_instance is None:
+        return
+    try:
+        _original_send_sync(server_instance, "feixue.diag", payload)
+    except Exception as e:
+        logger.debug(f"[飞雪] DIAG 报告推送失败: {e}")
+
+
+def _handle_execution_error(server_instance, data: Any, push_enabled: bool = True) -> None:
+    """处理 execution_error 事件：始终缓存、诊断并推送报告。
+
+    无论 DIAG 自动诊断开关是否开启，只要 ComfyUI 产生 execution_error，
+    都会立即生成翻译后的诊断报告并推送到前端。DIAG 开关仅由前端用来控制
+    是否自动切换标签页/发送系统通知，不再阻止报错本身显示。
+    """
+    global _last_execution_error, _last_diag_report
+    global _last_error_prompt_id, _last_error_timestamp
+
+    logger.info(f"[飞雪] DIAG 拦截到 execution_error 事件，类型={type(data).__name__}")
+
+    # 兼容 ComfyUI 不同的 execution_error 格式：优先转换为字典
+    if isinstance(data, dict):
+        normalized_data = dict(data)
+    elif isinstance(data, str):
+        normalized_data = {"exception_message": data, "exception_type": "ExecutionError"}
+    elif isinstance(data, (list, tuple)) and len(data) > 0:
+        normalized_data = {"exception_message": "\n".join(str(x) for x in data), "exception_type": "ExecutionError"}
+    else:
+        normalized_data = {"exception_message": str(data), "exception_type": "ExecutionError"}
+
+    # 1. 缓存最近报错（供手动诊断模式 A 使用）—— 始终执行
+    _last_execution_error = normalized_data
+
+    # 记录最近一次 error 的 prompt_id 和时间戳，防止后续 executed 事件覆盖诊断报告
+    _last_error_prompt_id = normalized_data.get("prompt_id")
+    if _last_error_prompt_id is None and isinstance(_last_execution_context, dict):
+        _last_error_prompt_id = _last_execution_context.get("prompt_id")
+    _last_error_timestamp = time.time()
+
+    # 同时追加到最近报错历史，避免后续成功执行把真实报错冲掉
+    try:
+        _execution_error_history.append({
+            "prompt_id": _last_error_prompt_id,
+            "error": normalized_data,
+            "timestamp": _last_error_timestamp,
+        })
+    except Exception:
+        pass
+
+    engine = _get_diag_engine()
+    if engine is None:
+        return
+
+    # 3. 获取当前系统快照作为上下文，并注入前端语言偏好
+    try:
+        from .monitor import get_snapshot
+
+        snapshot = get_snapshot()
+        if not isinstance(snapshot, dict):
+            snapshot = {}
+    except Exception:
+        snapshot = {}
+
+    # 透传 prompt_id 与执行上下文中的节点信息
+    prompt_id: Optional[str] = None
+    if isinstance(_last_execution_context, dict):
+        prompt_id = _last_execution_context.get("prompt_id")
+        # 若事件本身没有节点信息，则尝试用执行上下文中缓存的 current_node 补充
+        if not normalized_data.get("node_id") and _last_execution_context.get("current_node"):
+            normalized_data["current_node"] = _last_execution_context["current_node"]
+
+    # 4. 生成诊断报告并推送（轻量正则匹配，不阻塞事件循环）
+    try:
+        report = engine.diagnose(normalized_data, snapshot, prompt_id=prompt_id)
+        _last_diag_report = report.to_dict()
+        _send_feixue_diag(server_instance, _last_diag_report)
+        logger.info("[飞雪] DIAG 自动诊断报告已生成并推送")
+    except Exception as e:
+        logger.warning(f"[飞雪] DIAG 自动诊断失败: {e}", exc_info=True)
+
+
+def _handle_executed(server_instance, data: Any) -> None:
+    """处理 executed 事件：若与最近一次 error 不属于同一 prompt，则清除当前自动诊断报告。
+
+    注意：不清除 _last_execution_error 与 _execution_error_history，
+    以便用户后续点击「诊断最近报错」时仍能打捞到真实报错。
+    """
+    global _last_diag_report
+    global _last_error_prompt_id
+
+    executed_prompt_id = data.get("prompt_id") if isinstance(data, dict) else None
+
+    # 如果 executed 事件与最近一次 error 属于同一 prompt，保留诊断报告，避免被覆盖
+    if (
+        executed_prompt_id is not None
+        and _last_error_prompt_id is not None
+        and executed_prompt_id == _last_error_prompt_id
+    ):
+        logger.debug(
+            "[飞雪] DIAG 拦截到 executed 事件，但与最近一次 error 属于同一 prompt，"
+            "保留诊断报告"
+        )
+        return
+
+    # 不同 prompt 执行成功：清除当前自动诊断报告，但保留历史报错缓存
+    _last_diag_report = None
+    _send_feixue_diag(server_instance, {"status": "ok"})
+
+
+def _handle_execution_start(data: Any) -> None:
+    """处理 execution_start 事件：记录当前执行上下文，并重置 error prompt 标记。"""
+    global _last_execution_context, _last_error_prompt_id
+    if isinstance(data, dict):
+        _last_execution_context = {
+            "prompt_id": data.get("prompt_id"),
+            "timestamp": time.time(),
+        }
+    else:
+        _last_execution_context = {"timestamp": time.time()}
+    # 新 prompt 开始，重置 error prompt 标记，允许后续 executed 正常清除状态
+    _last_error_prompt_id = None
+
+
+def _diag_send_sync_wrapper(self, event, data, sid=None):
+    """PromptServer.send_sync 的 DIAG 包装器。
+
+    始终调用原始 send_sync，保证 ComfyUI 原生消息不丢失。
+    始终捕获 execution_error / execution_start 并缓存，供手动诊断使用。
+    无论 DIAG 自动诊断开关状态如何，真实报错和执行成功都会向前端推送事件：
+    - execution_error -> 推送翻译后的诊断报告
+    - executed        -> 推送 {"status": "ok"} 清除状态
+    DIAG 开关仅在前端控制是否自动切换标签页/发送系统通知。
+    """
+    # 1. 先调用原始 send_sync，确保 ComfyUI 原生消息不丢失、不延迟
+    if _original_send_sync is not None:
+        _original_send_sync(self, event, data, sid)
+
+    # 忽略 DIAG 自身事件，防止递归
+    if event == "feixue.diag":
+        return
+
+    # 2. 执行上下文与错误缓存始终记录（不依赖开关）
+    if event == "execution_error":
+        _handle_execution_error(self, data, push_enabled=True)
+    elif event == "execution_start":
+        _handle_execution_start(data)
+    elif event == "executed":
+        _handle_executed(self, data)
+
+
+def install_diag_websocket_hook() -> bool:
+    """安装 DIAG WebSocket 事件钩子到 PromptServer.send_sync（始终安装，用于缓存报错）。"""
+    global _original_send_sync, _diag_hook_installed
+    if _diag_hook_installed:
+        return True
+
+    try:
+        from server import PromptServer
+
+        original = PromptServer.send_sync
+        if original is _diag_send_sync_wrapper:
+            return True
+
+        _original_send_sync = original
+        PromptServer.send_sync = _diag_send_sync_wrapper
+        _diag_hook_installed = True
+        logger.info("[飞雪] DIAG WebSocket 错误监听钩子已安装（报错捕获始终启用）")
+        return True
+    except Exception as e:
+        logger.warning(f"[飞雪] DIAG WebSocket 钩子安装失败: {e}")
+        return False
+
+
+def uninstall_diag_websocket_hook() -> bool:
+    """卸载 DIAG WebSocket 事件钩子并清理全局状态。"""
+    global _original_send_sync, _diag_hook_installed
+    global _last_execution_error, _last_execution_context, _last_diag_report
+    global _last_error_prompt_id, _last_error_timestamp, _execution_error_history
+    if not _diag_hook_installed or _original_send_sync is None:
+        return False
+
+    try:
+        from server import PromptServer
+
+        PromptServer.send_sync = _original_send_sync
+        _original_send_sync = None
+        _diag_hook_installed = False
+
+        # 清理 DIAG 全局缓存状态
+        _last_execution_error = None
+        _last_execution_context = None
+        _last_diag_report = None
+        _last_error_prompt_id = None
+        _last_error_timestamp = None
+        _execution_error_history.clear()
+
+        logger.info("[飞雪] DIAG WebSocket 错误监听钩子已卸载")
+        return True
+    except Exception as e:
+        logger.warning(f"[飞雪] DIAG WebSocket 钩子卸载失败: {e}")
+        return False
+
+
+def is_diag_hook_installed() -> bool:
+    """返回 DIAG WebSocket 钩子是否已安装。"""
+    return _diag_hook_installed
+
+
+def get_last_execution_error() -> Optional[Dict[str, Any]]:
+    """获取最近一次缓存的 execution_error 事件（供手动诊断模式 A 使用）。"""
+    return _last_execution_error
+
+
+def get_recent_execution_errors(max_count: Optional[int] = None) -> List[Dict[str, Any]]:
+    """获取最近缓存的 execution_error 历史（最新的排在最前）。
+
+    Args:
+        max_count: 最多返回几条，None 则返回全部历史。
+
+    Returns:
+        每个元素为 {"prompt_id": ..., "error": ..., "timestamp": ...}
+    """
+    try:
+        items = list(_execution_error_history)
+        items.reverse()  # deque 尾部最新，反转为最新在前
+        if max_count is not None and max_count > 0:
+            items = items[:max_count]
+        return items
+    except Exception:
+        return []
+
+
+def get_last_execution_context() -> Optional[Dict[str, Any]]:
+    """获取最近一次 execution_start 上下文。"""
+    return _last_execution_context
+
+
+def get_last_diag_report() -> Optional[Dict[str, Any]]:
+    """获取最近一次自动诊断生成的报告。"""
+    return _last_diag_report
 
 
 if __name__ == "__main__":

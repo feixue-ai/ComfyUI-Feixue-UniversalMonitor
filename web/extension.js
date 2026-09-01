@@ -1,20 +1,20 @@
 /**
- * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.40.8
+ * ComfyUI-Feixue-UniversalMonitor - Premium UI v3.40.10
  *
  * 设计原则：不透明实底背景 + 发光边框灯条 + 药丸/胶囊形状 + 3D圆柱横截面效果 + CSS芯片图标 + 渐变状态条 + 5色主题系统
- * @version 3.40.8
+ * @version 3.40.10
  */
 
 (function() {
     'use strict';
 
-    console.log('[飞雪监测器] 🚀 Premium UI v3.40.8 启动...');
+    console.log('[飞雪监测器] 🚀 Premium UI v3.40.10 启动...');
 
     // ============================================================
     // 配置常量（保留核心配置不变）
     // ============================================================
     const CONFIG = {
-        version: '3.40.8',
+        version: '3.40.10',
         updateInterval: 2000,
 
         // 状态阈值配置（绝对不能改）
@@ -24,6 +24,34 @@
             danger: 100,   // > 90% 红色
         },
     };
+
+    // ============================================================
+    // 浏览器缓存破解：确保加载最新版本 extension.js
+    // ============================================================
+    // ComfyUI 默认以固定 URL 加载扩展脚本，浏览器可能缓存旧版本。
+    // 若当前脚本没有带版本号的查询参数，则立即用带版本号的新 URL 重新加载一次。
+    // 新 URL 会被浏览器视为不同资源，从而绕过本地缓存。
+    (function bustExtensionCache() {
+        try {
+            const currentScript = document.currentScript;
+            if (!currentScript) return;
+            const url = new URL(currentScript.src, location.href);
+            // 硬编码目标版本号，确保即使旧版缓存中的 CONFIG.version 较旧，
+            // 也能强制加载到最新版本的脚本。
+            const TARGET_FXMV = '3.40.10';
+            const currentFxmv = url.searchParams.get('_fxmv');
+            if (currentFxmv !== TARGET_FXMV) {
+                url.searchParams.set('_fxmv', TARGET_FXMV);
+                const newScript = document.createElement('script');
+                newScript.src = url.toString();
+                newScript.async = false;
+                currentScript.parentNode.replaceChild(newScript, currentScript);
+                return;
+            }
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ 扩展缓存破解失败:', e);
+        }
+    })();
 
     // ============================================================
     // 数据缓存和状态管理（原样保留）
@@ -538,7 +566,7 @@
         -10px -10px 18px rgba(255, 255, 255, 0.88);
 
     /* 尺寸令牌 (Design Tokens) */
-    --neu-dock-height: 86px;
+    --neu-dock-height: 56px;
     --neu-dock-width: 900px;
     --neu-dock-scale-y: 1;
     --neu-panel-width: 340px;
@@ -708,14 +736,14 @@ body.neu-active {
     align-items: center;
     flex-wrap: nowrap;
     gap: 10px;
-    padding: 0 68px 0 62px;
+    padding: 0 60px 0 54px;
     overflow: hidden;
 
     /* 厚实医疗陶瓷/硅胶仪表带 */
     background-color: var(--neu-base-color);
     /* 使用椭圆 border-radius 并随 scaleY 动态调整水平半径，
        确保高度压缩后端部仍保持圆润的半圆pill形状，不会变尖 */
-    border-radius: calc(43px * var(--neu-dock-scale-y, 1)) / 43px;
+    border-radius: calc(28px * var(--neu-dock-scale-y, 1)) / 28px;
 
     /* 强悬浮感 + 清晰厚度截面 + 外框双层边缘 */
     box-shadow:
@@ -787,12 +815,12 @@ body.neu-active {
 #neu-dock::after {
     content: '';
     position: absolute;
-    left: 96px;
-    right: 116px;
-    top: 13px;
-    bottom: 13px;
+    left: 88px;
+    right: 108px;
+    top: 8px;
+    bottom: 8px;
     /* 内轨道同样使用椭圆 border-radius 随 scaleY 动态调整，保持整体圆弧协调 */
-    border-radius: calc(30px * var(--neu-dock-scale-y, 1)) / 30px;
+    border-radius: calc(20px * var(--neu-dock-scale-y, 1)) / 20px;
     background: linear-gradient(180deg,
         rgba(0, 0, 0, 0.07) 0%,
         rgba(0, 0, 0, 0.03) 45%,
@@ -812,8 +840,8 @@ body.neu-active {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    width: 32px;
-    height: 48px;
+    width: 28px;
+    height: 40px;
     cursor: grab;
     flex-shrink: 0;
 }
@@ -836,11 +864,11 @@ body.neu-active {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    height: 56px;
-    padding: 7px 12px 11px 12px;
+    gap: 6px;
+    height: 40px;
+    padding: 5px 10px 8px 10px;
     background-color: rgba(255, 255, 255, 0.22);
-    border-radius: 18px;
+    border-radius: 14px;
 
     /* 内凹仪表窗口：看起来像从底座挖出的观测窗 */
     box-shadow:
@@ -857,7 +885,7 @@ body.neu-active {
     white-space: nowrap;
     position: relative;
     z-index: 1;
-    flex: 1 0 auto;
+    flex: 1 0 96px;
     min-width: 96px;
     max-width: 200px;
     overflow: hidden;
@@ -892,7 +920,7 @@ body.neu-active {
 
 /* 芯片图标 */
 .neu-chip-icon {
-    font-size: 22px;
+    font-size: 18px;
     line-height: 1;
     display: flex;
     align-items: center;
@@ -903,7 +931,7 @@ body.neu-active {
 
 /* 芯片标签 */
 .neu-chip-label {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     color: var(--neu-text-secondary);
     text-transform: uppercase;
@@ -914,7 +942,7 @@ body.neu-active {
 
 /* 芯片数值 - JetBrains Mono等宽字体 */
 .neu-chip-value {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
     font-family: var(--neu-font-mono);
     color: var(--neu-text-primary);
@@ -937,10 +965,10 @@ body.neu-active {
     position: absolute;
     left: 8px;
     right: 8px;
-    bottom: 5px;
-    height: 5px;
+    bottom: 4px;
+    height: 4px;
     background-color: var(--neu-base-color);
-    border-radius: 2.5px;
+    border-radius: 2px;
 
     /* 深凹槽体 */
     box-shadow:
@@ -956,7 +984,7 @@ body.neu-active {
     height: 100%;
     background: var(--neu-gradient-primary);
     background-size: 200% 100%;
-    border-radius: 2.5px;
+    border-radius: 2px;
     transition: width 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     position: relative;
 }
@@ -974,8 +1002,8 @@ body.neu-active {
 
 /* 设置按钮 - 与Dock同材质 */
 .neu-settings-btn {
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     flex-shrink: 0;
     background-color: var(--neu-base-color);
@@ -1578,14 +1606,17 @@ body.neu-active {
     }
 
     #neu-dock {
-        flex-wrap: wrap;
-        height: auto;
+        flex-wrap: nowrap;
+        height: var(--neu-dock-height);
         min-height: var(--neu-dock-height);
-        padding: 10px 56px 10px 48px;
+        padding: 0 48px 0 42px;
         gap: 8px;
         border-radius: 28px;
-        justify-content: center;
+        justify-content: flex-start;
+        overflow-x: auto;
+        scrollbar-width: none;
     }
+    #neu-dock::-webkit-scrollbar { display: none; }
 
     /* 小屏换行时隐藏凹槽底座 */
     #neu-dock::after {
@@ -1602,15 +1633,15 @@ body.neu-active {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px;
-        min-width: 72px;
-        max-width: 88px;
-        height: 58px;
-        padding: 5px 4px 10px 4px;
+        gap: 1px;
+        min-width: 68px;
+        max-width: 80px;
+        height: 40px;
+        padding: 4px 4px 7px 4px;
     }
 
     .neu-chip-icon {
-        font-size: 18px;
+        font-size: 16px;
     }
 
     .neu-chip-data {
@@ -1622,7 +1653,7 @@ body.neu-active {
     }
 
     .neu-chip-value {
-        font-size: 13px;
+        font-size: 12px;
     }
 
     .neu-chip-progress-track {
@@ -1789,7 +1820,7 @@ body.neu-active {
       /* Spacing & Sizing */
       --dock-height: 52px;
       --retro-dock-width: 920px;
-      --retro-dock-height: 60px;
+      --retro-dock-height: 56px;
       --retro-dock-scale-y: 1;
       --panel-width: 320px;
       --border-radius-chassis: 12px;
@@ -2014,7 +2045,7 @@ body.neu-active {
       gap: 8px;
       width: 100%;
       height: 100%;
-      padding: 10px 16px;
+      padding: 8px 14px;
       white-space: nowrap;
       overflow: hidden;
     }
@@ -2029,6 +2060,7 @@ body.neu-active {
       user-select: none;
       opacity: 0.6;
       transition: opacity 0.2s;
+      flex-shrink: 0;
     }
 
     .retro-drag-handle:hover {
@@ -2458,7 +2490,7 @@ body.neu-active {
 
     /* ON/OFF Labels inside switch */
     .retro-rocker-switch::before {
-      content: 'OFF';
+      content: '${t('toggle_off')}';
       position: absolute;
       left: 4px;
       top: 50%;
@@ -2470,7 +2502,7 @@ body.neu-active {
     }
 
     .retro-rocker-switch.on::before {
-      content: 'ON';
+      content: '${t('toggle_on')}';
       left: auto;
       right: 4px;
       color: var(--retro-phosphor-primary, var(--retro-primary));
@@ -2660,6 +2692,23 @@ body.neu-active {
       animation: retroDataFlash 0.3s ease-out;
     }
 
+    /* 响应式：小屏下允许横向滚动，防止模块被压扁 */
+    @media (max-width: 900px) {
+      #retro-dock {
+        max-width: calc(100vw - 16px);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      #retro-dock::-webkit-scrollbar { display: none; }
+      .retro-dock-inner {
+        justify-content: flex-start;
+        min-width: max-content;
+      }
+      .retro-metric {
+        flex-shrink: 0;
+      }
+    }
+
 
     /* === lux的全部CSS（从v10-lux-fragment.html升级）=== */
 
@@ -2720,7 +2769,7 @@ body.neu-active {
 
     /* --- 尺寸令牌 --- */
     --lux-dock-width: 940px; /* Task 4 polish: 再宽 20px，让设置按钮更从容 */
-    --lux-dock-height: 70px;
+    --lux-dock-height: 56px;
     --lux-dock-scale-y: 1;
     --lux-panel-width: 360px;
     --lux-panel-height: auto;
@@ -2794,7 +2843,7 @@ body.lux-active::before {
     align-items: center;
     flex-wrap: nowrap; /* Phase 6 fix: 禁止换行，避免只显示 3 个模块 */
     gap: 0;
-    padding: 8px 14px;
+    padding: 6px 18px 6px 12px;
     border-radius: var(--lux-radius-dock);
     overflow: hidden;
 
@@ -2824,8 +2873,6 @@ body.lux-active::before {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
     user-select: none;
-    position: relative;
-    overflow: visible;
 }
 
 /* Layer 5: 光学镀膜反光（极微妙）*/
@@ -2864,11 +2911,11 @@ body.lux-active::before {
     align-items: center;
     justify-content: center;
     gap: 3px;
-    width: 20px;
-    height: 44px;
+    width: 18px;
+    height: 38px;
     cursor: grab;
     flex-shrink: 0;
-    margin-right: 8px;
+    margin-right: 6px;
 }
 
 .lux-dock-handle:active {
@@ -2885,11 +2932,11 @@ body.lux-active::before {
 /* Layer 2: CNC雕刻凹槽（容纳6个监测模块）*/
 .lux-module-slot {
     position: relative;
-    flex: 1 0 118px; /* Phase 6 fix: 允许增长但禁止收缩，保证 6 个模块不被挤压 */
-    min-width: 118px;
-    height: 52px;
+    flex: 1 0 108px; /* Phase 6 fix: 允许增长但禁止收缩，保证 6 个模块不被挤压 */
+    min-width: 108px;
+    height: 42px;
     margin: 0 3px;
-    padding: 4px;
+    padding: 3px;
     border-radius: 10px;
     overflow: hidden;
 
@@ -2921,9 +2968,9 @@ body.lux-active::before {
     height: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 0 10px;
+    justify-content: flex-start;
+    gap: 5px;
+    padding: 0 8px;
     border-radius: 8px;
 
     /* 半透明毛玻璃材质 */
@@ -2969,10 +3016,11 @@ body.lux-active::before {
 
 /* 模块图标 - 发光效果 */
 .lux-module-icon {
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1;
     filter: drop-shadow(0 0 6px currentColor);
     opacity: 0.9;
+    flex-shrink: 0;
 }
 
 .lux-module-slot[data-type="gpu"] .lux-module-icon { color: #00d4ff; }
@@ -2984,7 +3032,7 @@ body.lux-active::before {
 
 /* 模块标签 */
 .lux-module-label {
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -2994,21 +3042,21 @@ body.lux-active::before {
 
 /* 模块数值 - 大号等宽字体，白色清晰可读 */
 .lux-module-value {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     font-family: var(--lux-font-mono);
     color: #ffffff;
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-    min-width: 38px;
+    min-width: 34px;
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
 
 /* 迷你进度条 - 玻璃内部填充（渐变色，带微光）*/
 .lux-mini-progress {
-    width: 46px;
-    height: 5px;
-    border-radius: 3px;
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
     background: rgba(0, 0, 0, 0.4);
     overflow: hidden;
     position: relative;
@@ -3017,7 +3065,7 @@ body.lux-active::before {
 
 .lux-mini-progress-fill {
     height: 100%;
-    border-radius: 3px;
+    border-radius: 2px;
     background: var(--progress-gradient, var(--lux-sapphire));
     transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     position: relative;
@@ -3054,9 +3102,10 @@ body.lux-active::before {
 .lux-settings-btn {
     position: relative;
     z-index: 20;
-    width: 32px;
-    height: 32px;
-    margin-left: 8px;
+    width: 30px;
+    height: 30px;
+    margin-left: 6px;
+    margin-right: 6px;
     border-radius: var(--lux-radius-button);
     flex-shrink: 0;
     background: linear-gradient(145deg, var(--lux-gold-light), var(--lux-gold-mid));
@@ -3700,22 +3749,27 @@ body.lux-active::before {
         --lux-panel-width: 320px;
     }
 
-    /* Phase 6 fix: 在 824px 左右保持单行，压缩模块尺寸 */
+    /* Phase 6 fix: 在 824px 左右保持单行，模块不压缩，允许横向滚动 */
     #lux-dock {
         flex-wrap: nowrap;
         height: var(--lux-dock-height);
-        padding: 6px 8px;
+        padding: 6px 14px 6px 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
     }
+    #lux-dock::-webkit-scrollbar { display: none; }
 
     .lux-dock-handle {
         width: 16px;
-        height: 36px;
+        height: 34px;
         margin-right: 4px;
+        flex-shrink: 0;
     }
 
     .lux-module-slot {
-        flex: 1 0 96px;
-        min-width: 90px;
+        flex: 1 0 92px;
+        min-width: 92px;
+        height: 42px;
         margin: 0 2px;
         padding: 3px;
     }
@@ -3749,6 +3803,8 @@ body.lux-active::before {
         height: 26px;
         font-size: 12px;
         margin-left: 4px;
+        margin-right: 4px;
+        flex-shrink: 0;
     }
 
     #lux-panel {
@@ -3825,7 +3881,7 @@ body.lux-active::before {
 
     /* 尺寸令牌 */
     --cyber-dock-width: 920px;
-    --cyber-dock-height: 92px;
+    --cyber-dock-height: 58px;
     --cyber-dock-scale-y: 1;
     --cyber-panel-width: 390px;
 
@@ -3860,7 +3916,7 @@ body.cyber-active {
     display: flex;
     align-items: center;
     flex-wrap: nowrap;
-    padding: 0 78px;
+    padding: 0 70px;
     user-select: none;
     transition: transform 0.2s ease;
 }
@@ -3873,7 +3929,7 @@ body.cyber-active {
 .cyber-hull {
     position: absolute;
     inset: 0;
-    border-radius: 46px;
+    border-radius: 29px;
     background:
         /* 顶部高光带 */
         radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.18) 0%, transparent 45%),
@@ -3936,7 +3992,7 @@ body.cyber-active {
     position: absolute;
     top: 50%;
     width: 60px;
-    height: 80px;
+    height: 52px;
     transform: translateY(-50%);
     background:
         linear-gradient(180deg, #3a3d48 0%, #22242c 50%, #121319 100%);
@@ -3988,9 +4044,9 @@ body.cyber-active {
 .cyber-cockpit {
     position: relative;
     flex: 1;
-    height: 58px;
-    margin: 0 16px;
-    border-radius: 29px;
+    height: 44px;
+    margin: 0 12px;
+    border-radius: 22px;
     background:
         /* 舱内顶部环境反光 */
         radial-gradient(ellipse at 50% 0%, rgba(var(--cyber-primary-rgb), 0.12) 0%, transparent 55%),
@@ -4054,14 +4110,14 @@ body.cyber-active {
 .cyber-pod {
     position: relative;
     flex: 1 0 auto;
-    min-width: 88px;
+    min-width: 84px;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 2px;
-    padding: 4px 2px;
+    padding: 3px 2px;
     box-sizing: border-box;
     border-right: 1px solid rgba(0,0,0,0.4);
     background:
@@ -4089,7 +4145,7 @@ body.cyber-active {
 .cyber-pod::before {
     content: '';
     position: absolute;
-    top: 8px;
+    top: 6px;
     left: 18%;
     right: 18%;
     height: 2px;
@@ -4129,12 +4185,12 @@ body.cyber-active {
     white-space: nowrap;
 }
 .cyber-pod-value {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     font-family: var(--cyber-font-mono);
     font-variant-numeric: tabular-nums;
     color: var(--pod-accent, var(--cyber-text));
-    min-width: 36px;
+    min-width: 32px;
     text-align: center;
     line-height: 1;
 }
@@ -4165,11 +4221,11 @@ body.cyber-active {
 /* 左侧系统状态灯 */
 .cyber-status-led {
     position: absolute;
-    left: 26px;
+    left: 22px;
     top: 50%;
     transform: translateY(-50%);
-    width: 9px;
-    height: 9px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background:
         radial-gradient(circle at 35% 35%, rgba(255,255,255,0.9) 0%, var(--cyber-led) 40%, #006622 100%);
@@ -4183,11 +4239,11 @@ body.cyber-active {
 /* 拖拽手柄 */
 .cyber-handle {
     position: absolute;
-    left: 44px;
+    left: 40px;
     top: 50%;
     transform: translateY(-50%);
-    width: 22px;
-    height: 40px;
+    width: 20px;
+    height: 34px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4210,11 +4266,11 @@ body.cyber-active {
 /* 右侧设置按钮 */
 .cyber-settings {
     position: absolute;
-    right: 22px;
+    right: 18px;
     top: 50%;
     transform: translateY(-50%);
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -4680,19 +4736,22 @@ body.cyber-active {
     }
 
     #cyber-dock {
-        height: 78px;
+        height: var(--cyber-dock-height);
         padding: 0 52px;
+        overflow-x: auto;
+        scrollbar-width: none;
     }
+    #cyber-dock::-webkit-scrollbar { display: none; }
 
     .cyber-cockpit {
-        height: 50px;
+        height: 44px;
         margin: 0 8px;
-        border-radius: 25px;
+        border-radius: 22px;
     }
 
     .cyber-wing {
         width: 46px;
-        height: 60px;
+        height: 50px;
     }
     .cyber-wing.left { left: -20px; clip-path: polygon(100% 0%, 100% 100%, 0% 88%, 0% 12%); }
     .cyber-wing.right { right: -20px; clip-path: polygon(0% 0%, 0% 100%, 100% 88%, 100% 12%); }
@@ -4701,7 +4760,7 @@ body.cyber-active {
     .cyber-handle { left: 34px; width: 18px; }
     .cyber-settings { right: 14px; width: 30px; height: 30px; font-size: 14px; }
 
-    .cyber-pod-value { font-size: 13px; min-width: 30px; }
+    .cyber-pod-value { font-size: 12px; min-width: 30px; }
     .cyber-pod-bar { width: 75%; }
 
     #cyber-panel {
@@ -4714,27 +4773,29 @@ body.cyber-active {
 
 @media (max-width: 680px) {
     #cyber-dock {
-        height: auto;
-        min-height: 78px;
-        padding: 10px 46px;
+        height: var(--cyber-dock-height);
+        min-height: var(--cyber-dock-height);
+        padding: 0 46px;
+        overflow-x: auto;
+        scrollbar-width: none;
     }
+    #cyber-dock::-webkit-scrollbar { display: none; }
 
     .cyber-cockpit {
-        height: auto;
-        min-height: 58px;
-        padding: 6px 0;
-        flex-wrap: wrap;
+        height: 44px;
+        min-height: 44px;
+        padding: 0;
+        flex-wrap: nowrap;
     }
 
     .cyber-pod {
-        flex: 1 1 calc(33.33% - 2px);
-        min-width: calc(33.33% - 2px);
-        height: 52px;
-        border-bottom: 1px solid rgba(0,0,0,0.35);
+        flex: 1 0 76px;
+        min-width: 76px;
+        height: 100%;
+        border-bottom: none;
     }
 
-    .cyber-pod:nth-child(3) { border-right: none; }
-    .cyber-pod:nth-child(n+4) { border-bottom: none; }
+    .cyber-pod:nth-child(3) { border-right: 1px solid rgba(0,0,0,0.4); }
 
     #cyber-panel {
         width: calc(100vw - 32px);
@@ -4864,7 +4925,7 @@ body.cyber-active {
 .ind-theme-forest,
 .ind-theme-midnight {
     --ind-dock-width: 900px;
-    --ind-dock-height: 100px;
+    --ind-dock-height: 58px;
     --ind-dock-scale-y: 1;
 }
 
@@ -4942,17 +5003,17 @@ body.cyber-active {
 /* 指标模块：仅承载内容，无背景，内容不溢出 */
 .ind-metric {
     position: relative;
-    flex: 1 0 auto;
+    flex: 1 0 84px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    padding: 4px 6px;
+    gap: 1px;
+    padding: 3px 5px;
     background: transparent;
     border: none;
     color: inherit;
-    min-width: 96px;
+    min-width: 84px;
     overflow: hidden;
 }
 
@@ -4975,7 +5036,7 @@ body.cyber-active {
 .ind-metric:nth-child(6) { flex-basis: 20%; }
 
 .ind-metric-icon {
-    font-size: 17px;
+    font-size: 14px;
     line-height: 1;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55));
 }
@@ -4983,7 +5044,7 @@ body.cyber-active {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1px;
+    gap: 0px;
     min-width: 0;
     width: 100%;
 }
@@ -4991,12 +5052,12 @@ body.cyber-active {
     display: flex;
     align-items: baseline;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
     min-width: 0;
     width: 100%;
 }
 .ind-metric-label {
-    font-size: 8px;
+    font-size: 7px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -5009,7 +5070,7 @@ body.cyber-active {
     flex-shrink: 0;
 }
 .ind-metric-value {
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 800;
     font-family: var(--neu-font-mono, monospace);
     color: var(--metric-text, #ffffff);
@@ -5019,14 +5080,14 @@ body.cyber-active {
     text-overflow: ellipsis;
 }
 .ind-metric-unit {
-    font-size: 8px;
+    font-size: 7px;
     font-weight: 700;
     color: var(--metric-unit, #e6ee9c);
     text-shadow: 0 1px 2px rgba(0,0,0,0.55);
 }
 .ind-metric-bar {
     width: 70%;
-    height: 4px;
+    height: 3px;
     background: rgba(0,0,0,0.32);
     border-radius: 2px;
     overflow: hidden;
@@ -5392,9 +5453,12 @@ body.cyber-active {
     #ind-dock {
         min-width: auto;
         width: calc(100vw - 24px);
-        height: auto;
-        min-height: 86px;
+        height: var(--ind-dock-height);
+        min-height: var(--ind-dock-height);
+        overflow-x: auto;
+        scrollbar-width: none;
     }
+    #ind-dock::-webkit-scrollbar { display: none; }
     .ind-cockpit {
         display: flex;
         flex-wrap: nowrap;
@@ -5402,12 +5466,12 @@ body.cyber-active {
         width: 84%;
     }
     .ind-metric {
-        min-width: 0;
-        padding: 4px 2px;
-        gap: 1px;
+        min-width: 72px;
+        padding: 3px 2px;
+        gap: 0px;
     }
     .ind-metric-icon {
-        font-size: 14px;
+        font-size: 13px;
     }
     .ind-metric-value {
         font-size: 12px;
@@ -6445,6 +6509,1420 @@ body.cyber-active {
     border-left-color: var(--jade-dark, #2d6a4f);
 }
 
+.fxm-diag-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.fxm-diag-settings-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a3a3a3;
+    margin-bottom: 2px;
+}
+
+.fxm-diag-settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.fxm-diag-settings-label {
+    font-size: 12px;
+    color: #d4d4d4;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fxm-diag-toggle {
+    width: 40px;
+    height: 22px;
+    border: none;
+    border-radius: 11px;
+    background: #404040;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.fxm-diag-toggle.active {
+    background: #22c55e;
+}
+
+.fxm-diag-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.fxm-diag-toggle.active .fxm-diag-toggle-thumb {
+    transform: translateX(18px);
+}
+
+.fxm-diag-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #d4d4d4;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fxm-diag-checkbox input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #6366f1;
+    cursor: pointer;
+}
+
+/* ---- 通用 Tab 栏 ---- */
+.fxm-panel-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px 0;
+    margin: 0;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 2;
+}
+
+.fxm-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 6px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    background: transparent;
+    color: #a3a3a3;
+    transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.fxm-tab:hover {
+    color: #f5f5f5;
+    background: rgba(255,255,255,0.04);
+}
+
+.fxm-tab.active {
+    color: #f5f5f5;
+    background: #1e1e1e;
+    box-shadow: inset 0 2px 0 #6366f1;
+}
+
+.fxm-tab-badge {
+    display: none;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    padding: 0 4px;
+    background: #ef4444;
+    box-shadow: 0 0 0 2px #1e1e1e;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-sizing: border-box;
+    transition: transform 0.15s ease;
+}
+
+.fxm-tab-badge.show {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    animation: fxm-badge-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes fxm-badge-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+}
+
+/* ---- 通用诊断内容区 ---- */
+.fxm-diag-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #e5e5e5;
+}
+
+.fxm-diag-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 12px;
+    text-align: center;
+    color: #737373;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.fxm-diag-empty-icon {
+    font-size: 28px;
+    opacity: 0.6;
+}
+
+.fxm-diag-disabled {
+    padding: 16px 12px;
+    text-align: center;
+    color: #737373;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* ---- 状态区 ---- */
+.fxm-diag-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    background: #161616;
+    border: 1px solid #262626;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #d4d4d4;
+}
+
+.fxm-diag-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+    flex-shrink: 0;
+}
+
+.fxm-diag-status-dot.ok { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.4); animation: none; }
+.fxm-diag-status-dot.warning { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); animation: fxm-diag-dot-pulse-warning 1.6s ease-in-out infinite; }
+.fxm-diag-status-dot.error { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); animation: fxm-diag-dot-pulse-error 0.9s ease-in-out infinite; }
+.fxm-diag-status-dot.unknown,
+.fxm-diag-status-dot.analyzing { background: #737373; box-shadow: 0 0 6px rgba(115, 115, 115, 0.4); animation: none; }
+
+@keyframes fxm-diag-dot-pulse-error {
+    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
+    50% { opacity: 0.65; transform: scale(1.3); box-shadow: 0 0 14px 3px rgba(239, 68, 68, 0.5); }
+}
+
+@keyframes fxm-diag-dot-pulse-warning {
+    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
+    50% { opacity: 0.8; transform: scale(1.15); box-shadow: 0 0 10px 2px rgba(245, 158, 11, 0.35); }
+}
+
+.fxm-diag-status-label {
+    font-weight: 600;
+}
+
+/* ---- 错误节点信息 ---- */
+.fxm-diag-error-node {
+    display: none;
+    font-size: 12px;
+    color: #a3a3a3;
+    padding: 8px 10px;
+    background: #0f0f0f;
+    border: 1px solid #262626;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    word-break: break-word;
+}
+
+/* ---- 手动诊断按钮组 ---- */
+.fxm-diag-toolbox-buttons,
+.fxm-diag-result-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.fxm-diag-result-actions {
+    margin-top: 4px;
+}
+
+.fxm-diag-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    background: #161616;
+    color: #d4d4d4;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
+    min-width: 0;
+}
+
+.fxm-diag-btn:hover {
+    background: #1e1e1e;
+    border-color: #6366f1;
+    color: #f5f5f5;
+    transform: translateY(-1px);
+}
+
+.fxm-diag-btn:active {
+    transform: translateY(0);
+}
+
+.fxm-diag-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.fxm-diag-btn .fxm-diag-btn-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.fxm-diag-btn.primary {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.45);
+    color: #a5b4fc;
+}
+
+.fxm-diag-btn.primary:hover {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: #6366f1;
+}
+
+/* ---- 模式 A 输入框 ---- */
+.fxm-diag-input-area {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    animation: fxm-fade-in 0.2s ease;
+}
+
+.fxm-diag-input-area.show {
+    display: flex;
+}
+
+.fxm-diag-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #e5e5e5;
+    background: #0f0f0f;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    resize: vertical;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fxm-diag-textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.fxm-diag-textarea::placeholder {
+    color: #525252;
+}
+
+.fxm-diag-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.fxm-diag-submit {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    background: #6366f1;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.fxm-diag-submit:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+}
+
+.fxm-diag-submit:disabled {
+    background: #525252;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.fxm-diag-cancel {
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    background: transparent;
+    color: #a3a3a3;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.fxm-diag-cancel:hover {
+    color: #f5f5f5;
+    border-color: #525252;
+}
+
+/* ---- 诊断结果区 ---- */
+.fxm-diag-result {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    animation: fxm-fade-in 0.2s ease;
+}
+
+.fxm-diag-result.show {
+    display: flex;
+}
+
+@keyframes fxm-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fxm-diag-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.fxm-diag-tag {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    background: #333333;
+    color: #d4d4d4;
+}
+
+.fxm-diag-tag.error {
+    background: rgba(239, 68, 68, 0.16);
+    color: #ef4444;
+}
+
+.fxm-diag-tag.warning {
+    background: rgba(245, 158, 11, 0.16);
+    color: #f59e0b;
+}
+
+.fxm-diag-tag.info {
+    background: rgba(59, 130, 246, 0.16);
+    color: #3b82f6;
+}
+
+.fxm-diag-tag.success {
+    background: rgba(34, 197, 94, 0.16);
+    color: #22c55e;
+}
+
+.fxm-diag-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f5f5f5;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.fxm-diag-source {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 2px 8px;
+    font-size: 10px;
+    color: #a3a3a3;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.fxm-diag-explanation {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d4d4d4;
+    padding: 12px;
+    background: #161616;
+    border-left: 3px solid #6366f1;
+    border-radius: 0 8px 8px 0;
+}
+
+.fxm-diag-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #737373;
+    margin-bottom: 6px;
+}
+
+.fxm-diag-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fxm-diag-suggestion-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    background: #161616;
+    border: 1px solid #262626;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #e5e5e5;
+    transition: border-color 0.15s ease;
+}
+
+.fxm-diag-suggestion-item:hover {
+    border-color: #333333;
+}
+
+.fxm-diag-suggestion-num {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.fxm-diag-meta {
+    display: grid;
+    gap: 6px;
+    font-size: 12px;
+    color: #a3a3a3;
+}
+
+.fxm-diag-meta-row {
+    display: flex;
+    gap: 8px;
+}
+
+.fxm-diag-meta-key {
+    color: #737373;
+    min-width: 70px;
+}
+
+.fxm-diag-meta-value {
+    color: #d4d4d4;
+    word-break: break-word;
+}
+
+/* ---- 原始错误折叠区 ---- */
+.fxm-diag-raw {
+    border: 1px solid #262626;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0f0f0f;
+}
+
+.fxm-diag-raw-content {
+    padding: 10px 12px;
+    max-height: 240px;
+    overflow: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #a3a3a3;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.fxm-diag-raw.collapsed .fxm-diag-raw-content {
+    display: none;
+}
+
+/* ---- 工具箱折叠区 ---- */
+.fxm-diag-toolbox {
+    border: 1px solid #262626;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #161616;
+    margin-top: 12px;
+}
+
+.fxm-diag-toolbox.collapsed .fxm-diag-toolbox-content {
+    display: none;
+}
+
+.fxm-diag-toolbox-header,
+.fxm-diag-meta-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a3a3a3;
+    background: #1e1e1e;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.fxm-diag-toolbox-header:hover,
+.fxm-diag-meta-header:hover {
+    color: #f5f5f5;
+    background: #262626;
+}
+
+.fxm-diag-toolbox-header::after,
+.fxm-diag-meta-header::after {
+    content: '▾';
+    font-size: 12px;
+    transition: transform 0.15s ease;
+}
+
+.fxm-diag-toolbox.collapsed .fxm-diag-toolbox-header::after,
+.fxm-diag-meta.collapsed .fxm-diag-meta-header::after {
+    transform: rotate(-90deg);
+}
+
+.fxm-diag-toolbox-content {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fxm-diag-toolbox-content .fxm-diag-input-area {
+    margin-bottom: 0;
+}
+
+/* ---- 系统快照折叠区 ---- */
+.fxm-diag-meta {
+    border: 1px solid #262626;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #161616;
+}
+
+.fxm-diag-meta.collapsed .fxm-diag-meta-content {
+    display: none;
+}
+
+.fxm-diag-meta-content {
+    padding: 10px 12px;
+}
+
+/* ---- 健康检查分组 ---- */
+.fxm-diag-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fxm-diag-group-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #f5f5f5;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #262626;
+}
+
+.fxm-diag-group-title.error { color: #ef4444; border-bottom-color: rgba(239,68,68,0.3); }
+.fxm-diag-group-title.warning { color: #f59e0b; border-bottom-color: rgba(245,158,11,0.3); }
+.fxm-diag-group-title.info { color: #3b82f6; border-bottom-color: rgba(59,130,246,0.3); }
+.fxm-diag-group-title.success { color: #22c55e; border-bottom-color: rgba(34,197,94,0.3); }
+
+.fxm-diag-finding {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    background: #161616;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #d4d4d4;
+}
+
+.fxm-diag-finding-dot {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-top: 6px;
+}
+
+.fxm-diag-finding-dot.error { background: #ef4444; }
+.fxm-diag-finding-dot.warning { background: #f59e0b; }
+.fxm-diag-finding-dot.info { background: #3b82f6; }
+.fxm-diag-finding-dot.success { background: #22c55e; }
+
+/* ---- Dock 诊断指示灯 ---- */
+.fxm-dock-indicator {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.2);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+    z-index: 10;
+}
+
+.fxm-dock-indicator.ok {
+    background: #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+    animation: none;
+}
+
+.fxm-dock-indicator.warning {
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+    animation: fxm-indicator-pulse-warning 1.6s ease-in-out infinite;
+}
+
+.fxm-dock-indicator.error {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    animation: fxm-indicator-pulse-error 0.9s ease-in-out infinite;
+}
+
+.fxm-dock-indicator.unknown,
+.fxm-dock-indicator.analyzing {
+    background: #737373;
+    box-shadow: 0 0 6px rgba(115, 115, 115, 0.4);
+    animation: none;
+}
+
+/* error：红灯告警式急促脉冲 */
+@keyframes fxm-indicator-pulse-error {
+    0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
+    50% { opacity: 0.6; transform: translateY(-50%) scale(1.35); box-shadow: 0 0 16px 5px rgba(239, 68, 68, 0.55); }
+}
+
+/* warning：黄灯柔和慢闪 */
+@keyframes fxm-indicator-pulse-warning {
+    0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
+    50% { opacity: 0.8; transform: translateY(-50%) scale(1.2); box-shadow: 0 0 12px 3px rgba(245, 158, 11, 0.35); }
+}
+
+/* ---- Tooltip ---- */
+.fxm-tooltip {
+    position: absolute;
+    z-index: 100000;
+    padding: 6px 10px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #f5f5f5;
+    background: #1e1e1e;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    max-width: 220px;
+    white-space: normal;
+}
+
+.fxm-tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ============================================================
+   DIAG 主题适配覆盖
+   ============================================================ */
+
+/* ---- Neu（浅色陶瓷）适配 ---- */
+#neu-panel .fxm-panel-tabs {
+    padding: 8px 14px 0;
+}
+#neu-panel .fxm-tab {
+    color: var(--neu-text-secondary, #a0aec0);
+}
+#neu-panel .fxm-tab:hover {
+    color: var(--neu-text-primary, #4a5568);
+    background: rgba(255,255,255,0.4);
+}
+#neu-panel .fxm-tab.active {
+    color: var(--neu-text-primary, #4a5568);
+    background: var(--neu-base-color, #e0e5ec);
+    box-shadow: inset 0 2px 0 #6366f1, var(--neu-shadow-convex-small);
+}
+#neu-panel .fxm-tab-badge {
+    box-shadow: 0 0 0 2px var(--neu-base-color, #e0e5ec);
+}
+#neu-panel .fxm-diag-content {
+    color: var(--neu-text-primary, #4a5568);
+    background: var(--neu-base-color, #e0e5ec);
+}
+#neu-panel .fxm-diag-empty,
+#neu-panel .fxm-diag-disabled {
+    color: var(--neu-text-secondary, #a0aec0);
+}
+#neu-panel .fxm-diag-status {
+    background: rgba(255,255,255,0.35);
+    border-color: rgba(163,177,198,0.25);
+    color: var(--neu-text-primary, #4a5568);
+}
+#neu-panel .fxm-diag-error-node {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(163,177,198,0.25);
+    color: var(--neu-text-secondary, #6b7280);
+}
+#neu-panel .fxm-diag-btn {
+    background: var(--neu-base-color, #e0e5ec);
+    border-color: rgba(163,177,198,0.4);
+    color: var(--neu-text-primary, #4a5568);
+    box-shadow: var(--neu-shadow-convex-small);
+}
+#neu-panel .fxm-diag-btn:hover {
+    background: var(--neu-base-color, #e0e5ec);
+    box-shadow: var(--neu-shadow-hover-medium);
+    border-color: #6366f1;
+}
+#neu-panel .fxm-diag-btn.primary {
+    background: rgba(99,102,241,0.1);
+    border-color: rgba(99,102,241,0.35);
+    color: #4f46e5;
+}
+#neu-panel .fxm-diag-textarea {
+    background: var(--neu-base-color, #e0e5ec);
+    border-color: rgba(163,177,198,0.5);
+    color: var(--neu-text-primary, #4a5568);
+    box-shadow: var(--neu-shadow-concave);
+}
+#neu-panel .fxm-diag-textarea:focus {
+    border-color: #6366f1;
+    box-shadow: var(--neu-shadow-concave), 0 0 0 2px rgba(99,102,241,0.15);
+}
+#neu-panel .fxm-diag-explanation,
+#neu-panel .fxm-diag-suggestion-item,
+#neu-panel .fxm-diag-finding {
+    background: rgba(255,255,255,0.35);
+    border-color: rgba(163,177,198,0.25);
+    color: var(--neu-text-primary, #4a5568);
+}
+#neu-panel .fxm-diag-raw,
+#neu-panel .fxm-diag-toolbox,
+#neu-panel .fxm-diag-meta {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(163,177,198,0.25);
+}
+#neu-panel .fxm-diag-toolbox-header,
+#neu-panel .fxm-diag-meta-header {
+    background: rgba(255,255,255,0.35);
+    color: var(--neu-text-secondary, #6b7280);
+}
+#neu-panel .fxm-diag-toolbox-header:hover,
+#neu-panel .fxm-diag-meta-header:hover {
+    color: var(--neu-text-primary, #4a5568);
+    background: rgba(255,255,255,0.45);
+}
+#neu-panel .fxm-diag-raw-content {
+    color: var(--neu-text-secondary, #6b7280);
+}
+#neu-panel .fxm-diag-title { color: var(--neu-text-primary, #4a5568); }
+#neu-panel .fxm-diag-section-label { color: var(--neu-text-muted, #718096); }
+#neu-panel .fxm-diag-meta-content { color: var(--neu-text-secondary, #6b7280); }
+#neu-panel .fxm-diag-meta-key { color: var(--neu-text-muted, #718096); }
+#neu-panel .fxm-diag-meta-value { color: var(--neu-text-primary, #4a5568); }
+#neu-panel .fxm-diag-cancel {
+    border-color: rgba(163,177,198,0.4);
+    color: var(--neu-text-secondary, #6b7280);
+}
+#neu-panel .fxm-diag-group-title {
+    color: var(--neu-text-primary, #4a5568);
+    border-bottom-color: rgba(163,177,198,0.25);
+}
+#neu-panel .fxm-dock-indicator {
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+}
+#neu-panel .fxm-diag-settings {
+    padding: 10px 12px;
+    background: var(--neu-base-color, #e0e5ec);
+    border: 1px solid rgba(163,177,198,0.35);
+    border-radius: 10px;
+    box-shadow: var(--neu-shadow-concave-small);
+}
+
+/* ---- Retro 适配 ---- */
+#retro-panel .fxm-panel-tabs {
+    padding: 8px 16px 0;
+}
+#retro-panel .fxm-tab {
+    font-family: var(--retro-font-body, 'IBM Plex Mono', monospace);
+    color: var(--retro-phosphor-dim, #008f11);
+    border-radius: 4px 4px 0 0;
+}
+#retro-panel .fxm-tab:hover {
+    color: var(--retro-phosphor-primary, #00ff41);
+    background: rgba(0,255,65,0.08);
+}
+#retro-panel .fxm-tab.active {
+    color: var(--retro-phosphor-primary, #00ff41);
+    background: rgba(0,20,0,0.65);
+    box-shadow: inset 0 2px 0 var(--retro-phosphor-primary, #00ff41), 0 0 8px var(--retro-phosphor-glow, rgba(0,255,65,0.25));
+}
+#retro-panel .fxm-tab-badge {
+    box-shadow: 0 0 0 2px rgba(0,20,0,0.85);
+}
+#retro-panel .fxm-diag-content {
+    font-family: var(--retro-font-body, 'IBM Plex Mono', monospace);
+    color: var(--retro-phosphor-primary, #00ff41);
+    background: rgba(0,10,0,0.55);
+    text-shadow: 0 0 4px var(--retro-phosphor-glow, rgba(0,255,65,0.3));
+}
+#retro-panel .fxm-diag-empty,
+#retro-panel .fxm-diag-disabled {
+    color: var(--retro-phosphor-dim, #008f11);
+}
+#retro-panel .fxm-diag-status {
+    background: rgba(0,20,0,0.45);
+    border-color: var(--retro-phosphor-dim, #008f11);
+    color: var(--retro-phosphor-primary, #00ff41);
+    text-shadow: 0 0 4px var(--retro-phosphor-glow, rgba(0,255,65,0.3));
+}
+#retro-panel .fxm-diag-error-node {
+    background: rgba(0,10,0,0.5);
+    border-color: var(--retro-phosphor-dim, #008f11);
+    color: var(--retro-phosphor-dim, #008f11);
+    font-family: var(--retro-font-body, 'IBM Plex Mono', monospace);
+}
+#retro-panel .fxm-diag-btn {
+    font-family: var(--retro-font-body, 'IBM Plex Mono', monospace);
+    background: rgba(0,20,0,0.5);
+    border-color: var(--retro-phosphor-dim, #008f11);
+    color: var(--retro-phosphor-primary, #00ff41);
+    text-shadow: 0 0 4px var(--retro-phosphor-glow, rgba(0,255,65,0.3));
+}
+#retro-panel .fxm-diag-btn:hover {
+    background: rgba(0,255,65,0.12);
+    border-color: var(--retro-phosphor-primary, #00ff41);
+    box-shadow: 0 0 8px var(--retro-phosphor-glow, rgba(0,255,65,0.25));
+}
+#retro-panel .fxm-diag-textarea {
+    background: rgba(0,5,0,0.7);
+    border-color: var(--retro-phosphor-dim, #008f11);
+    color: var(--retro-phosphor-primary, #00ff41);
+    font-family: var(--retro-font-body, 'IBM Plex Mono', monospace);
+}
+#retro-panel .fxm-diag-textarea:focus {
+    border-color: var(--retro-phosphor-primary, #00ff41);
+    box-shadow: 0 0 8px var(--retro-phosphor-glow, rgba(0,255,65,0.25));
+}
+#retro-panel .fxm-diag-explanation,
+#retro-panel .fxm-diag-suggestion-item,
+#retro-panel .fxm-diag-finding {
+    background: rgba(0,20,0,0.45);
+    border-color: var(--retro-phosphor-dim, #008f11);
+    color: var(--retro-phosphor-primary, #00ff41);
+}
+#retro-panel .fxm-diag-raw,
+#retro-panel .fxm-diag-toolbox,
+#retro-panel .fxm-diag-meta {
+    background: rgba(0,10,0,0.5);
+    border-color: var(--retro-phosphor-dim, #008f11);
+}
+#retro-panel .fxm-diag-toolbox-header,
+#retro-panel .fxm-diag-meta-header {
+    background: rgba(0,20,0,0.45);
+    color: var(--retro-phosphor-dim, #008f11);
+    font-family: var(--retro-font-body, 'IBM Plex Mono', monospace);
+}
+#retro-panel .fxm-diag-toolbox-header:hover,
+#retro-panel .fxm-diag-meta-header:hover {
+    color: var(--retro-phosphor-primary, #00ff41);
+    background: rgba(0,255,65,0.12);
+}
+#retro-panel .fxm-diag-raw-content {
+    color: var(--retro-phosphor-dim, #008f11);
+}
+#retro-panel .fxm-diag-section-label,
+#retro-panel .fxm-diag-meta-content,
+#retro-panel .fxm-diag-meta-key,
+#retro-panel .fxm-diag-cancel,
+#retro-panel .fxm-diag-group-title {
+    color: var(--retro-phosphor-dim, #008f11);
+}
+#retro-panel .fxm-diag-meta-value,
+#retro-panel .fxm-diag-title { color: var(--retro-phosphor-primary, #00ff41); }
+#retro-panel .fxm-diag-suggestion-num {
+    background: rgba(0,255,65,0.15);
+    color: var(--retro-phosphor-primary, #00ff41);
+}
+#retro-panel .fxm-diag-submit {
+    background: var(--retro-phosphor-primary, #00ff41);
+    color: #000;
+}
+#retro-panel .fxm-diag-submit:hover {
+    background: #4dff6d;
+}
+#retro-panel .fxm-dock-indicator {
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
+}
+#retro-panel .fxm-diag-settings {
+    padding: 8px;
+    background: rgba(0,20,0,0.45);
+    border: 1px solid var(--retro-phosphor-dim, #008f11);
+    border-radius: 3px;
+    font-family: var(--retro-font-body, 'IBM Plex Mono', monospace);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+/* ---- Lux 适配 ---- */
+#lux-panel .fxm-panel-tabs {
+    padding: 8px 16px 0;
+}
+#lux-panel .fxm-tab {
+    color: #8a7f6b;
+}
+#lux-panel .fxm-tab:hover {
+    color: #d4af37;
+    background: rgba(212,175,55,0.08);
+}
+#lux-panel .fxm-tab.active {
+    color: #d4af37;
+    background: linear-gradient(180deg, rgba(30,25,20,0.85), rgba(20,15,12,0.95));
+    box-shadow: inset 0 2px 0 #d4af37;
+}
+#lux-panel .fxm-tab-badge {
+    box-shadow: 0 0 0 2px rgba(20,15,12,0.95);
+}
+#lux-panel .fxm-diag-content {
+    color: #f4e4bc;
+    background: linear-gradient(180deg, rgba(20,15,12,0.9), rgba(15,10,8,0.95));
+}
+#lux-panel .fxm-diag-empty,
+#lux-panel .fxm-diag-disabled {
+    color: #a89f8a;
+}
+#lux-panel .fxm-diag-status {
+    background: rgba(30,25,20,0.6);
+    border-color: rgba(212,175,55,0.15);
+    color: #f4e4bc;
+}
+#lux-panel .fxm-diag-error-node {
+    background: rgba(10,8,6,0.7);
+    border-color: rgba(212,175,55,0.15);
+    color: #a89f8a;
+}
+#lux-panel .fxm-diag-btn {
+    background: rgba(30,25,20,0.7);
+    border-color: rgba(212,175,55,0.25);
+    color: #d4af37;
+}
+#lux-panel .fxm-diag-btn:hover {
+    background: rgba(212,175,55,0.12);
+    border-color: #d4af37;
+    box-shadow: 0 0 10px rgba(212,175,55,0.15);
+}
+#lux-panel .fxm-diag-btn.primary {
+    background: rgba(212,175,55,0.12);
+    border-color: rgba(212,175,55,0.45);
+}
+#lux-panel .fxm-diag-textarea {
+    background: rgba(10,8,6,0.8);
+    border-color: rgba(212,175,55,0.25);
+    color: #f4e4bc;
+}
+#lux-panel .fxm-diag-textarea:focus {
+    border-color: #d4af37;
+    box-shadow: 0 0 0 2px rgba(212,175,55,0.15);
+}
+#lux-panel .fxm-diag-explanation,
+#lux-panel .fxm-diag-suggestion-item,
+#lux-panel .fxm-diag-finding {
+    background: rgba(30,25,20,0.6);
+    border-color: rgba(212,175,55,0.15);
+    color: #f4e4bc;
+}
+#lux-panel .fxm-diag-raw,
+#lux-panel .fxm-diag-toolbox,
+#lux-panel .fxm-diag-meta {
+    background: rgba(10,8,6,0.7);
+    border-color: rgba(212,175,55,0.15);
+}
+#lux-panel .fxm-diag-toolbox-header,
+#lux-panel .fxm-diag-meta-header {
+    background: rgba(30,25,20,0.6);
+    color: #a89f8a;
+}
+#lux-panel .fxm-diag-toolbox-header:hover,
+#lux-panel .fxm-diag-meta-header:hover {
+    color: #f4e4bc;
+    background: rgba(212,175,55,0.12);
+}
+#lux-panel .fxm-diag-raw-content {
+    color: #a89f8a;
+}
+#lux-panel .fxm-diag-title { color: #f4e4bc; }
+#lux-panel .fxm-diag-section-label,
+#lux-panel .fxm-diag-meta-key,
+#lux-panel .fxm-diag-cancel,
+#lux-panel .fxm-diag-group-title {
+    color: #a89f8a;
+}
+#lux-panel .fxm-diag-meta-content,
+#lux-panel .fxm-diag-meta-value { color: #d4c8a8; }
+#lux-panel .fxm-dock-indicator {
+    box-shadow: 0 0 0 2px rgba(20,15,12,0.7);
+}
+#lux-panel .fxm-diag-settings {
+    padding: 10px 12px;
+    background: rgba(30,25,20,0.7);
+    border: 1px solid rgba(212,175,55,0.25);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* ---- Cyber 适配 ---- */
+#cyber-panel .fxm-panel-tabs {
+    padding: 8px 16px 0;
+}
+#cyber-panel .fxm-tab {
+    font-family: var(--cyber-font, 'Orbitron', sans-serif);
+    color: rgba(0,229,255,0.55);
+    letter-spacing: 0.08em;
+    border-radius: 4px 4px 0 0;
+}
+#cyber-panel .fxm-tab:hover {
+    color: #00e5ff;
+    background: rgba(0,229,255,0.08);
+    text-shadow: 0 0 8px rgba(0,229,255,0.4);
+}
+#cyber-panel .fxm-tab.active {
+    color: #00e5ff;
+    background: rgba(5,10,18,0.85);
+    box-shadow: inset 0 2px 0 #00e5ff, 0 0 12px rgba(0,229,255,0.2);
+    text-shadow: 0 0 8px rgba(0,229,255,0.4);
+}
+#cyber-panel .fxm-tab-badge {
+    box-shadow: 0 0 0 2px rgba(5,10,18,0.95);
+}
+#cyber-panel .fxm-diag-content {
+    font-family: var(--cyber-font, 'Orbitron', sans-serif);
+    color: #00e5ff;
+    background: rgba(5,10,18,0.85);
+    text-shadow: 0 0 6px rgba(0,229,255,0.25);
+}
+#cyber-panel .fxm-diag-empty,
+#cyber-panel .fxm-diag-disabled {
+    color: rgba(0,229,255,0.55);
+}
+#cyber-panel .fxm-diag-status {
+    background: rgba(0,229,255,0.06);
+    border-color: rgba(0,229,255,0.2);
+    color: #00e5ff;
+    text-shadow: 0 0 6px rgba(0,229,255,0.25);
+    font-family: var(--cyber-font, 'Orbitron', sans-serif);
+}
+#cyber-panel .fxm-diag-error-node {
+    background: rgba(0,0,0,0.4);
+    border-color: rgba(0,229,255,0.2);
+    color: rgba(0,229,255,0.7);
+    font-family: var(--cyber-font, 'Orbitron', sans-serif);
+}
+#cyber-panel .fxm-diag-btn {
+    font-family: var(--cyber-font, 'Orbitron', sans-serif);
+    background: rgba(0,229,255,0.08);
+    border-color: rgba(0,229,255,0.25);
+    color: #00e5ff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+#cyber-panel .fxm-diag-btn:hover {
+    background: rgba(0,229,255,0.15);
+    border-color: #00e5ff;
+    box-shadow: 0 0 12px rgba(0,229,255,0.25);
+}
+#cyber-panel .fxm-diag-textarea {
+    background: rgba(0,0,0,0.5);
+    border-color: rgba(0,229,255,0.25);
+    color: #00e5ff;
+    font-family: var(--cyber-font, 'Orbitron', sans-serif);
+}
+#cyber-panel .fxm-diag-textarea:focus {
+    border-color: #00e5ff;
+    box-shadow: 0 0 10px rgba(0,229,255,0.25);
+}
+#cyber-panel .fxm-diag-explanation,
+#cyber-panel .fxm-diag-suggestion-item,
+#cyber-panel .fxm-diag-finding {
+    background: rgba(0,229,255,0.06);
+    border-color: rgba(0,229,255,0.2);
+    color: #00e5ff;
+}
+#cyber-panel .fxm-diag-raw,
+#cyber-panel .fxm-diag-toolbox,
+#cyber-panel .fxm-diag-meta {
+    background: rgba(0,0,0,0.4);
+    border-color: rgba(0,229,255,0.2);
+}
+#cyber-panel .fxm-diag-toolbox-header,
+#cyber-panel .fxm-diag-meta-header {
+    background: rgba(0,229,255,0.06);
+    color: rgba(0,229,255,0.55);
+    font-family: var(--cyber-font, 'Orbitron', sans-serif);
+}
+#cyber-panel .fxm-diag-toolbox-header:hover,
+#cyber-panel .fxm-diag-meta-header:hover {
+    color: #00e5ff;
+    background: rgba(0,229,255,0.12);
+}
+#cyber-panel .fxm-diag-raw-content {
+    color: rgba(0,229,255,0.7);
+}
+#cyber-panel .fxm-diag-title { color: #00e5ff; }
+#cyber-panel .fxm-diag-section-label,
+#cyber-panel .fxm-diag-meta-key,
+#cyber-panel .fxm-diag-cancel,
+#cyber-panel .fxm-diag-group-title {
+    color: rgba(0,229,255,0.55);
+}
+#cyber-panel .fxm-diag-meta-content,
+#cyber-panel .fxm-diag-meta-value { color: #80f0ff; }
+#cyber-panel .fxm-dock-indicator {
+    box-shadow: 0 0 0 2px rgba(5,10,18,0.8);
+}
+#cyber-panel .fxm-diag-settings {
+    padding: 10px 12px;
+    background: rgba(5,10,18,0.6);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-radius: 8px;
+}
+
+/* ---- Ind 适配 ---- */
+#ind-panel .fxm-panel-tabs {
+    padding: 8px 16px 0;
+}
+#ind-panel .fxm-tab {
+    color: rgba(200,230,205,0.6);
+    background: transparent;
+    transition: all 0.2s ease;
+}
+#ind-panel .fxm-tab:hover {
+    color: var(--jade-light, #e8f5e9);
+    background: rgba(255,255,255,0.06);
+}
+#ind-panel .fxm-tab.active {
+    color: var(--jade-light, #e8f5e9);
+    background: rgba(60,100,65,0.45);
+    box-shadow: inset 0 2px 0 var(--jade, #3a8c3e);
+}
+#ind-panel .fxm-tab-badge {
+    background: var(--jade, #3a8c3e);
+    color: #fff;
+    box-shadow: 0 0 0 2px rgba(22,38,26,0.95);
+}
+#ind-panel .fxm-diag-content {
+    color: var(--text-light, #f1f8f3);
+    background: transparent;
+}
+#ind-panel .fxm-diag-empty,
+#ind-panel .fxm-diag-disabled {
+    color: rgba(200,230,205,0.55);
+}
+#ind-panel .fxm-diag-status {
+    background: rgba(0,0,0,0.18);
+    border-color: rgba(160,220,170,0.12);
+    color: var(--text-light, #f1f8f3);
+}
+#ind-panel .fxm-diag-error-node {
+    background: rgba(0,0,0,0.12);
+    border-color: rgba(160,220,170,0.1);
+    color: rgba(230,245,232,0.75);
+}
+#ind-panel .fxm-diag-btn {
+    background: rgba(60,100,65,0.45);
+    border-color: rgba(160,220,170,0.18);
+    color: var(--jade-light, #e8f5e9);
+}
+#ind-panel .fxm-diag-btn:hover {
+    background: rgba(70,115,75,0.55);
+    border-color: rgba(160,220,170,0.3);
+}
+#ind-panel .fxm-diag-btn.primary {
+    background: linear-gradient(180deg, var(--jade), var(--jade-dark));
+    border-color: transparent;
+    color: #fff;
+}
+#ind-panel .fxm-diag-textarea {
+    background: rgba(0,0,0,0.2);
+    border-color: rgba(160,220,170,0.2);
+    color: var(--text-light, #f1f8f3);
+}
+#ind-panel .fxm-diag-textarea:focus {
+    border-color: var(--jade, #3a8c3e);
+    box-shadow: 0 0 0 2px rgba(160,220,170,0.12);
+}
+#ind-panel .fxm-diag-explanation,
+#ind-panel .fxm-diag-suggestion-item,
+#ind-panel .fxm-diag-finding {
+    background: rgba(0,0,0,0.15);
+    border-color: rgba(160,220,170,0.1);
+    color: var(--text-light, #f1f8f3);
+}
+#ind-panel .fxm-diag-raw,
+#ind-panel .fxm-diag-toolbox,
+#ind-panel .fxm-diag-meta {
+    background: rgba(0,0,0,0.12);
+    border-color: rgba(160,220,170,0.1);
+}
+#ind-panel .fxm-diag-toolbox-header,
+#ind-panel .fxm-diag-meta-header {
+    background: rgba(0,0,0,0.15);
+    color: rgba(200,230,205,0.7);
+}
+#ind-panel .fxm-diag-toolbox-header:hover,
+#ind-panel .fxm-diag-meta-header:hover {
+    color: var(--jade-light, #e8f5e9);
+    background: rgba(60,100,65,0.25);
+}
+#ind-panel .fxm-diag-raw-content {
+    color: rgba(200,230,205,0.75);
+}
+#ind-panel .fxm-diag-title { color: var(--jade-light, #e8f5e9); }
+#ind-panel .fxm-diag-section-label,
+#ind-panel .fxm-diag-meta-key,
+#ind-panel .fxm-diag-cancel,
+#ind-panel .fxm-diag-group-title {
+    color: rgba(200,230,205,0.7);
+}
+#ind-panel .fxm-diag-meta-content,
+#ind-panel .fxm-diag-meta-value { color: var(--jade-light, #e8f5e9); }
+#ind-panel .fxm-dock-indicator {
+    box-shadow: 0 0 0 2px rgba(22,38,26,0.9);
+}
+#ind-panel .fxm-diag-settings {
+    padding: 10px 12px;
+    background: rgba(40,70,45,0.4);
+    border: 1px solid rgba(160,220,170,0.14);
+    border-radius: 12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* ---- Tab 切换显示控制 ---- */
+#neu-panel[data-fxm-tab="diag"] > .neu-detail-section,
+#neu-panel[data-fxm-tab="diag"] > .neu-settings-section,
+#neu-panel[data-fxm-tab="diag"] > .fxm-cleanup-section,
+#neu-panel[data-fxm-tab="diag"] > .neu-panel-footer,
+#lux-panel[data-fxm-tab="diag"] > .lux-detail-section,
+#lux-panel[data-fxm-tab="diag"] > .lux-settings-area,
+#lux-panel[data-fxm-tab="diag"] > .fxm-cleanup-section,
+#lux-panel[data-fxm-tab="diag"] > .lux-panel-footer,
+#cyber-panel[data-fxm-tab="diag"] > .cyber-detail-section,
+#cyber-panel[data-fxm-tab="diag"] > .cyber-control-bar,
+#cyber-panel[data-fxm-tab="diag"] > .cyber-color-bar,
+#cyber-panel[data-fxm-tab="diag"] > .cyber-controls-section,
+#cyber-panel[data-fxm-tab="diag"] > .fxm-cleanup-section,
+#cyber-panel[data-fxm-tab="diag"] > .cyber-status-bar,
+#ind-panel[data-fxm-tab="diag"] > .ind-section,
+#ind-panel[data-fxm-tab="diag"] > .fxm-cleanup-section,
+#ind-panel[data-fxm-tab="diag"] > .ind-panel-footer {
+    display: none !important;
+}
+
+#retro-panel[data-fxm-tab="diag"] .retro-panel-inner > .retro-section,
+#retro-panel[data-fxm-tab="diag"] .retro-panel-inner > .fxm-cleanup-section,
+#retro-panel[data-fxm-tab="diag"] .retro-panel-inner > .retro-source-text,
+#retro-panel[data-fxm-tab="diag"] .retro-panel-inner > div[style*="text-align:center"] {
+    display: none !important;
+}
+
+#neu-panel[data-fxm-tab="diag"] .fxm-diag-content,
+#retro-panel[data-fxm-tab="diag"] .fxm-diag-content,
+#lux-panel[data-fxm-tab="diag"] .fxm-diag-content,
+#cyber-panel[data-fxm-tab="diag"] .fxm-diag-content,
+#ind-panel[data-fxm-tab="diag"] .fxm-diag-content {
+    display: block;
+}
+
+/* 诊断标签激活时让面板变为 flex 纵向布局，使 diag-content 可占满剩余空间并内部滚动 */
+#neu-panel[data-fxm-tab="diag"],
+#lux-panel[data-fxm-tab="diag"],
+#cyber-panel[data-fxm-tab="diag"],
+#ind-panel[data-fxm-tab="diag"] {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Retro 面板的滚动容器是 .retro-panel-inner，已天然为 flex 列 */
+
+/* ---- 响应式：小宽度适配 ---- */
+@media (max-width: 420px) {
+    .fxm-diag-toolbox-buttons,
+    .fxm-diag-result-actions {
+        flex-wrap: wrap;
+    }
+    .fxm-diag-toolbox-buttons .fxm-diag-btn {
+        flex: 1 1 30%;
+        min-width: 80px;
+    }
+    .fxm-diag-result-actions .fxm-diag-btn {
+        flex: 1 1 30%;
+        min-width: 80px;
+    }
+}
+
 `;
 
         document.head.appendChild(style);
@@ -6457,6 +7935,38 @@ body.cyber-active {
 
     /** 有效风格列表 */
     const VALID_STYLES = ['neu', 'ind', 'retro', 'lux', 'cyber'];
+
+    const LAYOUT_ROW_CLASSES = {
+        neu:   'neu-setting-row',
+        lux:   'lux-setting-row',
+        cyber: 'cyber-control-row',
+        retro: 'retro-control-row',
+        ind:   'ind-setting-row'
+    };
+
+    const LAYOUT_LABEL_CLASSES = {
+        neu:   'neu-setting-label',
+        lux:   'lux-setting-label',
+        cyber: 'cyber-control-label',
+        retro: 'retro-control-label',
+        ind:   'ind-setting-label'
+    };
+
+    const LAYOUT_TOGGLE_CLASSES = {
+        neu:   'neu-toggle-switch',
+        lux:   'lux-toggle-switch',
+        cyber: 'cyber-toggle-switch',
+        retro: 'retro-toggle-switch',
+        ind:   'ind-toggle-switch'
+    };
+
+    const LAYOUT_THUMB_CLASSES = {
+        neu:   'neu-toggle-thumb',
+        lux:   'lux-toggle-thumb',
+        cyber: 'cyber-toggle-thumb',
+        retro: 'retro-toggle-thumb',
+        ind:   'ind-toggle-thumb'
+    };
 
     // ============================================================
     // i18n 国际化标签映射
@@ -6479,6 +7989,7 @@ body.cyber-active {
             net_up: '上传', net_down: '下载',
             // 设置项
             sound_alert: '声音提示', drag_mode: '拖拽模式', theme: '主题',
+            monitor: '监控', diag: '诊断',
             color: '色彩', settings: '设置', settings_panel: '设置面板', close: '关闭',
             smart_memory_cleanup: '智能内存清理',
             auto_smart_cleanup: '清理模式',
@@ -6503,10 +8014,74 @@ body.cyber-active {
             source_prefix: '来源: ', detecting: '检测中...',
             plugin_active: 'ComfyUI 插件运行中',
             workflow_status: '工作流状态',
+            // 面板品牌/通用状态
+            panel_title: '飞雪监测器',
+            system_monitor: '系统监测器',
+            retro_terminal: '复古终端',
+            delay_auto: '自动（当前 {0} 秒）',
+            delay_seconds: '{0} 秒',
+            cleaning: '清理中…',
+            not_available: '无数据',
+            toggle_on: '开', toggle_off: '关',
+            retro_color_green: 'P1 磷光绿',
+            retro_color_purple: 'P43 稀土紫',
+            retro_color_amber: 'P22 琥珀',
+            retro_color_cyan: 'P39 青色',
+            retro_color_pink: '自定义粉',
             // 通用
             load: '负载', usage: '占用', usage_rate: '使用率',
             // 工具提示
-            drag_move: '拖拽移动', system_normal: '系统正常'
+            drag_move: '拖拽移动', system_normal: '系统正常',
+            diagnose_current_error: '当前报错',
+            crash_diagnosis: '崩溃排查',
+            health_check: '健康检查',
+            paste_error_text: '粘贴英文报错文本',
+            paste_error_diagnosis: '粘贴报错文本诊断',
+            diagnose: '诊断',
+            diagnosis_result: '诊断结果',
+            no_diagnosis: '系统正常，暂无报错',
+            diag_disabled: '自动诊断已关闭。点击「重新诊断」翻译 ComfyUI 当前报错；点击「健康检查」扫描工作流中缺失的节点/模型。',
+            raw_error: '原始错误信息',
+            node_info: '节点信息',
+            system_snapshot: '系统快照',
+            vram_peak: 'VRAM 峰值',
+            error: '错误', warning: '警告', info: '提示', success: '正常',
+            loading: '分析中…',
+            analyzing: '正在分析最近报错，请稍候…',
+            no_recent_error: '暂无最近报错',
+            unknown_error: '未识别错误',
+            suggestions: '解决建议',
+            tooltip_diagnose_current: '基于最近缓存的 ComfyUI 报错进行诊断',
+            tooltip_crash: '分析系统日志与监控快照，排查崩溃/黑屏/掉驱动',
+            tooltip_health: '扫描 ComfyUI 环境常见隐患',
+            tooltip_paste_error: '粘贴报错文本进行诊断',
+            diag_status_ok: '系统正常',
+            diag_status_error: '检测到错误',
+            diag_status_warning: '等待运行',
+            finding_error: '错误', finding_warning: '警告', finding_info: '提示',
+            status_normal: '正常',
+            status_error_detected: '检测到错误',
+            status_waiting: '等待运行',
+            status_unknown: '未知',
+            status_analyzing: '分析中',
+            re_diagnose: '重新诊断',
+            copy_result: '复制结果',
+            view_raw_error: '查看原始错误',
+            copied: '已复制',
+            copy_failed: '复制失败',
+            toolbox: '工具箱',
+            error_node: '错误节点',
+            cat_oom: '显存不足', cat_model_missing: '模型缺失', cat_dtype_mismatch: '数据类型不匹配',
+            cat_device_mismatch: '设备不匹配', cat_import_error: '导入错误',
+            cat_node_not_found: '节点缺失', cat_connection_error: '连接错误',
+            cat_shape_mismatch: '张量形状不匹配', cat_workflow_validation: '工作流校验错误',
+            // DIAG 设置（Task 9）
+            diag_settings: '诊断设置',
+            diag_enabled: 'DIAG 功能开关',
+            diag_notification: '通知方式',
+            diag_notify_panel: '面板内显示',
+            diag_notify_desktop: '浏览器桌面通知'
+
         },
         en: {
             gpu: 'GPU', cpu: 'CPU', ram: 'RAM', vram: 'VRAM',
@@ -6542,8 +8117,72 @@ body.cyber-active {
             source_prefix: 'Source: ', detecting: 'Detecting...',
             plugin_active: 'ComfyUI Plugin Active',
             workflow_status: 'Workflow Status',
+            panel_title: 'FEIXUE MONITOR',
+            system_monitor: 'SYSTEM MONITOR',
+            retro_terminal: 'RETRO TERMINAL',
+            delay_auto: 'Auto (Current {0}s)',
+            delay_seconds: '{0}s',
+            cleaning: 'Cleaning…',
+            not_available: 'N/A',
+            toggle_on: 'ON', toggle_off: 'OFF',
+            retro_color_green: 'P1 PHOSPHOR GREEN',
+            retro_color_purple: 'P43 RARE EARTH PURPLE',
+            retro_color_amber: 'P22 AMBER',
+            retro_color_cyan: 'P39 CYAN',
+            retro_color_pink: 'CUSTOM PINK',
             load: 'Load', usage: 'Usage', usage_rate: 'Usage',
-            drag_move: 'Drag to move', system_normal: 'System normal'
+            drag_move: 'Drag to move', system_normal: 'System normal',
+            diag: 'DIAG', monitor: 'Monitor',
+            diagnose_current_error: 'Current Error',
+            crash_diagnosis: 'Crash Check',
+            health_check: 'Health Check',
+            paste_error_text: 'Paste error text',
+            paste_error_diagnosis: 'Paste error text to diagnose',
+            diagnose: 'Diagnose',
+            diagnosis_result: 'Diagnosis Result',
+            no_diagnosis: 'System normal. No errors.',
+            diag_disabled: 'Auto-diagnosis is off. Click "Re-diagnose" to translate the current ComfyUI error; click "Health Check" to scan for missing nodes/models in the workflow.',
+            raw_error: 'Raw Error',
+            node_info: 'Node Info',
+            system_snapshot: 'System Snapshot',
+            vram_peak: 'VRAM Peak',
+            error: 'Error', warning: 'Warning', info: 'Info', success: 'OK',
+            loading: 'Analyzing…',
+            analyzing: 'Analyzing the most recent error, please wait…',
+            no_recent_error: 'No recent error.',
+            unknown_error: 'Unknown Error',
+            suggestions: 'Suggestions',
+            tooltip_diagnose_current: 'Diagnose the most recent cached ComfyUI error',
+            tooltip_crash: 'Analyze system logs and snapshots for crash/black screen/driver issues',
+            tooltip_health: 'Scan the ComfyUI environment for common issues',
+            tooltip_paste_error: 'Paste error text to diagnose',
+            diag_status_ok: 'System Normal',
+            diag_status_error: 'Error Detected',
+            diag_status_warning: 'Waiting',
+            finding_error: 'Errors', finding_warning: 'Warnings', finding_info: 'Notes',
+            status_normal: 'Normal',
+            status_error_detected: 'Error Detected',
+            status_waiting: 'Waiting',
+            status_unknown: 'Unknown',
+            status_analyzing: 'Analyzing',
+            re_diagnose: 'Re-diagnose',
+            copy_result: 'Copy Result',
+            view_raw_error: 'View Raw Error',
+            copied: 'Copied',
+            copy_failed: 'Copy Failed',
+            toolbox: 'Toolbox',
+            error_node: 'Error Node',
+            cat_oom: 'VRAM OOM', cat_model_missing: 'Model Missing', cat_dtype_mismatch: 'Dtype Mismatch',
+            cat_device_mismatch: 'Device Mismatch', cat_import_error: 'Import Error',
+            cat_node_not_found: 'Node Missing', cat_connection_error: 'Connection Error',
+            cat_shape_mismatch: 'Shape Mismatch', cat_workflow_validation: 'Workflow Validation',
+            // DIAG settings (Task 9)
+            diag_settings: 'Diagnosis Settings',
+            diag_enabled: 'DIAG Enabled',
+            diag_notification: 'Notifications',
+            diag_notify_panel: 'In-Panel',
+            diag_notify_desktop: 'Desktop Notification'
+
         }
     };
 
@@ -6554,6 +8193,219 @@ body.cyber-active {
     function t(key) {
         const map = I18N_MAPS[FXM_LANG] || I18N_MAPS.en;
         return map[key] !== undefined ? map[key] : (I18N_MAPS.en[key] !== undefined ? I18N_MAPS.en[key] : key);
+    }
+
+    /** 获取并格式化i18n文本（替换 {0},{1}...） */
+    function tf(key) {
+        let template = t(key);
+        for (let i = 1; i < arguments.length; i++) {
+            const val = arguments[i];
+            template = template.replace(new RegExp('\\{' + (i - 1) + '\\}', 'g'), val == null ? '' : String(val));
+        }
+        return template;
+    }
+
+    // ============================================================
+    // DIAG 诊断状态与设置（Task 7 / Task 9）
+    // ============================================================
+
+    const DIAG_ENABLED_KEY = 'fxm_diag_enabled';
+    const DIAG_NOTIFICATION_KEY = 'fxm_diag_notification';
+
+    /** DIAG 配置（默认开启，通知方式仅面板） */
+    const diagConfig = {
+        enabled: true,
+        notification: ['panel'],
+        _loadedFromBackend: false
+    };
+
+    /** 从 localStorage 恢复 DIAG 配置作为缓存（后端不可用时降级） */
+    function loadDiagConfigFromCache() {
+        try {
+            const savedEnabled = localStorage.getItem(DIAG_ENABLED_KEY);
+            if (savedEnabled !== null) diagConfig.enabled = savedEnabled === 'true';
+        } catch (e) { /* ignore */ }
+        try {
+            const savedNotify = localStorage.getItem(DIAG_NOTIFICATION_KEY);
+            if (savedNotify !== null) {
+                const parsed = JSON.parse(savedNotify);
+                if (Array.isArray(parsed)) diagConfig.notification = parsed;
+            }
+        } catch (e) { /* ignore */ }
+    }
+    loadDiagConfigFromCache();
+
+    /** 向后端保存 DIAG 配置，同时更新 localStorage 缓存 */
+    async function saveDiagConfigToBackend(updates) {
+        Object.assign(diagConfig, updates);
+        try { localStorage.setItem(DIAG_ENABLED_KEY, diagConfig.enabled.toString()); } catch (e) {}
+        try { localStorage.setItem(DIAG_NOTIFICATION_KEY, JSON.stringify(diagConfig.notification)); } catch (e) {}
+        try {
+            await postJSON('/feixue_monitor/diag/config', {
+                enabled: diagConfig.enabled,
+                notification: diagConfig.notification
+            });
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ DIAG 配置保存到后端失败:', e);
+        }
+        updateDiagPanelsForEnabledState();
+        syncDiagSettingsUI();
+    }
+
+    /** 从后端 /feixue_monitor/diag/status 刷新 DIAG 配置 */
+    async function refreshDiagConfigFromBackend() {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const response = await fetch('/feixue_monitor/diag/status', {
+                signal: controller.signal,
+                headers: { 'Accept': 'application/json' }
+            });
+            clearTimeout(timeoutId);
+            const data = await response.json();
+            if (data && typeof data.enabled === 'boolean') {
+                diagConfig.enabled = data.enabled;
+                diagConfig._loadedFromBackend = true;
+            }
+            if (data && Array.isArray(data.notification)) {
+                diagConfig.notification = data.notification;
+            } else if (data && data.diag && Array.isArray(data.diag.notification)) {
+                diagConfig.notification = data.diag.notification;
+            }
+            try { localStorage.setItem(DIAG_ENABLED_KEY, diagConfig.enabled.toString()); } catch (e) {}
+            try { localStorage.setItem(DIAG_NOTIFICATION_KEY, JSON.stringify(diagConfig.notification)); } catch (e) {}
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ 从后端读取 DIAG 配置失败，使用本地缓存:', e);
+        }
+        updateDiagPanelsForEnabledState();
+        syncDiagSettingsUI();
+    }
+
+    /** 当前诊断状态: 'ok' | 'error' | 'warning' | 'unknown' | 'analyzing' */
+    let diagState = 'ok';
+
+    /** 诊断状态单调递增序列号，用于丢弃过期异步响应导致的状态变更 */
+    let diagStateSeq = 0;
+
+    /** 最近一次 error/warning 状态对应的序列号，用于判断 green-only 条件 */
+    let diagLastErrorSeq = 0;
+
+    /** 诊断标签页红点角标是否显示 */
+    let diagBadgeVisible = false;
+
+    /** 诊断标签页红点角标未读计数 */
+    let diagBadgeCount = 0;
+
+    /** 是否已经发生过首次报错自动切换 */
+    let diagFirstErrorSwitched = false;
+
+    /** 最近一次诊断报告缓存（仅保存真实报错诊断，不含健康检查） */
+    let lastDiagReport = null;
+
+    /** 最近一次健康检查报告缓存，与真实报错诊断分离 */
+    let lastHealthReport = null;
+
+    /** 诊断报告全局递增序列号，用于区分异步诊断响应的先后顺序 */
+    let diagReportSeq = 0;
+
+    /** 最近一次渲染的诊断报告序列号 */
+    let lastDiagReportSeq = 0;
+
+    /** 当前激活的 Panel Tab: 'monitor' | 'diag' */
+    let activePanelTab = 'monitor';
+
+    /**
+     * 判断 DIAG 开关是否开启
+     */
+    function isDiagEnabled() {
+        return diagConfig.enabled;
+    }
+
+    /**
+     * 设置 DIAG 开关状态
+     */
+    function setDiagEnabled(enabled) {
+        diagConfig.enabled = !!enabled;
+        saveDiagConfigToBackend({ enabled: diagConfig.enabled });
+        if (!diagConfig.enabled) {
+            setDiagState('ok');
+            setDiagBadge(false);
+        }
+        updateDiagPanelsForEnabledState();
+    }
+
+    /**
+     * 判断通知方式是否启用
+     */
+    function isDiagNotificationEnabled(type) {
+        return Array.isArray(diagConfig.notification) && diagConfig.notification.indexOf(type) !== -1;
+    }
+
+    /**
+     * 设置通知方式启用/禁用
+     */
+    function setDiagNotification(type, enabled) {
+        const list = Array.isArray(diagConfig.notification) ? diagConfig.notification.slice() : ['panel'];
+        const idx = list.indexOf(type);
+        if (enabled && idx === -1) {
+            list.push(type);
+        } else if (!enabled && idx !== -1) {
+            list.splice(idx, 1);
+        }
+        // 至少保留一种通知方式，避免全部取消后用户看不到诊断结果
+        if (list.length === 0) list.push('panel');
+        diagConfig.notification = list;
+        saveDiagConfigToBackend({ notification: list });
+    }
+
+    /**
+     * 生成 DIAG 设置区 HTML（通用结构，由主题 CSS 选择器控制样式）
+     * @param {string} style - 主题名
+     */
+    function getDiagSettingsHTML(style) {
+        const enabled = isDiagEnabled() ? ' active' : '';
+        const rowClass = LAYOUT_ROW_CLASSES[style] || 'fxm-diag-settings-row';
+        const labelClass = LAYOUT_LABEL_CLASSES[style] || 'fxm-diag-settings-label';
+        const toggleClass = LAYOUT_TOGGLE_CLASSES[style] || 'fxm-diag-toggle';
+        const thumbClass = toggleClass.replace('-switch', '-thumb');
+        return '<div class="fxm-diag-settings" data-diag-settings="' + style + '">' +
+            '<div class="' + rowClass + '">' +
+                '<label class="' + labelClass + '" for="' + style + '-diagEnabled">' + t('diag_enabled') + '</label>' +
+                '<button class="' + toggleClass + enabled + '" id="' + style + '-diagEnabled" role="switch" aria-checked="' + isDiagEnabled().toString() + '" aria-label="' + t('diag_enabled') + '">' +
+                    '<span class="' + thumbClass + '"></span>' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+    }
+
+    /**
+     * 同步所有 DIAG 设置控件 UI 到当前 diagConfig
+     */
+    function syncDiagSettingsUI() {
+        VALID_STYLES.forEach(style => {
+            const panel = document.getElementById(style + '-panel');
+            if (!panel) return;
+            const toggle = panel.querySelector('#' + style + '-diagEnabled');
+            if (toggle) {
+                toggle.classList.toggle('active', isDiagEnabled());
+                toggle.setAttribute('aria-checked', isDiagEnabled().toString());
+            }
+        });
+    }
+
+    /**
+     * 绑定 DIAG 设置区事件
+     */
+    function bindDiagSettings(panel, style) {
+        const toggle = panel.querySelector('#' + style + '-diagEnabled');
+        if (toggle) {
+            toggle.addEventListener('click', function() {
+                const active = !this.classList.contains('active');
+                setDiagEnabled(active);
+            });
+            toggle.addEventListener('mousedown', e => e.stopPropagation());
+            toggle.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+        }
     }
 
     /** 有效颜色白名单（Neu子主题色），Forest 作为竹系主题默认首选前置 */
@@ -6584,6 +8436,1574 @@ body.cyber-active {
     let currentColor = 'forest';
 
     // ============================================================
+    // DIAG 诊断面板通用函数（Task 7）
+    // ============================================================
+
+    /**
+     * 生成 Panel Tab 栏 HTML
+     */
+    function getDiagTabsHTML() {
+        return '<div class="fxm-panel-tabs" role="tablist" aria-label="' + t('settings_panel') + '">' +
+            '<button class="fxm-tab active" data-tab="monitor" role="tab" aria-selected="true" tabindex="0">' + t('monitor') + '</button>' +
+            '<button class="fxm-tab" data-tab="diag" role="tab" aria-selected="false" tabindex="-1">' + t('diag') + '<span class="fxm-tab-badge"></span></button>' +
+        '</div>';
+    }
+
+    /**
+     * 生成诊断内容区 HTML
+     *
+     * 新布局：
+     * 1. 状态区（始终可见）
+     * 2. 诊断结果区（有报告时显示）
+     * 3. 工具箱折叠区（始终可见，默认折叠）
+     * 4. 原始错误折叠区（位于结果区内，默认折叠）
+     */
+    function getDiagContentHTML() {
+        return '<div class="fxm-diag-content">' +
+            '<div class="fxm-diag-status">' +
+                '<span class="fxm-diag-status-dot"></span>' +
+                '<span class="fxm-diag-status-label">' + t('diag_status_ok') + '</span>' +
+            '</div>' +
+            '<div class="fxm-diag-empty">' +
+                '<span class="fxm-diag-empty-icon">&#x2714;</span>' +
+                '<span>' + t('no_diagnosis') + '</span>' +
+            '</div>' +
+            '<div class="fxm-diag-disabled" style="display:none;">' + t('diag_disabled') + '</div>' +
+            '<div class="fxm-diag-result">' +
+                '<div class="fxm-diag-error-node"></div>' +
+                '<div class="fxm-diag-header">' +
+                    '<span class="fxm-diag-tag"></span>' +
+                    '<h3 class="fxm-diag-title"></h3>' +
+                    '<span class="fxm-diag-source"></span>' +
+                '</div>' +
+                '<div class="fxm-diag-explanation"></div>' +
+                '<div class="fxm-diag-suggestions-wrap">' +
+                    '<div class="fxm-diag-section-label">' + t('suggestions') + '</div>' +
+                    '<div class="fxm-diag-suggestions"></div>' +
+                '</div>' +
+                '<div class="fxm-diag-result-actions">' +
+                    '<button class="fxm-diag-btn primary" data-diag="current" type="button" title="' + t('tooltip_diagnose_current') + '">' + t('re_diagnose') + '</button>' +
+                    '<button class="fxm-diag-btn" data-diag="copy" type="button">' + t('copy_result') + '</button>' +
+                    '<button class="fxm-diag-btn" data-diag="raw" type="button">' + t('view_raw_error') + ' &#x25BC;</button>' +
+                '</div>' +
+                '<div class="fxm-diag-raw collapsed">' +
+                    '<pre class="fxm-diag-raw-content"></pre>' +
+                '</div>' +
+                '<div class="fxm-diag-meta collapsed">' +
+                    '<div class="fxm-diag-meta-header">' + t('system_snapshot') + '</div>' +
+                    '<div class="fxm-diag-meta-content"></div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="fxm-diag-toolbox collapsed">' +
+                '<div class="fxm-diag-toolbox-header">' + t('toolbox') + '</div>' +
+                '<div class="fxm-diag-toolbox-content">' +
+                    '<div class="fxm-diag-toolbox-buttons">' +
+                        '<button class="fxm-diag-btn" data-diag="crash" type="button" title="' + t('tooltip_crash') + '">' +
+                            '<span class="fxm-diag-btn-icon">&#x26A1;</span><span>' + t('crash_diagnosis') + '</span>' +
+                        '</button>' +
+                        '<button class="fxm-diag-btn" data-diag="health" type="button" title="' + t('tooltip_health') + '">' +
+                            '<span class="fxm-diag-btn-icon">&#x1F3E5;</span><span>' + t('health_check') + '</span>' +
+                        '</button>' +
+                        '<button class="fxm-diag-btn" data-diag="paste" type="button" title="' + t('tooltip_paste_error') + '">' +
+                            '<span class="fxm-diag-btn-icon">&#x1F4CB;</span><span>' + t('paste_error_diagnosis') + '</span>' +
+                        '</button>' +
+                    '</div>' +
+                    '<div class="fxm-diag-input-area">' +
+                        '<textarea class="fxm-diag-textarea" placeholder="' + t('paste_error_text') + '"></textarea>' +
+                        '<div class="fxm-diag-actions">' +
+                            '<button class="fxm-diag-cancel" type="button">' + t('close') + '</button>' +
+                            '<button class="fxm-diag-submit" type="button">' + t('diagnose') + '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    /**
+     * 绑定 Panel Tab 切换事件
+     */
+    function bindDiagTabs(panel) {
+        panel.querySelectorAll('.fxm-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetTab = this.dataset.tab;
+                if (!targetTab) return;
+                switchPanelTab(targetTab);
+                if (targetTab === 'diag') {
+                    diagBadgeCount = 0;
+                    setDiagBadge(false);
+                }
+            });
+            tab.addEventListener('mousedown', e => e.stopPropagation());
+        });
+    }
+
+    /**
+     * 切换所有 Panel 的激活 Tab
+     */
+    function switchPanelTab(tab) {
+        activePanelTab = tab;
+        VALID_STYLES.forEach(style => {
+            const panel = document.getElementById(style + '-panel');
+            if (!panel) return;
+            panel.setAttribute('data-fxm-tab', tab);
+            panel.querySelectorAll('.fxm-tab').forEach(t => {
+                const active = t.dataset.tab === tab;
+                t.classList.toggle('active', active);
+                t.setAttribute('aria-selected', active.toString());
+                t.setAttribute('tabindex', active ? '0' : '-1');
+            });
+        });
+
+        // 切换到诊断标签页时，自动执行一次「重新诊断」，优先打捞 ComfyUI 当前真实报错
+        //（后端 execution_error 或 /prompt 前端校验错误），避免健康检查等旧报告长期占据诊断区。
+        if (tab === 'diag') {
+            const anyPanel = document.getElementById('neu-panel') || document.querySelector('[id$="-panel"]');
+            if (anyPanel && typeof handleDiagCurrentError === 'function') {
+                clearTimeout(window.__fxmDiagTabAutoRunTimer);
+                console.log('[飞雪监测器] DIAG 切换到诊断标签页，准备自动重新诊断当前报错');
+                window.__fxmDiagTabAutoRunTimer = setTimeout(() => {
+                    handleDiagCurrentError(anyPanel);
+                }, 50);
+            }
+        }
+    }
+
+    /**
+     * 绑定诊断面板内部交互事件
+     */
+    function bindDiagPanelEvents(panel) {
+        // 结果区操作按钮 + 工具箱按钮统一委托
+        panel.querySelectorAll('.fxm-diag-result-actions .fxm-diag-btn, .fxm-diag-toolbox-buttons .fxm-diag-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const mode = this.dataset.diag;
+                if (!mode) return;
+                if (mode === 'current') handleDiagCurrentError(panel);
+                else if (mode === 'crash') handleDiagCrash(panel);
+                else if (mode === 'health') handleDiagHealth(panel);
+                else if (mode === 'paste') showDiagInputArea(panel, true);
+                else if (mode === 'copy') copyDiagResult(panel);
+                else if (mode === 'raw') toggleDiagRaw(panel);
+            });
+            btn.addEventListener('mousedown', e => e.stopPropagation());
+        });
+
+        const inputArea = panel.querySelector('.fxm-diag-input-area');
+        const textarea = panel.querySelector('.fxm-diag-textarea');
+        const submitBtn = panel.querySelector('.fxm-diag-submit');
+        const cancelBtn = panel.querySelector('.fxm-diag-cancel');
+
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function() {
+                const text = textarea ? textarea.value.trim() : '';
+                if (!text) return;
+                handleDiagTextSubmit(text, panel);
+            });
+            submitBtn.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+                hideDiagInputArea(panel);
+            });
+            cancelBtn.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // 工具箱折叠标题
+        const toolboxHeader = panel.querySelector('.fxm-diag-toolbox-header');
+        if (toolboxHeader) {
+            toolboxHeader.addEventListener('click', function() {
+                const toolbox = panel.querySelector('.fxm-diag-toolbox');
+                if (toolbox) toolbox.classList.toggle('collapsed');
+            });
+            toolboxHeader.addEventListener('mousedown', e => e.stopPropagation());
+        }
+
+        // 系统快照折叠标题
+        const metaHeader = panel.querySelector('.fxm-diag-meta-header');
+        if (metaHeader) {
+            metaHeader.addEventListener('click', function() {
+                const meta = panel.querySelector('.fxm-diag-meta');
+                if (meta) meta.classList.toggle('collapsed');
+            });
+            metaHeader.addEventListener('mousedown', e => e.stopPropagation());
+        }
+    }
+
+    /**
+     * 切换原始错误折叠区
+     */
+    function toggleDiagRaw(panel) {
+        const raw = panel.querySelector('.fxm-diag-raw');
+        const btn = panel.querySelector('.fxm-diag-btn[data-diag="raw"]');
+        if (!raw) return;
+        const collapsed = raw.classList.toggle('collapsed');
+        if (btn) {
+            btn.innerHTML = t('view_raw_error') + (collapsed ? ' &#x25BC;' : ' &#x25B2;');
+        }
+    }
+
+    /**
+     * 复制当前诊断结果到剪贴板
+     */
+    async function copyDiagResult(panel) {
+        if (!lastDiagReport) return;
+        const lines = [];
+        if (lastDiagReport.title) lines.push(lastDiagReport.title);
+        if (lastDiagReport.explanation) lines.push('', lastDiagReport.explanation);
+        if (Array.isArray(lastDiagReport.suggestions) && lastDiagReport.suggestions.length) {
+            lines.push('', t('suggestions') + ':');
+            lastDiagReport.suggestions.forEach((s, i) => lines.push((i + 1) + '. ' + s));
+        }
+        const text = lines.join('\n');
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            showCopyFeedback(panel, t('copied'));
+        } catch (e) {
+            showCopyFeedback(panel, t('copy_failed'));
+        }
+    }
+
+    /**
+     * 显示复制结果临时提示
+     */
+    function showCopyFeedback(panel, message) {
+        const btn = panel.querySelector('.fxm-diag-btn[data-diag="copy"]');
+        if (!btn) return;
+        const original = btn.textContent;
+        btn.textContent = message;
+        setTimeout(() => { btn.textContent = original; }, 1500);
+    }
+
+    /**
+     * 显示/隐藏报错文本输入框
+     */
+    function showDiagInputArea(panel, show) {
+        const area = panel.querySelector('.fxm-diag-input-area');
+        if (area) area.classList.toggle('show', show);
+        // 打开输入框时自动展开工具箱
+        if (show) {
+            const toolbox = panel.querySelector('.fxm-diag-toolbox');
+            if (toolbox) toolbox.classList.remove('collapsed');
+        }
+    }
+
+    function hideDiagInputArea(panel) {
+        showDiagInputArea(panel, false);
+        const textarea = panel.querySelector('.fxm-diag-textarea');
+        if (textarea) textarea.value = '';
+    }
+
+    /**
+     * 切换诊断面板的加载状态
+     */
+    function setDiagLoading(panel, loading) {
+        const buttons = panel.querySelectorAll('.fxm-diag-btn');
+        buttons.forEach(btn => { btn.disabled = loading; });
+        const submit = panel.querySelector('.fxm-diag-submit');
+        if (submit) {
+            submit.disabled = loading;
+            submit.textContent = loading ? t('loading') : t('diagnose');
+        }
+    }
+
+    /**
+     * 根据 DIAG 开关状态刷新所有面板诊断区显示
+     */
+    function updateDiagPanelsForEnabledState() {
+        VALID_STYLES.forEach(style => {
+            const panel = document.getElementById(style + '-panel');
+            if (!panel) return;
+            const disabledMsg = panel.querySelector('.fxm-diag-disabled');
+            const empty = panel.querySelector('.fxm-diag-empty');
+            const result = panel.querySelector('.fxm-diag-result');
+            const toolbox = panel.querySelector('.fxm-diag-toolbox');
+
+            if (!isDiagEnabled()) {
+                if (disabledMsg) disabledMsg.style.display = 'block';
+                if (empty) empty.style.display = 'none';
+                if (toolbox) toolbox.style.display = '';
+                // 诊断区只展示真实报错诊断；健康检查是用户主动点击工具箱后临时显示的内容，
+                // 不应在开关关闭或切换标签页后长期占据诊断区。
+                if (lastDiagReport && result) {
+                    renderDiagDataToPanel(panel, lastDiagReport);
+                } else if (result) {
+                    result.classList.remove('show');
+                }
+                hideDiagInputArea(panel);
+            } else {
+                if (disabledMsg) disabledMsg.style.display = 'none';
+                if (toolbox) toolbox.style.display = '';
+                if (lastDiagReport) {
+                    if (empty) empty.style.display = 'none';
+                    renderDiagDataToPanel(panel, lastDiagReport);
+                } else {
+                    if (empty) empty.style.display = 'flex';
+                    if (result) result.classList.remove('show');
+                }
+            }
+            updateDiagStatusInPanel(panel, diagState);
+        });
+    }
+
+    /**
+     * 更新单个面板的状态区显示
+     */
+    function updateDiagStatusInPanel(panel, state) {
+        const statusEl = panel.querySelector('.fxm-diag-status');
+        if (!statusEl) return;
+        const dot = statusEl.querySelector('.fxm-diag-status-dot');
+        const label = statusEl.querySelector('.fxm-diag-status-label');
+        const validClasses = ['ok', 'warning', 'error', 'unknown', 'analyzing'];
+        if (dot) {
+            dot.classList.remove.apply(dot.classList, validClasses);
+            dot.classList.add(validClasses.indexOf(state) !== -1 ? state : 'ok');
+        }
+        if (label) {
+            const labelMap = {
+                ok: t('status_normal'),
+                warning: t('status_waiting'),
+                error: t('status_error_detected'),
+                unknown: t('status_unknown'),
+                analyzing: t('status_analyzing')
+            };
+            label.textContent = labelMap[state] || t('status_normal');
+        }
+    }
+
+    /**
+     * 设置诊断状态并更新 Dock 指示灯与面板状态区
+     * @param {string} state - 'ok' | 'warning' | 'error' | 'unknown' | 'analyzing'
+     * @param {object} [opts] - 选项
+     * @param {number} [opts.seq] - 状态变更请求的序列号；未传入时自动递增
+     */
+    function setDiagState(state, opts) {
+        opts = opts || {};
+        const incomingSeq = typeof opts.seq === 'number' ? opts.seq : ++diagStateSeq;
+        // 丢弃比当前状态更旧的请求，避免过期异步响应把灯重新刷红/刷黄
+        if (incomingSeq < diagStateSeq) {
+            console.log('[飞雪监测器] DIAG 状态变更请求已过期，忽略:', state, incomingSeq, '<', diagStateSeq);
+            return;
+        }
+        diagStateSeq = incomingSeq;
+
+        const validStates = { ok: true, warning: true, error: true, unknown: true, analyzing: true };
+        const prev = diagState;
+        diagState = validStates[state] ? state : 'ok';
+
+        if (diagState === 'error' || diagState === 'warning') {
+            diagLastErrorSeq = diagStateSeq;
+        }
+
+        const titleMap = {
+            ok: t('diag_status_ok'),
+            warning: t('diag_status_warning'),
+            error: t('diag_status_error'),
+            unknown: t('diag_status_error'),
+            analyzing: t('diag_status_warning')
+        };
+        document.querySelectorAll('.fxm-dock-indicator').forEach(el => {
+            el.classList.remove('ok', 'warning', 'error', 'unknown', 'analyzing', 'pulse');
+            el.classList.add(diagState);
+            el.title = titleMap[diagState] || t('diag_status_error');
+        });
+        VALID_STYLES.forEach(style => {
+            const panel = document.getElementById(style + '-panel');
+            if (panel) updateDiagStatusInPanel(panel, diagState);
+        });
+        if (diagState === 'ok') {
+            diagBadgeCount = 0;
+            diagBadgeVisible = false;
+            updateDiagBadges();
+        }
+    }
+
+    /**
+     * 设置诊断标签页红点角标
+     * @param {boolean} visible - 是否显示
+     * @param {number} [count] - 未读数量，传入时重置计数器
+     */
+    function setDiagBadge(visible, count) {
+        if (typeof count === 'number') {
+            diagBadgeCount = Math.max(0, Math.floor(count));
+        }
+        if (!isDiagEnabled()) {
+            diagBadgeVisible = false;
+        } else {
+            diagBadgeVisible = !!visible && diagBadgeCount > 0;
+        }
+        updateDiagBadges();
+    }
+
+    function updateDiagBadges() {
+        document.querySelectorAll('.fxm-tab[data-tab="diag"] .fxm-tab-badge').forEach(badge => {
+            badge.classList.toggle('show', diagBadgeVisible);
+            badge.textContent = diagBadgeVisible && diagBadgeCount > 0 ? String(diagBadgeCount) : '';
+        });
+    }
+
+    /**
+     * 首次报错自动切换到诊断 Tab（仅一次）
+     */
+    function maybeAutoSwitchToDiag() {
+        if (!diagFirstErrorSwitched) {
+            diagFirstErrorSwitched = true;
+            diagBadgeCount = 0;
+            switchPanelTab('diag');
+        } else {
+            setDiagBadge(true);
+        }
+    }
+
+    /**
+     * 处理诊断状态：自动诊断触发
+     */
+    function handleAutoDiag(report) {
+        if (!report) {
+            console.log('[飞雪监测器] DIAG 自动诊断收到空报告，保留当前报告');
+            return;
+        }
+        console.log('[飞雪监测器] DIAG 自动诊断报告:', report.category, report.title);
+        if (report.status === 'ok') {
+            clearDiagState();
+            return;
+        }
+        // 真实报错诊断（来自后端 execution_error）始终更新面板，让用户运行报错后能立即看到。
+        // DIAG 开关仅控制是否自动切换标签页/发送系统通知，不再阻止报错本身显示。
+        lastDiagReport = report;
+        renderDiagData(report);
+        diagBadgeCount += 1;
+        const severity = inferSeverity(report);
+        setDiagState(severity);
+        if (isDiagEnabled()) {
+            maybeAutoSwitchToDiag();
+        }
+    }
+
+
+    /**
+     * 清除诊断状态（工作流成功时）
+     * @param {object} [opts] - 选项
+     * @param {number} [opts.seq] - 状态变更请求的序列号
+     */
+    function clearDiagState(opts) {
+        opts = opts || {};
+        const incomingSeq = typeof opts.seq === 'number' ? opts.seq : ++diagStateSeq;
+        if (incomingSeq < diagStateSeq) {
+            console.log('[飞雪监测器] DIAG 清除状态请求已过期，忽略');
+            return;
+        }
+        diagStateSeq = incomingSeq;
+        diagLastErrorSeq = 0;
+        lastDiagReport = null;
+        setDiagState('ok', { seq: diagStateSeq });
+        setDiagBadge(false);
+        VALID_STYLES.forEach(style => {
+            const panel = document.getElementById(style + '-panel');
+            if (!panel) return;
+            const empty = panel.querySelector('.fxm-diag-empty');
+            const result = panel.querySelector('.fxm-diag-result');
+            if (empty) empty.style.display = 'flex';
+            if (result) result.classList.remove('show');
+            hideDiagInputArea(panel);
+        });
+    }
+
+    /**
+     * 从报告中推断严重程度
+     */
+    function inferSeverity(report) {
+        if (!report) return 'ok';
+        if (report.status === 'ok') return 'ok';
+        if (report.status === 'error') return 'error';
+        if (report.status === 'warning') return 'warning';
+        if (report.category === 'health_check' && Array.isArray(report.findings)) {
+            if (report.findings.some(f => f.severity === 'error')) return 'error';
+            if (report.findings.some(f => f.severity === 'warning')) return 'warning';
+            return 'ok';
+        }
+        if (report.matched === false) return 'warning';
+        const cat = report.category || 'unknown';
+        if (cat === 'oom' || cat === 'model_missing' || cat === 'node_not_found' ||
+            cat === 'connection_error' || cat === 'import_error' || cat === 'unknown' ||
+            cat === 'workflow_validation') {
+            return 'error';
+        }
+        if (cat === 'dtype_mismatch' || cat === 'device_mismatch' || cat === 'shape_mismatch' ||
+            cat === 'crash') {
+            return 'warning';
+        }
+        return 'ok';
+    }
+
+    /**
+     * 渲染诊断报告到所有面板（仅用于真实报错诊断：后端/前端校验/手动文本）。
+     * 健康检查请使用 renderHealthData，避免污染真实报错诊断区。
+     */
+    function renderDiagData(report) {
+        if (!report || typeof report !== 'object') return;
+        report._seq = ++diagReportSeq;
+        lastDiagReportSeq = report._seq;
+        lastDiagReport = report;
+        // 新的真实报错诊断生成时，健康检查报告不应再占据诊断区
+        lastHealthReport = null;
+        VALID_STYLES.forEach(style => {
+            const panel = document.getElementById(style + '-panel');
+            if (panel) renderDiagDataToPanel(panel, report);
+        });
+    }
+
+    /**
+     * 渲染健康检查报告到所有面板。
+     * 健康检查是独立功能，不存入 lastDiagReport，避免污染真实报错诊断区。
+     */
+    function renderHealthData(report) {
+        if (!report || typeof report !== 'object') return;
+        report._seq = ++diagReportSeq;
+        lastDiagReportSeq = report._seq;
+        lastHealthReport = report;
+        VALID_STYLES.forEach(style => {
+            const panel = document.getElementById(style + '-panel');
+            if (panel) renderDiagDataToPanel(panel, report);
+        });
+    }
+
+    /**
+     * 渲染诊断报告到指定面板
+     */
+    function renderDiagDataToPanel(panel, report) {
+        if (!report || typeof report !== 'object') {
+            report = {
+                status: 'unknown',
+                category: 'unknown',
+                title: t('unknown_error'),
+                explanation: '',
+                suggestions: [],
+                raw_error: '',
+                timestamp: Date.now() / 1000
+            };
+        }
+        const empty = panel.querySelector('.fxm-diag-empty');
+        const result = panel.querySelector('.fxm-diag-result');
+        if (!result) return;
+
+        if (empty) empty.style.display = 'none';
+        result.classList.add('show');
+        hideDiagInputArea(panel);
+
+        const severity = inferSeverity(report);
+        const errorNodeEl = result.querySelector('.fxm-diag-error-node');
+        const tag = result.querySelector('.fxm-diag-tag');
+        const title = result.querySelector('.fxm-diag-title');
+        const sourceEl = result.querySelector('.fxm-diag-source');
+        const explanation = result.querySelector('.fxm-diag-explanation');
+        const suggestionsEl = result.querySelector('.fxm-diag-suggestions');
+        const rawContent = result.querySelector('.fxm-diag-raw-content');
+        const raw = result.querySelector('.fxm-diag-raw');
+        const meta = result.querySelector('.fxm-diag-meta');
+        const metaContent = result.querySelector('.fxm-diag-meta-content');
+
+        if (raw) raw.classList.add('collapsed');
+        if (meta) meta.classList.add('collapsed');
+
+        if (report.category === 'health_check') {
+            renderHealthReport(result, report);
+            return;
+        }
+
+        // 来源标记：让用户清楚这是后端真实报错、前端校验还是手动文本
+        if (sourceEl) {
+            const sourceLabels = {
+                'backend_execution_error': 'ComfyUI 真实报错',
+                'manual_text': '手动粘贴报错',
+                'frontend_graph': '前端工作流校验',
+                'comfyui_validation': 'ComfyUI 工作流校验',
+                'health_check': '环境健康检查'
+            };
+            sourceEl.textContent = sourceLabels[report.source] || '';
+            sourceEl.style.display = report.source && report.source !== 'backend_execution_error' ? 'inline-block' : 'none';
+        }
+
+        // 错误节点信息
+        if (errorNodeEl) {
+            const en = report.error_node;
+            if (en && (en.node_type || en.node_id)) {
+                const typeText = en.node_type || '';
+                const idText = en.node_id || '';
+                const titleText = en.display_title || '';
+                errorNodeEl.textContent = t('error_node') + ': ' + typeText +
+                    (idText ? ' (' + idText + ')' : '') +
+                    (titleText ? ' — ' + titleText : '');
+                errorNodeEl.style.display = 'block';
+            } else {
+                errorNodeEl.textContent = '';
+                errorNodeEl.style.display = 'none';
+            }
+        }
+
+        if (tag) {
+            tag.className = 'fxm-diag-tag ' + severity;
+            tag.textContent = report.category_label || getCategoryLabel(report.category);
+        }
+
+        if (title) title.textContent = report.title || t('unknown_error');
+        if (explanation) {
+            explanation.textContent = report.explanation || '';
+            explanation.style.borderLeftColor = severity === 'error' ? '#ef4444' :
+                                               (severity === 'warning' ? '#f59e0b' : '#22c55e');
+        }
+
+        if (suggestionsEl) {
+            const list = Array.isArray(report.suggestions) ? report.suggestions : [];
+            suggestionsEl.innerHTML = list.length ? buildSuggestionsHTML(list) :
+                ('<div class="fxm-diag-suggestion-item"><span>' + t('no_diagnosis') + '</span></div>');
+        }
+
+        if (rawContent) rawContent.textContent = report.raw_error || '';
+
+        if (metaContent) {
+            const snapshot = report.system_snapshot || report.snapshot;
+            metaContent.innerHTML = buildDiagMetaHTML(report.node_info, snapshot);
+        }
+    }
+
+    /**
+     * 渲染健康检查报告
+     */
+    function renderHealthReport(result, report) {
+        const errorNodeEl = result.querySelector('.fxm-diag-error-node');
+        const tag = result.querySelector('.fxm-diag-tag');
+        const title = result.querySelector('.fxm-diag-title');
+        const sourceEl = result.querySelector('.fxm-diag-source');
+        const explanation = result.querySelector('.fxm-diag-explanation');
+        const suggestionsEl = result.querySelector('.fxm-diag-suggestions');
+        const rawContent = result.querySelector('.fxm-diag-raw-content');
+        const meta = result.querySelector('.fxm-diag-meta');
+        const metaContent = result.querySelector('.fxm-diag-meta-content');
+
+        const severity = inferSeverity(report);
+
+        if (errorNodeEl) {
+            errorNodeEl.textContent = '';
+            errorNodeEl.style.display = 'none';
+        }
+        if (tag) {
+            tag.className = 'fxm-diag-tag ' + severity;
+            tag.textContent = t('health_check');
+        }
+        if (title) title.textContent = report.title || t('health_check');
+        // 健康检查也显示来源标识，避免与真实报错混淆
+        if (sourceEl) {
+            sourceEl.textContent = '环境健康检查';
+            sourceEl.style.display = 'inline-block';
+        }
+        if (explanation) {
+            const healthNotice = '【环境健康检查】此处列出的是飞雪监测器主动扫描到的环境隐患，不是 ComfyUI 本次报错的逐条翻译。';
+            const reportExplanation = report.explanation || '';
+            // 避免重复添加说明前缀
+            const alreadyHasNotice = /环境健康检查|主动扫描|不是 ComfyUI 本次报错/i.test(reportExplanation);
+            explanation.textContent = healthNotice +
+                (alreadyHasNotice || !reportExplanation ? '' : '\n\n' + reportExplanation);
+            explanation.style.borderLeftColor = severity === 'error' ? '#ef4444' :
+                                               (severity === 'warning' ? '#f59e0b' : '#22c55e');
+        }
+
+        if (suggestionsEl) {
+            suggestionsEl.innerHTML = buildFindingsHTML(report.findings || []);
+        }
+
+        if (rawContent) rawContent.textContent = report.raw_error || '';
+        if (meta) meta.classList.add('collapsed');
+        if (metaContent) metaContent.innerHTML = '';
+    }
+
+    /**
+     * 生成分类标签文本
+     */
+    function getCategoryLabel(category) {
+        const labels = {
+            oom: t('cat_oom'),
+            model_missing: t('cat_model_missing'),
+            dtype_mismatch: t('cat_dtype_mismatch'),
+            device_mismatch: t('cat_device_mismatch'),
+            import_error: t('cat_import_error'),
+            node_not_found: t('cat_node_not_found'),
+            connection_error: t('cat_connection_error'),
+            shape_mismatch: t('cat_shape_mismatch'),
+            workflow_validation: t('cat_workflow_validation'),
+            crash: t('crash_diagnosis'),
+            unknown: t('unknown_error')
+        };
+        return labels[category] || (category ? category.replace(/_/g, ' ').toUpperCase() : t('error'));
+    }
+
+    /**
+     * 生成建议列表 HTML
+     */
+    function buildSuggestionsHTML(suggestions) {
+        const MAX_INITIAL = 1;
+        const visible = suggestions.slice(0, MAX_INITIAL);
+        const hidden = suggestions.slice(MAX_INITIAL);
+        let html = visible.map((s, i) =>
+            '<div class="fxm-diag-suggestion-item">' +
+                '<span class="fxm-diag-suggestion-num">' + (i + 1) + '</span>' +
+                '<span>' + sanitizeDisplayText(s) + '</span>' +
+            '</div>'
+        ).join('');
+        if (hidden.length) {
+            const hiddenId = 'fxm-diag-hidden-suggestions-' + Date.now();
+            html += '<div id="' + hiddenId + '" style="display:none;">' +
+                hidden.map((s, i) =>
+                    '<div class="fxm-diag-suggestion-item">' +
+                        '<span class="fxm-diag-suggestion-num">' + (i + MAX_INITIAL + 1) + '</span>' +
+                        '<span>' + sanitizeDisplayText(s) + '</span>' +
+                    '</div>'
+                ).join('') +
+                '</div>' +
+                '<div class="fxm-diag-suggestion-more" style="cursor:pointer;color:#6366f1;font-size:12px;margin-top:6px;" ' +
+                'onclick="this.style.display=\'none\';document.getElementById(\'' + hiddenId + '\').style.display=\'block\';">' +
+                '展开更多建议 (' + hidden.length + '条) ▼' +
+                '</div>';
+        }
+        return html;
+    }
+
+    /**
+     * 生成健康检查发现项 HTML（按严重度分组）
+     */
+    function buildFindingsHTML(findings) {
+        if (!Array.isArray(findings) || !findings.length) {
+            return '<div class="fxm-diag-empty"><span class="fxm-diag-empty-icon">&#x2714;</span><span>' + t('no_diagnosis') + '</span></div>';
+        }
+        const groups = { error: [], warning: [], info: [], success: [] };
+        findings.forEach(f => {
+            const sev = f.severity || 'info';
+            if (groups[sev]) groups[sev].push(f);
+            else groups.info.push(f);
+        });
+        let html = '';
+        [['error', t('finding_error')], ['warning', t('finding_warning')], ['info', t('finding_info')]].forEach(([sev, label]) => {
+            const items = groups[sev];
+            if (!items || !items.length) return;
+            html += '<div class="fxm-diag-group">' +
+                '<div class="fxm-diag-group-title ' + sev + '">' + label + ' (' + items.length + ')</div>';
+            items.forEach(item => {
+                const titleText = sanitizeDisplayText(item.title);
+                const explanationText = sanitizeDisplayText(item.explanation);
+                const suggestionText = sanitizeDisplayText(item.suggestion);
+                html += '<div class="fxm-diag-finding">' +
+                    '<span class="fxm-diag-finding-dot ' + sev + '"></span>' +
+                    '<div style="display:flex;flex-direction:column;gap:3px;">' +
+                        (titleText ? ('<span style="font-weight:600;">' + titleText + '</span>') : '') +
+                        (explanationText ? ('<span style="opacity:0.8;font-size:11px;line-height:1.45;">' + explanationText + '</span>') : '') +
+                        (suggestionText ? ('<span style="color:#6366f1;font-size:11px;line-height:1.45;">' + suggestionText + '</span>') : '') +
+                    '</div>' +
+                '</div>';
+            });
+            html += '</div>';
+        });
+        return html || ('<div class="fxm-diag-empty"><span>' + t('no_diagnosis') + '</span></div>');
+    }
+
+    /**
+     * 生成诊断元信息 HTML
+     */
+    function buildDiagMetaHTML(nodeInfo, snapshot) {
+        let html = '';
+        if (nodeInfo && typeof nodeInfo === 'object' && Object.keys(nodeInfo).length) {
+            html += '<div class="fxm-diag-section-label" style="margin-top:4px;">' + t('node_info') + '</div>';
+            Object.entries(nodeInfo).forEach(([k, v]) => {
+                html += '<div class="fxm-diag-meta-row"><span class="fxm-diag-meta-key">' + sanitizeDisplayText(k) + '</span>' +
+                    '<span class="fxm-diag-meta-value">' + sanitizeDisplayText(v) + '</span></div>';
+            });
+        }
+        if (snapshot && typeof snapshot === 'object' && Object.keys(snapshot).length) {
+            html += '<div class="fxm-diag-section-label" style="margin-top:8px;">' + t('system_snapshot') + '</div>';
+            const gpu = snapshot.gpu || (snapshot.gpus && snapshot.gpus[0]) || {};
+            if (gpu.vram_used !== undefined && gpu.vram_total !== undefined) {
+                const usedGB = (gpu.vram_used / 1024).toFixed(1);
+                const totalGB = (gpu.vram_total / 1024).toFixed(1);
+                html += '<div class="fxm-diag-meta-row"><span class="fxm-diag-meta-key">VRAM</span>' +
+                    '<span class="fxm-diag-meta-value">' + usedGB + ' / ' + totalGB + ' GB</span></div>';
+            } else if (gpu.vram_total !== undefined) {
+                html += '<div class="fxm-diag-meta-row"><span class="fxm-diag-meta-key">VRAM</span>' +
+                    '<span class="fxm-diag-meta-value">' + (gpu.vram_total / 1024).toFixed(1) + ' GB</span></div>';
+            }
+            if (snapshot.peak_vram_used_mb !== undefined) {
+                const peakGB = (snapshot.peak_vram_used_mb / 1024).toFixed(1);
+                const peakPct = snapshot.peak_vram_percent !== undefined ? Math.round(snapshot.peak_vram_percent) : null;
+                html += '<div class="fxm-diag-meta-row"><span class="fxm-diag-meta-key">' + t('vram_peak') + '</span>' +
+                    '<span class="fxm-diag-meta-value">' + peakGB + ' GB' + (peakPct !== null ? ' (' + peakPct + '%)' : '') + '</span></div>';
+            }
+            if (gpu.temperature !== undefined) {
+                html += '<div class="fxm-diag-meta-row"><span class="fxm-diag-meta-key">' + t('temperature') + '</span>' +
+                    '<span class="fxm-diag-meta-value">' + Math.round(gpu.temperature) + '°C</span></div>';
+            }
+            if (snapshot.ram && snapshot.ram.percent !== undefined) {
+                html += '<div class="fxm-diag-meta-row"><span class="fxm-diag-meta-key">' + t('ram') + '</span>' +
+                    '<span class="fxm-diag-meta-value">' + Math.round(snapshot.ram.percent) + '%</span></div>';
+            }
+        }
+        return html || '';
+    }
+
+    /**
+     * 重新诊断：读取后端 /diag/last_error 缓存并重新诊断。
+     */
+    async function handleDiagCurrentError(panel) {
+        // 无论 DIAG 自动推送开关是否开启，都允许手动打捞最近报错
+        hideDiagInputArea(panel);
+        setDiagLoading(panel, true);
+
+        // 先显示“正在分析...”提示
+        renderDiagData({
+            matched: false,
+            category: 'unknown',
+            title: t('re_diagnose'),
+            explanation: t('analyzing'),
+            suggestions: [],
+            raw_error: '',
+            timestamp: Date.now() / 1000
+        });
+
+        // 锁定本次请求对应的状态序列号
+        const stateSeq = ++diagStateSeq;
+
+        try {
+            // 1. 优先使用 ComfyUI /prompt 响应中的 node_errors（当前这次生成的真实前端校验错误）。
+            //    /prompt 校验失败意味着工作流根本没进入后端执行，因此它比后端缓存的旧 execution_error 更准确。
+            const validationErr = window.__fxmLastValidationError;
+            if (validationErr && validationErr.text) {
+                console.log('[飞雪监测器] DIAG 优先使用 /prompt 校验错误');
+                await diagnoseFrontendErrors(validationErr.text, panel, validationErr.source || 'comfyui_validation');
+                setDiagState('error', { seq: stateSeq });
+                return;
+            }
+
+            // 2. 没有当前 /prompt 校验错误时，再打捞后端缓存的 execution_error。
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            const backendResp = await fetch('/feixue_monitor/diag/last_error', {
+                signal: controller.signal,
+                headers: { 'Accept': 'application/json' }
+            }).then(r => r.json()).catch(() => null);
+
+            clearTimeout(timeoutId);
+
+            // 优先使用后端已经诊断好的报告直接渲染（保留节点信息、source 等）
+            if (backendResp && backendResp.has_error && backendResp.report) {
+                renderDiagData(backendResp.report);
+                setDiagState(inferSeverity(backendResp.report), { seq: stateSeq });
+                return;
+            }
+
+            // 兼容旧格式：仅返回原始 error 时，再走文本诊断
+            if (backendResp && backendResp.has_error && backendResp.error) {
+                const err = backendResp.error;
+                const errText = err.traceback || err.exception_message || err.message || err.exception_type || JSON.stringify(err);
+                await diagnoseText(errText, panel);
+                return;
+            }
+
+            // 3. 也没有任何报错缓存时，提示用户运行工作流。
+            renderDiagData({
+                matched: false,
+                category: 'unknown',
+                title: t('re_diagnose'),
+                explanation: '当前没有缓存到 ComfyUI 的报错。请先在 ComfyUI 中运行一次工作流触发报错，再回到此处查看翻译；也可以点击下方「粘贴报错文本诊断」手动分析具体报错。',
+                suggestions: [],
+                raw_error: '',
+                timestamp: Date.now() / 1000
+            });
+            setDiagState('ok', { seq: stateSeq });
+        } catch (e) {
+            renderDiagData({
+                matched: false,
+                category: 'unknown',
+                title: t('re_diagnose'),
+                explanation: String(e && e.message ? e.message : e),
+                suggestions: [],
+                raw_error: '',
+                timestamp: Date.now() / 1000
+            });
+            setDiagState('warning', { seq: stateSeq });
+        } finally {
+            setDiagLoading(panel, false);
+        }
+    }
+
+    /**
+     * 从 ComfyUI 前端 graph 中提取节点校验错误（如输入插槽未连接）。
+     *
+     * 兼容多种 ComfyUI 前端实现：
+     * - node.errors（字符串数组）
+     * - node.has_errors() / node.hasError
+     * - node.widgets 中未设置必填值
+     * - app.lastQueueError / app.graph.extra?.errors
+     */
+    function extractFrontendGraphErrors() {
+        try {
+            const app = window.app || window.comfyAPI?.app?.app;
+            if (!app || !app.graph) return null;
+
+            const errors = [];
+            const graph = app.graph;
+
+            // 部分 ComfyUI 前端版本在 graph 或 app 上保存最近一次队列错误
+            const globalError = app.lastQueueError || graph.extra?.lastQueueError || graph.lastQueueError;
+            if (globalError) {
+                const text = typeof globalError === 'string' ? globalError : (globalError.message || JSON.stringify(globalError));
+                if (text) errors.push(text);
+            }
+
+            // 遍历节点，收集显式错误信息
+            if (Array.isArray(graph.nodes)) {
+                graph.nodes.forEach(node => {
+                    if (!node) return;
+                    // 常见错误字段
+                    if (Array.isArray(node.errors)) {
+                        node.errors.forEach(err => {
+                            if (err) errors.push(String(err));
+                        });
+                    }
+                    // 节点标题 + 错误提示
+                    const nodeTitle = node.title || node.type || 'Node';
+                    if (typeof node.error === 'string' && node.error) {
+                        errors.push(`[${nodeTitle}] ${node.error}`);
+                    }
+                    // 标记为错误的节点（红色边框）
+                    if (node.has_errors && typeof node.has_errors === 'function' && node.has_errors()) {
+                        errors.push(`[${nodeTitle}] 节点存在错误，请检查输入/参数。`);
+                    }
+                    if (node.hasError || node.has_error) {
+                        errors.push(`[${nodeTitle}] 节点存在错误，请检查输入/参数。`);
+                    }
+                    // 检查未连接的必填输入插槽（需排除已由 widget 提供值的情况）
+                    if (Array.isArray(node.inputs)) {
+                        node.inputs.forEach(input => {
+                            const notConnected = input && (input.link === undefined || input.link === null || input.link === -1 || input.link === false);
+                            const isRequired = input && !input.isOptional && !input.optional;
+                            // 若同名输入存在 widget 且已设置值，则不应视为未连接
+                            const hasWidgetValue = Array.isArray(node.widgets) && node.widgets.some(
+                                w => w && w.name === input.name && w.value != null && w.value !== ''
+                            );
+                            if (notConnected && isRequired && input.name && !hasWidgetValue) {
+                                errors.push(`[${nodeTitle}] 输入插槽未连接：${input.name}`);
+                            }
+                        });
+                    }
+                    // 检查必填 widget 是否未设置值（如 Load Image 未选择图片、Prompt 为空等）
+                    if (Array.isArray(node.widgets)) {
+                        node.widgets.forEach(widget => {
+                            if (!widget || !widget.name) return;
+                            // widget.required 为 true，或常见必填 widget 名
+                            const requiredWidgetNames = ['image', 'path', 'file', 'filename', 'url', 'text', 'prompt', 'mask', 'audio'];
+                            const isRequired = widget.required === true ||
+                                (widget.name && requiredWidgetNames.includes(String(widget.name).toLowerCase()));
+                            const value = widget.value;
+                            const isEmpty = value === undefined || value === null || value === '' ||
+                                String(value).toLowerCase() === 'undefined' ||
+                                String(value).toLowerCase() === 'none' ||
+                                String(value).toLowerCase() === 'null';
+                            if (isRequired && isEmpty) {
+                                errors.push(`[${nodeTitle}] 必填参数未填写：${widget.name}`);
+                            }
+                        });
+                    }
+                });
+            }
+
+            if (!errors.length) return null;
+
+            // 去重并合并为一段文本，便于后端词库匹配
+            const uniqueErrors = [];
+            const seen = new Set();
+            errors.forEach(err => {
+                const key = err.trim();
+                if (!key || seen.has(key)) return;
+                seen.add(key);
+                uniqueErrors.push(key);
+            });
+
+            if (!uniqueErrors.length) return null;
+            return { text: uniqueErrors.join('\n'), source: 'frontend_graph' };
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ 提取前端 graph 错误失败:', e);
+            return null;
+        }
+    }
+
+    /**
+     * 对前端 graph 错误文本调用 /diag/text 诊断。
+     */
+    async function diagnoseFrontendErrors(text, panel, source) {
+        // 在原始错误前附加来源标记，便于词库匹配更多关键词
+        let enrichedText = text;
+        if (source === 'frontend_graph' && !/connection|slot|input|connect/i.test(text)) {
+            enrichedText = '前端工作流校验错误：' + text;
+        }
+        const requestSeq = lastDiagReportSeq;
+        await diagnoseText(enrichedText, panel);
+        // 如果期间已有新报告到达，diagnoseText 内部会跳过覆盖；此处额外兜底避免后续逻辑误操作
+        if (lastDiagReportSeq !== requestSeq) {
+            console.log('[飞雪监测器] DIAG 前端 graph 诊断响应已过期，不覆盖新报告');
+        }
+    }
+
+    /**
+     * 将 ComfyUI /prompt 响应中的 node_errors 结构化为便于翻译的文本。
+     *
+     * node_errors 格式：
+     * {
+     *   "node_id": {
+     *     "class_type": "LoadImage",
+     *     "errors": [{"type": "...", "message": "...", "details": "..."}],
+     *     "dependent_outputs": [...]
+     *   }
+     * }
+     */
+    function formatComfyuiValidationErrors(nodeErrors) {
+        if (!nodeErrors || typeof nodeErrors !== 'object') return null;
+        const lines = [];
+        Object.keys(nodeErrors).forEach(nodeId => {
+            const info = nodeErrors[nodeId];
+            if (!info || typeof info !== 'object') return;
+            const classType = info.class_type || info.type || info.class || '';
+            // 兼容 errors 数组、单数 error 对象、或 info 本身就是错误对象
+            let errors = info.errors;
+            if (!Array.isArray(errors)) {
+                if (info.error && typeof info.error === 'object') {
+                    errors = [info.error];
+                } else if (info.message || info.type || info.details) {
+                    errors = [info];
+                }
+            }
+            if (!Array.isArray(errors)) return;
+            errors.forEach(err => {
+                if (!err || typeof err !== 'object') return;
+                const type = err.type || '';
+                const message = typeof err.message === 'string' ? err.message : (typeof err.error === 'string' ? err.error : '');
+                const details = typeof err.details === 'string' ? err.details : (typeof err.detail === 'string' ? err.detail : '');
+                const extraInfo = err.extra_info || err.extra || '';
+                const prefix = classType ? `[${classType}:${nodeId}]` : `[${nodeId}]`;
+                // 组合所有可用字段，确保 type 这种关键词不被遗漏
+                const parts = [];
+                if (type) parts.push(type);
+                if (message) parts.push(message);
+                if (details) parts.push(details);
+                if (extraInfo && typeof extraInfo === 'string') parts.push(extraInfo);
+                else if (extraInfo) parts.push(JSON.stringify(extraInfo));
+                if (parts.length) {
+                    lines.push(prefix + ' ' + parts.join('：'));
+                }
+            });
+        });
+        if (!lines.length) return null;
+        return { text: lines.join('\n'), source: 'comfyui_validation', nodeErrors: nodeErrors, timestamp: Date.now() };
+    }
+
+    /**
+     * 安装 DIAG 运行时 Hook。
+     *
+     * 核心原则：诊断必须基于 ComfyUI 的真实报错（execution_error 或 /prompt 响应中的 node_errors），
+     * 不能在前端执行前根据 graph 静态状态做 preemptive 诊断，否则会把 widget 默认值、
+     * 临时未连线等状态误诊为“输入插槽未连接”，从而掩盖真实的后端报错。
+     *
+     * 因此本函数只做三件事：
+     * 1. Hook window.fetch('/prompt')，从 ComfyUI 真实响应中提取 node_errors 并缓存/翻译。
+     * 2. 在 queuePrompt 调用前静默缓存前端 graph 错误，但**不自动渲染**。
+     * 3. 监听后端 feixue.diag，让真实的 execution_error 翻译优先展示。
+     */
+    function installDiagRuntimeHooks() {
+        if (window.__fxmDiagRuntimeHooksInstalled) return;
+        window.__fxmDiagRuntimeHooksInstalled = true;
+
+        // 方式 1：Hook window.fetch('/prompt')，拦截 ComfyUI 前端校验错误的真实来源
+        try {
+            if (!window._fxmFetchPatched) {
+                const originalFetch = window.fetch;
+                window.fetch = async function(...args) {
+                    const response = await originalFetch.apply(this, args);
+                    try {
+                        const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+                        const isPrompt = url && (url.endsWith('/prompt') || url.includes('/prompt?'));
+                        if (isPrompt && response && typeof response.clone === 'function') {
+                            const cloned = response.clone();
+                            cloned.json().then(data => {
+                                if (data && data.node_errors && Object.keys(data.node_errors).length) {
+                                    const formatted = formatComfyuiValidationErrors(data.node_errors);
+                                    if (formatted && formatted.text) {
+                                        window.__fxmLastValidationError = formatted;
+                                        console.log('[飞雪监测器] DIAG 已缓存 /prompt 校验错误');
+                                        if (isDiagEnabled()) {
+                                            diagnoseFrontendErrors(formatted.text, null, formatted.source);
+                                        }
+                                    }
+                                } else if (data && !data.error) {
+                                    // /prompt 校验通过且没有返回错误，清空旧的前端校验缓存，
+                                    // 避免用户修复后仍显示上一次校验错误。
+                                    window.__fxmLastValidationError = null;
+                                }
+                            }).catch(() => {});
+                        }
+                    } catch (e) {
+                        console.warn('[飞雪监测器] ⚠️ Hook fetch /prompt 解析失败:', e);
+                    }
+                    return response;
+                };
+                window._fxmFetchPatched = true;
+                console.log('[飞雪监测器] DIAG 已 Hook window.fetch(/prompt)');
+            }
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ Hook window.fetch 失败:', e);
+        }
+
+        // 方式 2：Hook app.queuePrompt（补充兜底，当 fetch hook 未触发或 queuePrompt 直接抛异常时使用）
+        try {
+            const app = window.app || window.comfyAPI?.app?.app;
+            if (app && typeof app.queuePrompt === 'function' && !app._fxmQueuePromptPatched) {
+                const originalQueuePrompt = app.queuePrompt;
+                app.queuePrompt = async function(...args) {
+                    // 静默缓存前端 graph 错误，但不在执行前自动诊断，避免误诊。
+                    try {
+                        const errors = extractFrontendGraphErrors();
+                        if (errors && errors.text) {
+                            window.__fxmLastFrontendError = errors;
+                            console.log('[飞雪监测器] DIAG 已缓存前端 graph 校验错误，等待真实报错或 queuePrompt 失败');
+                        }
+                    } catch (e) {
+                        console.warn('[飞雪监测器] ⚠️ 缓存前端 graph 错误失败:', e);
+                    }
+
+                    try {
+                        return await originalQueuePrompt.apply(this, args);
+                    } catch (e) {
+                        // ComfyUI 明确拒绝入队：此时才用前端 graph 错误作为补充诊断
+                        const frontendErr = window.__fxmLastFrontendError;
+                        if (frontendErr && frontendErr.text && isDiagEnabled()) {
+                            console.log('[飞雪监测器] DIAG queuePrompt 被拒绝，使用前端 graph 错误补充诊断');
+                            await diagnoseFrontendErrors(frontendErr.text, null, frontendErr.source || 'frontend_graph');
+                        }
+                        throw e;
+                    }
+                };
+                app._fxmQueuePromptPatched = true;
+                console.log('[飞雪监测器] DIAG 已 Hook app.queuePrompt（仅缓存，不抢跑诊断）');
+            }
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ Hook app.queuePrompt 失败:', e);
+        }
+
+        // 方式 3：监听后端推送的 feixue.diag 自动诊断报告（真实 execution_error 翻译）
+        try {
+            if (!window.__fxmDiagEventListenerInstalled) {
+                window.__fxmDiagEventListenerInstalled = true;
+                const api =
+                    window.comfyAPI?.api?.api ||
+                    window.app?.api ||
+                    window.api;
+                if (api && typeof api.addEventListener === 'function') {
+                    api.addEventListener('feixue.diag', function(e) {
+                        const report = e?.detail;
+                        if (report && typeof report === 'object') {
+                            handleAutoDiag(report);
+                        }
+                    });
+                    console.log('[飞雪监测器] DIAG 已注册 feixue.diag 事件监听');
+                }
+            }
+        } catch (e) {
+            console.warn('[飞雪监测器] ⚠️ 监听 feixue.diag 失败:', e);
+        }
+    }
+
+    /**
+     * 提交报错文本诊断
+     */
+    async function handleDiagTextSubmit(text, panel) {
+        // 粘贴报错文本诊断始终可用，不受自动推送开关影响
+        setDiagLoading(panel, true);
+        const requestSeq = lastDiagReportSeq;
+        await diagnoseText(text, panel);
+        if (lastDiagReportSeq !== requestSeq) {
+            console.log('[飞雪监测器] DIAG 文本提交诊断响应已过期，不覆盖新报告');
+        }
+        setDiagLoading(panel, false);
+    }
+
+    /**
+     * 调用 diag/text API 并渲染
+     */
+    async function diagnoseText(text, sourcePanel) {
+        // 先显示分析中状态，确保用户看到反馈
+        renderDiagData({
+            matched: false,
+            category: 'unknown',
+            title: t('diagnosis_result'),
+            explanation: t('analyzing'),
+            suggestions: [],
+            raw_error: text,
+            timestamp: Date.now() / 1000
+        });
+        // 记录本次诊断请求的序列号，用于响应回来时判断是否有新报告到达
+        const requestSeq = lastDiagReportSeq;
+        // 锁定本次请求对应的状态序列号，防止期间新事件被过期响应覆盖
+        const stateSeq = ++diagStateSeq;
+        try {
+            const snapshot = cachedData ? JSON.parse(JSON.stringify(cachedData)) : {};
+            snapshot.client_language = FXM_LANG;
+            const report = await postJSON('/feixue_monitor/diag/text', {
+                text: text,
+                system_snapshot: snapshot,
+                language: FXM_LANG
+            });
+            if (lastDiagReportSeq !== requestSeq) {
+                console.log('[飞雪监测器] DIAG /diag/text 响应已过期，不覆盖新报告');
+                return;
+            }
+            if (report && (report.matched !== undefined || report.category)) {
+                renderDiagData(report);
+                setDiagState(inferSeverity(report), { seq: stateSeq });
+            } else {
+                renderDiagData({
+                    matched: false, category: 'unknown', title: t('unknown_error'),
+                    explanation: report && report.message ? report.message : '',
+                    suggestions: [], raw_error: text,
+                    timestamp: Date.now() / 1000
+                });
+                setDiagState('warning', { seq: stateSeq });
+            }
+        } catch (e) {
+            if (lastDiagReportSeq !== requestSeq) {
+                console.log('[飞雪监测器] DIAG /diag/text 异常响应已过期，不覆盖新报告');
+                return;
+            }
+            renderDiagData({
+                matched: false, category: 'unknown', title: t('unknown_error'),
+                explanation: String(e && e.message ? e.message : e),
+                suggestions: [], raw_error: text,
+                timestamp: Date.now() / 1000
+            });
+            setDiagState('warning', { seq: stateSeq });
+        }
+    }
+
+    /**
+     * 模式 B：崩溃/黑屏诊断
+     */
+    async function handleDiagCrash(panel) {
+        // 崩溃诊断始终可用，不受自动推送开关影响
+        hideDiagInputArea(panel);
+        setDiagLoading(panel, true);
+        const stateSeq = ++diagStateSeq;
+        try {
+            const report = await postJSON('/feixue_monitor/diag/crash', { language: FXM_LANG });
+            renderDiagData(report);
+            setDiagState(inferSeverity(report), { seq: stateSeq });
+        } catch (e) {
+            renderDiagData({
+                matched: false, category: 'crash', title: t('crash_diagnosis'),
+                explanation: String(e && e.message ? e.message : e),
+                suggestions: [], raw_error: '', timestamp: Date.now() / 1000
+            });
+            setDiagState('warning', { seq: stateSeq });
+        } finally {
+            setDiagLoading(panel, false);
+        }
+    }
+
+    /**
+     * 模式 C：健康检查
+     */
+    async function handleDiagHealth(panel) {
+        // 健康检查始终可用，不受自动推送开关影响
+        hideDiagInputArea(panel);
+        setDiagLoading(panel, true);
+        const stateSeq = ++diagStateSeq;
+        try {
+            const workflow = getCurrentWorkflow();
+            const extraMissingTypes = collectFrontendMissingNodes();
+            const report = await postJSON('/feixue_monitor/diag/health', {
+                workflow: workflow,
+                language: FXM_LANG,
+                extra_missing_types: extraMissingTypes,
+                scope: workflow ? 'workflow' : 'full'
+            });
+            renderHealthData(report);
+            setDiagState(inferSeverity(report), { seq: stateSeq });
+        } catch (e) {
+            renderHealthData({
+                matched: false, category: 'health_check', title: t('health_check'),
+                explanation: String(e && e.message ? e.message : e),
+                suggestions: [], findings: [], raw_error: '', timestamp: Date.now() / 1000
+            });
+            setDiagState('warning', { seq: stateSeq });
+        } finally {
+            setDiagLoading(panel, false);
+        }
+    }
+
+    /**
+     * 获取当前 ComfyUI 工作流（如可访问）
+     */
+    function getCurrentWorkflow() {
+        try {
+            const app = window.app || window.comfyAPI?.app?.app;
+            if (app && app.graph) {
+                return app.graph.serialize ? app.graph.serialize() : app.graph;
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    /**
+     * 从节点标题中清理 'Missing:' 等前缀，恢复原始节点类型名。
+     */
+    function cleanMissingNodeTitle(value) {
+        if (typeof value !== 'string') return '';
+        let v = value.trim();
+        for (const prefix of ['Missing:', 'missing:', 'MISSING:', 'Missing ', 'NotFound:', 'Unknown:', 'missing node:']) {
+            if (v.startsWith(prefix)) {
+                v = v.slice(prefix.length).trim();
+                break;
+            }
+        }
+        return v;
+    }
+
+    /**
+     * 判断字符串是否看起来像真实节点类型名（轻量校验，比后端宽松）。
+     */
+    function looksLikeNodeType(value) {
+        if (typeof value !== 'string') return false;
+        const v = value.trim();
+        if (!v || v.length < 3 || v.length > 96) return false;
+        if (!/[a-zA-Z]/.test(v)) return false;
+        if (/[\/\\]/.test(v)) return false;
+        return true;
+    }
+
+    /**
+     * 收集 ComfyUI 前端已知的缺失节点/节点包信息。
+     * 优先读取官方暴露的数据结构，回退到遍历 graph.nodes 中的占位节点。
+     *
+     * 修复重点：
+     * - 不再完全依赖 app.nodeDefs（某些时机可能未加载），对占位/错误节点也做启发式收集。
+     * - 清理标题中的 "Missing:" 前缀。
+     * - 识别更多 ComfyUI 实际使用的占位类型名。
+     */
+    function collectFrontendMissingNodes() {
+        const result = new Set();
+        try {
+            const app = window.app || window.comfyAPI?.app?.app;
+            if (!app || !app.graph) return [];
+
+            // 1. 官方/未来可能暴露的缺失节点数据（支持数组和 Set）
+            const extra = app.graph.extra || {};
+            const officialMissing = extra.missingNodeTypes || extra.missing_nodes ||
+                                    app.missingNodeTypes || app.graph.missingNodeTypes ||
+                                    app.lastMissingNodeTypes || app.graph._missingNodeTypes;
+            if (officialMissing) {
+                const items = Array.isArray(officialMissing) ? officialMissing :
+                              (typeof officialMissing.values === 'function' ? Array.from(officialMissing.values()) :
+                               Object.keys(officialMissing));
+                for (const item of items) {
+                    let candidate = '';
+                    if (typeof item === 'string' && item.trim()) {
+                        candidate = item.trim();
+                    } else if (item && typeof item === 'object' && item.name) {
+                        candidate = String(item.name).trim();
+                    } else if (item && typeof item === 'object' && item.type) {
+                        candidate = String(item.type).trim();
+                    }
+                    candidate = cleanMissingNodeTitle(candidate);
+                    if (looksLikeNodeType(candidate)) result.add(candidate);
+                }
+            }
+
+            // 2. 遍历节点，识别占位/缺失节点
+            const PLACEHOLDER_TYPES = new Set([
+                'MissingNodeType', 'MissingNode', 'UnknownNode', 'NodeNotFound',
+                'missing_node_type', 'MissingNodeTypeProxy', 'Proxy', 'Missing',
+                'MissingCustomNode'
+            ]);
+            const knownNodeTypes = (app.nodeDefs && Object.keys(app.nodeDefs)) ||
+                                   (app.graph && app.graph.nodeTypes && Object.keys(app.graph.nodeTypes)) ||
+                                   (app.nodeTypeDefs && Object.keys(app.nodeTypeDefs)) || [];
+            const knownSet = new Set(knownNodeTypes.map(t => String(t).toLowerCase()));
+            const nodes = app.graph.nodes || [];
+            for (const node of nodes) {
+                if (!node) continue;
+                const nodeType = node.type || '';
+
+                // 显式占位节点：从 properties / _meta / title 恢复原始类型名
+                if (PLACEHOLDER_TYPES.has(nodeType)) {
+                    const props = node.properties || {};
+                    for (const key of ['type', 'nodetype', 'orig_type', 'original_type', 'class_type', 'originalNodeType', 'comfyClass']) {
+                        const v = props[key];
+                        if (typeof v === 'string' && v.trim()) {
+                            const cleaned = cleanMissingNodeTitle(v.trim());
+                            if (looksLikeNodeType(cleaned)) result.add(cleaned);
+                        }
+                    }
+                    // 遍历 properties 中所有字符串值，可能包含原始类型名
+                    for (const v of Object.values(props)) {
+                        if (typeof v === 'string' && v.trim() && v.includes(':')) {
+                            const cleaned = cleanMissingNodeTitle(v.trim());
+                            if (looksLikeNodeType(cleaned)) result.add(cleaned);
+                        }
+                    }
+                    const title = node._meta?.title || node.title;
+                    if (typeof title === 'string' && title.trim()) {
+                        const cleaned = cleanMissingNodeTitle(title.trim());
+                        if (looksLikeNodeType(cleaned)) result.add(cleaned);
+                    }
+                    continue;
+                }
+
+                // 隐式缺失：类型不在已注册节点列表中
+                if (nodeType && !PLACEHOLDER_TYPES.has(nodeType)) {
+                    const nodeTypeLower = nodeType.toLowerCase();
+                    const normalized = nodeTypeLower.replace(/\s+/g, '');
+                    const knownAvailable = knownSet.size > 0;
+                    const isUnknown = knownAvailable
+                        ? (!knownSet.has(nodeTypeLower) && !knownSet.has(normalized))
+                        // 无已注册节点列表时，通过错误标记/标题启发判断
+                        : (node.hasErrors || node.errors || /missing|unknown|notfound/i.test(node.title || ''));
+                    if (isUnknown && looksLikeNodeType(nodeType)) {
+                        result.add(nodeType);
+                    }
+                }
+
+                // 节点 type 存在但 comfyClass 为空/相同，且节点处于错误状态
+                if (nodeType && (!node.comfyClass || node.comfyClass === '' || node.comfyClass === nodeType)) {
+                    const nodeTypeLower = nodeType.toLowerCase();
+                    const knownAvailable = knownSet.size > 0;
+                    const isUnknown = knownAvailable
+                        ? !knownSet.has(nodeTypeLower)
+                        : (node.hasErrors || node.errors || /missing|unknown|notfound/i.test(node.title || ''));
+                    if (isUnknown && looksLikeNodeType(nodeType)) {
+                        result.add(nodeType);
+                    }
+                }
+            }
+
+            // 3. 兼容 ComfyUI Manager 的缺失节点提示
+            if (app.extensionManager && app.extensionManager.missingNodeTypes) {
+                const mgrMissing = app.extensionManager.missingNodeTypes;
+                const items = Array.isArray(mgrMissing) ? mgrMissing :
+                              (typeof mgrMissing.values === 'function' ? Array.from(mgrMissing.values()) :
+                               Object.keys(mgrMissing));
+                for (const item of items) {
+                    if (typeof item === 'string' && item.trim()) {
+                        const cleaned = cleanMissingNodeTitle(item.trim());
+                        if (looksLikeNodeType(cleaned)) result.add(cleaned);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[FeixueMonitor] collectFrontendMissingNodes failed:', e);
+        }
+        return Array.from(result);
+    }
+
+    /**
+     * 通用 POST JSON 请求
+     */
+    async function postJSON(url, body) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                signal: controller.signal,
+                body: JSON.stringify(body || {})
+            });
+            clearTimeout(timeoutId);
+            const data = await response.json();
+            if (!response.ok) {
+                const err = new Error(data && data.message ? data.message : `HTTP ${response.status}`);
+                err.data = data;
+                throw err;
+            }
+            return data;
+        } catch (e) {
+            clearTimeout(timeoutId);
+            throw e;
+        }
+    }
+
+    /**
+     * 初始化全局 tooltip 容器
+     */
+    function initDiagTooltip() {
+        if (document.getElementById('fxm-diag-tooltip')) return;
+        const tip = document.createElement('div');
+        tip.id = 'fxm-diag-tooltip';
+        tip.className = 'fxm-tooltip';
+        document.body.appendChild(tip);
+    }
+
+    /**
+     * 为元素显示 tooltip
+     */
+    function showDiagTooltip(el, text) {
+        const tip = document.getElementById('fxm-diag-tooltip');
+        if (!tip || !el) return;
+        tip.textContent = text;
+        tip.classList.add('show');
+        const rect = el.getBoundingClientRect();
+        const tipRect = tip.getBoundingClientRect();
+        let left = rect.left + rect.width / 2 - tipRect.width / 2;
+        let top = rect.top - tipRect.height - 8;
+        if (left < 8) left = 8;
+        if (left + tipRect.width > window.innerWidth - 8) left = window.innerWidth - tipRect.width - 8;
+        if (top < 8) top = rect.bottom + 8;
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
+    }
+
+    /**
+     * 隐藏 tooltip
+     */
+    function hideDiagTooltip() {
+        const tip = document.getElementById('fxm-diag-tooltip');
+        if (tip) tip.classList.remove('show');
+    }
+
+    /**
+     * 为面板内的诊断按钮绑定 tooltip
+     */
+    function bindDiagTooltips(panel) {
+        initDiagTooltip();
+        panel.querySelectorAll('.fxm-diag-btn[title]').forEach(btn => {
+            const text = btn.getAttribute('title');
+            btn.removeAttribute('title');
+            btn.addEventListener('mouseenter', () => showDiagTooltip(btn, text));
+            btn.addEventListener('mouseleave', hideDiagTooltip);
+            btn.addEventListener('focus', () => showDiagTooltip(btn, text));
+            btn.addEventListener('blur', hideDiagTooltip);
+        });
+    }
+
+    /** 当前激活的风格（复用L457声明的currentStyle变量） */
+    // let currentStyle = 'neu'; // 已在上方声明，此处不重复
+
+    // ============================================================
     // Dock 尺寸调节常量
     // ============================================================
 
@@ -6598,11 +10018,11 @@ body.cyber-active {
 
     /** 各主题默认 Dock 高度（视觉高度 = defaultHeight * heightScale） */
     const DOCK_DEFAULT_HEIGHTS = {
-        neu: 86,
-        lux: 70,
-        cyber: 92,
-        retro: 60,
-        ind: 100
+        neu: 56,
+        lux: 56,
+        cyber: 58,
+        retro: 56,
+        ind: 58
     };
 
     /** Dock 高度缩放范围 */
@@ -6722,38 +10142,6 @@ body.cyber-active {
         cyber: '.cyber-handle',
         retro: '.retro-drag-handle',
         ind:   '.ind-dock-handle'
-    };
-
-    const LAYOUT_ROW_CLASSES = {
-        neu:   'neu-setting-row',
-        lux:   'lux-setting-row',
-        cyber: 'cyber-control-row',
-        retro: 'retro-control-row',
-        ind:   'ind-setting-row'
-    };
-
-    const LAYOUT_LABEL_CLASSES = {
-        neu:   'neu-setting-label',
-        lux:   'lux-setting-label',
-        cyber: 'cyber-control-label',
-        retro: 'retro-control-label',
-        ind:   'ind-setting-label'
-    };
-
-    const LAYOUT_TOGGLE_CLASSES = {
-        neu:   'neu-toggle-switch',
-        lux:   'lux-toggle-switch',
-        cyber: 'cyber-toggle-switch',
-        retro: 'retro-toggle-switch',
-        ind:   'ind-toggle-switch'
-    };
-
-    const LAYOUT_THUMB_CLASSES = {
-        neu:   'neu-toggle-thumb',
-        lux:   'lux-toggle-thumb',
-        cyber: 'cyber-toggle-thumb',
-        retro: 'retro-toggle-thumb',
-        ind:   'ind-toggle-thumb'
     };
 
     /**
@@ -6996,6 +10384,12 @@ body.cyber-active {
 
             }
 
+            // DIAG Dock 状态指示灯
+            const indicator = document.createElement('div');
+            indicator.className = 'fxm-dock-indicator ok';
+            indicator.title = t('diag_status_ok');
+            dock.appendChild(indicator);
+
             document.body.appendChild(dock);
         });
 
@@ -7181,7 +10575,7 @@ body.cyber-active {
             icon.textContent = m.icon;
 
             const info = document.createElement('div');
-            info.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:2px;';
+            info.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;';
 
             const topRow = document.createElement('div');
             topRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
@@ -7550,6 +10944,27 @@ body.cyber-active {
 
             }
 
+            // 注入 DIAG 诊断标签页与内容区
+            if (style === 'retro') {
+                const inner = panel.querySelector('.retro-panel-inner');
+                if (inner) {
+                    inner.insertAdjacentHTML('afterbegin', getDiagTabsHTML());
+                    inner.insertAdjacentHTML('beforeend', getDiagContentHTML());
+                }
+            } else {
+                const header = panel.firstElementChild;
+                if (header) {
+                    header.insertAdjacentHTML('afterend', getDiagTabsHTML());
+                } else {
+                    panel.insertAdjacentHTML('afterbegin', getDiagTabsHTML());
+                }
+                panel.insertAdjacentHTML('beforeend', getDiagContentHTML());
+            }
+            bindDiagTabs(panel);
+            bindDiagPanelEvents(panel);
+            bindDiagTooltips(panel);
+            panel.setAttribute('data-fxm-tab', activePanelTab);
+
             document.body.appendChild(panel);
         });
 
@@ -7621,16 +11036,16 @@ body.cyber-active {
             '<div class="neu-panel-header">' +
                 '<div class="neu-header-brand">' +
                     '<div class="neu-brand-icon">\u2744</div>' +
-                    '<div class="neu-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.8</span></div>' +
+                    '<div class="neu-brand-text"><h1>' + t('panel_title') + '</h1><span>v3.40.10</span></div>' +
                 '</div>' +
                 '<div class="neu-header-actions">' +
                     '<button class="neu-action-btn" id="neu-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="neu-action-btn neu-close-btn" id="neu-closeBtn" title="' + t('close') + '">&times;</button>' +
                 '</div>' +
             '</div>' +
-            // Detail Section 1: GPU & VRAM Details (默认展开)
+            // Detail Section 1: GPU & VRAM Details (默认收起)
             '<section class="neu-detail-section">' +
-                '<div class="neu-section-header" role="button" tabindex="0" aria-expanded="true">' +
+                '<div class="neu-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
                     '<div class="neu-section-title"><span class="neu-section-icon">\u{1F3AE}</span>' + t('gpu_vram_details') + '</div>' +
                     '<span class="neu-section-toggle">&#x25BC;</span>' +
                 '</div>' +
@@ -7698,7 +11113,7 @@ body.cyber-active {
                     '<div class="neu-details-grid">' +
                         '<div class="neu-detail-item">' +
                             '<div class="neu-detail-left"><span class="neu-detail-icon">\u{1F4BE}</span><span>' + t('disks_io') + '</span></div>' +
-                            '<span class="neu-detail-right" id="np-disk-detail">R: -- / W: -- MB/s</span>' +
+                            '<span class="neu-detail-right" id="np-disk-detail">' + t('disk_read') + ': -- / ' + t('disk_write') + ': -- MB/s</span>' +
                         '</div>' +
                         '<div class="neu-detail-item">' +
                             '<div class="neu-detail-left"><span class="neu-detail-icon">\u{1F310}</span><span>' + t('network_io') + '</span></div>' +
@@ -7729,6 +11144,8 @@ body.cyber-active {
                             COLOR_WHITELIST.map(c => '<button class="neu-radio-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'" role="radio">'+t('color_name_' + c)+'</button>').join('') +
                         '</div>' +
                     '</div>' +
+                    // DIAG Settings
+                    getDiagSettingsHTML('neu') +
                 '</div>' +
             '</div>' +
             // Smart Memory Cleanup Section
@@ -7753,7 +11170,7 @@ body.cyber-active {
                         '<label class="fxm-cleanup-label" for="neu-cleanupDelay">' + t('idle_confirm_delay') + '</label>' +
                         '<div class="fxm-cleanup-slider-wrap">' +
                             '<input type="range" class="fxm-cleanup-slider" id="neu-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '">' +
-                            '<span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span>' +
+                            '<span class="fxm-threshold-value fxm-delay-value">' + tf('delay_auto', CLEANUP_DEFAULT_DELAY) + '</span>' +
                         '</div>' +
                     '</div>' +
                     '<button class="fxm-cleanup-btn" id="neu-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
@@ -7762,7 +11179,7 @@ body.cyber-active {
             // Footer
             '<footer class="neu-panel-footer">' +
                 '<div class="neu-footer-left"><span class="neu-status-dot"></span><span id="np-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.40.8 Build 2026.07.01</span>' +
+                '<span>v3.40.10 Build 2026.07.01</span>' +
             '</footer>';
 
         // 绑定关闭按钮
@@ -7811,6 +11228,9 @@ body.cyber-active {
 
         // Layout section controls
         bindLayoutSection(panel, 'neu');
+
+        // DIAG settings controls
+        bindDiagSettings(panel, 'neu');
 
         // Smart Memory Cleanup section toggle
         panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
@@ -7879,11 +11299,11 @@ body.cyber-active {
             '</div></div>' +
             // 模块2: Color Palette (磷光色块)
             '<div class="retro-section"><div class="retro-color-palette">' +
-                '<div class="retro-color-block color-green active" data-color="green" title="P1 PHOSPHOR GREEN"></div>' +
-                '<div class="retro-color-block color-purple" data-color="purple" title="P43 RARE EARTH PURPLE"></div>' +
-                '<div class="retro-color-block color-amber" data-color="amber" title="P22 AMBER"></div>' +
-                '<div class="retro-color-block color-cyan" data-color="cyan" title="P39 CYAN"></div>' +
-                '<div class="retro-color-block color-pink" data-color="pink" title="CUSTOM PINK"></div>' +
+                '<div class="retro-color-block color-green active" data-color="green" title="' + t('retro_color_green') + '"></div>' +
+                '<div class="retro-color-block color-purple" data-color="purple" title="' + t('retro_color_purple') + '"></div>' +
+                '<div class="retro-color-block color-amber" data-color="amber" title="' + t('retro_color_amber') + '"></div>' +
+                '<div class="retro-color-block color-cyan" data-color="cyan" title="' + t('retro_color_cyan') + '"></div>' +
+                '<div class="retro-color-block color-pink" data-color="pink" title="' + t('retro_color_pink') + '"></div>' +
             '</div></div>' +
             // 模块3: VFD Progress Bars
             '<div class="retro-section retro-panel-vfd-grid"><div class="retro-progress-group">' +
@@ -7904,6 +11324,8 @@ body.cyber-active {
                 // Layout Row
                 getLayoutSectionHTML('retro') +
             '</div>' +
+            // DIAG Settings
+            '<div class="retro-section">' + getDiagSettingsHTML('retro') + '</div>' +
             // 模块6: Smart Memory Cleanup
             '<div class="retro-section fxm-cleanup-section">' +
                 '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
@@ -7913,12 +11335,12 @@ body.cyber-active {
                 '<div class="fxm-cleanup-content">' +
                     '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' + getCleanupModeSelectorHTML('retro-cleanupMode') + '</div>' +
                     '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="retro-cleanupThreshold">' + t('trigger_threshold') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="retro-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '"><span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span></div></div>' +
-                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="retro-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="retro-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span></div></div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="retro-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="retro-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + tf('delay_auto', CLEANUP_DEFAULT_DELAY) + '</span></div></div>' +
                     '<button class="fxm-cleanup-btn" id="retro-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
             // V19 Footer
-            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>FEIXUE MONITOR v3.40.8</div><div>' + (FXM_LANG === 'zh' ? '复古终端版' : 'RETRO TERMINAL') + '</div><div>Build 2026.07.01</div></div>' +
+            '<div style="text-align:center;padding:8px 0;font-family:var(--mono-display);font-size:11px;color:var(--retro-phosphor-dim, var(--retro-dim));line-height:1.6;"><div>' + t('panel_title') + ' v3.40.10</div><div>' + t('retro_terminal') + '</div><div>Build 2026.07.01</div></div>' +
             '<div class="retro-source-text" id="retro-source-text">[ AMD SMI ]</div>' +
             '</div></div>';
 
@@ -7952,6 +11374,9 @@ body.cyber-active {
 
         // Layout section controls
         bindLayoutSection(panel, 'retro');
+
+        // DIAG settings controls
+        bindDiagSettings(panel, 'retro');
 
         // Smart Memory Cleanup section toggle
         panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
@@ -8008,9 +11433,9 @@ body.cyber-active {
     /** 构建Lux Panel内容 */
     function buildLuxPanel(panel) {
         panel.innerHTML =
-            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>SYSTEM MONITOR</h1><span>v3.40.8</span></div>' +
+            '<div class="lux-panel-header"><div class="lux-brand-text"><h1>' + t('system_monitor') + '</h1><span>v3.40.10</span></div>' +
                 '<div class="lux-header-actions"><button class="lux-action-btn lux-close-btn" title="' + t('close') + '">&times;</button></div></div>' +
-            '<div class="lux-detail-section"><div class="lux-section-header"><div class="lux-section-title">' + t('performance') + '</div></div><div class="lux-section-content">' +
+            '<div class="lux-detail-section"><div class="lux-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="lux-section-title"><span class="lux-section-icon">&#x1F3AE;</span>' + t('performance') + '</div><span class="lux-section-toggle">&#x25BC;</span></div><div class="lux-section-content">' +
                 '<div class="lux-progress-row"><div class="lux-progress-header"><span class="lux-progress-label">' + t('core_usage') + '</span><span class="lux-progress-badge" id="lp-gpu-badge">--%</span></div>' +
                     '<div class="lux-progress-track"><div class="lux-progress-fill" id="lp-gpu-pb" style="width:0%"></div></div></div>' +
                 '<div class="lux-progress-row"><div class="lux-progress-header"><span class="lux-progress-label">' + t('vram_usage') + '</span><span class="lux-progress-badge" id="lp-vram-badge">--%</span></div>' +
@@ -8018,15 +11443,15 @@ body.cyber-active {
                 '<div class="lux-progress-row"><div class="lux-progress-header"><span class="lux-progress-label">' + t('temperature') + '</span><span class="lux-progress-badge" id="lp-temp-badge">--\u00B0C</span></div>' +
                     '<div class="lux-progress-track"><div class="lux-progress-fill" id="lp-temp-pb" style="width:0%"></div></div></div>' +
             '</div></div>' +
-            '<div class="lux-detail-section"><div class="lux-section-header collapsed"><div class="lux-section-title">' + t('memory') + '</div></div><div class="lux-section-content">' +
+            '<div class="lux-detail-section"><div class="lux-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="lux-section-title"><span class="lux-section-icon">&#x26A1;</span>' + t('memory') + '</div><span class="lux-section-toggle">&#x25BC;</span></div><div class="lux-section-content">' +
                 '<div class="lux-progress-row"><div class="lux-progress-header"><span class="lux-progress-label">' + t('ram') + '</span><span class="lux-progress-badge" id="lp-ram-badge">--%</span></div>' +
                     '<div class="lux-progress-track"><div class="lux-progress-fill" id="lp-ram-pb" style="width:0%"></div></div></div>' +
                 '<div class="lux-progress-row"><div class="lux-progress-header"><span class="lux-progress-label">' + t('swap') + '</span><span class="lux-progress-badge" id="lp-swap-badge">-- GB</span></div>' +
                     '<div class="lux-progress-track"><div class="lux-progress-fill" id="lp-swap-pb" style="width:0%"></div></div></div>' +
             '</div></div>' +
             '<section class="lux-detail-section"><div class="lux-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="lux-section-title"><span class="lux-section-icon">&#x1F5A5;</span>' + t('system') + '</div><span class="lux-section-toggle">&#x25BC;</span></div><div class="lux-section-content"><div class="lux-details-grid">' +
-                '<div class="lux-detail-item"><div class="lux-detail-left"><span class="lux-detail-icon">&#x1F4BE;</span><span>' + t('disks_io') + '</span></div><span class="lux-detail-right" id="lp-disk-detail">R: -- / W: -- MB/s</span></div>' +
-                '<div class="lux-detail-item"><div class="lux-detail-left"><span class="lux-detail-icon">&#x1F310;</span><span>' + t('network_io') + '</span></div><span class="lux-detail-right" id="lp-net-detail">↑ -- / ↓ -- MB/s</span></div>' +
+                '<div class="lux-detail-item"><div class="lux-detail-left"><span class="lux-detail-icon">&#x1F4BE;</span><span>' + t('disks_io') + '</span></div><span class="lux-detail-right" id="lp-disk-detail">' + t('disk_read') + ': -- / ' + t('disk_write') + ': -- MB/s</span></div>' +
+                '<div class="lux-detail-item"><div class="lux-detail-left"><span class="lux-detail-icon">&#x1F310;</span><span>' + t('network_io') + '</span></div><span class="lux-detail-right" id="lp-net-detail">' + t('net_up') + ' -- / ' + t('net_down') + ' -- MB/s</span></div>' +
             '</div></div></section>' +
             '<div class="lux-settings-area"><div class="lux-style-chips">' +
                 VALID_STYLES.map(s => '<button class="lux-style-chip'+(s==='lux'?' active':'')+'" data-target="'+s+'">'+t('theme_name_' + s)+'</button>').join('') +
@@ -8041,6 +11466,7 @@ body.cyber-active {
                 // Layout Row
                 getLayoutSectionHTML('lux') +
             '</div></div>' +
+            '<div class="lux-settings-area" style="margin-top:8px;">' + getDiagSettingsHTML('lux') + '</div>' +
             // Smart Memory Cleanup Section
             '<div class="fxm-cleanup-section">' +
                 '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
@@ -8050,11 +11476,11 @@ body.cyber-active {
                 '<div class="fxm-cleanup-content">' +
                     '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' + getCleanupModeSelectorHTML('lux-cleanupMode') + '</div>' +
                     '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="lux-cleanupThreshold">' + t('trigger_threshold') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="lux-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '"><span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span></div></div>' +
-                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="lux-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="lux-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span></div></div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="lux-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="lux-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + tf('delay_auto', CLEANUP_DEFAULT_DELAY) + '</span></div></div>' +
                     '<button class="fxm-cleanup-btn" id="lux-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
-            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.40.8 Build 2026.07.01</span></footer>';
+            '<footer class="lux-panel-footer"><span id="lux-source-text">' + t('plugin_active') + '</span><span>v3.40.10 Build 2026.07.01</span></footer>';
 
         panel.querySelector('.lux-close-btn').addEventListener('click', () => togglePanel('lux'));
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -8084,6 +11510,9 @@ body.cyber-active {
 
         // Layout section controls
         bindLayoutSection(panel, 'lux');
+
+        // DIAG settings controls
+        bindDiagSettings(panel, 'lux');
 
         // Smart Memory Cleanup section toggle
         panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
@@ -8150,14 +11579,14 @@ body.cyber-active {
 
         panel.innerHTML =
             '<div class="cyber-panel-header">' +
-                '<span class="cyber-panel-title">SYSTEM MONITOR</span>' +
+                '<span class="cyber-panel-title">' + t('system_monitor') + '</span>' +
                 '<div style="display:flex;align-items:center;gap:10px;">' +
                     '<span class="cyber-panel-clock" id="cyber-clock">--:--:--</span>' +
                     '<button class="cyber-mode-btn" id="cyber-closeBtn" title="' + t('close') + '" aria-label="' + t('close') + '">&#x2715;</button>' +
                 '</div>' +
             '</div>' +
             '<div class="cyber-detail-section">' +
-                '<div class="cyber-section-header" role="button" tabindex="0" aria-expanded="true"><div class="cyber-section-title"><span class="cyber-section-icon">&#x25B6;</span>' + t('performance') + '</div><span class="cyber-section-toggle">&#x25BC;</span></div>' +
+                '<div class="cyber-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="cyber-section-title"><span class="cyber-section-icon">&#x25B6;</span>' + t('performance') + '</div><span class="cyber-section-toggle">&#x25BC;</span></div>' +
                 '<div class="cyber-section-content">' +
                     '<div class="cyber-progress-row" data-type="gpu"><div class="cyber-progress-header"><span class="cyber-progress-label"><span class="cyber-progress-dot"></span>' + t('core_usage') + '</span><span class="cyber-progress-badge" id="cp-gpu-badge">--%</span></div><div class="cyber-progress-track"><div class="cyber-progress-fill" id="cp-gpu-pb" style="width:0%"></div></div></div>' +
                     '<div class="cyber-progress-row" data-type="vram"><div class="cyber-progress-header"><span class="cyber-progress-label"><span class="cyber-progress-dot"></span>' + t('vram_usage') + '</span><span class="cyber-progress-badge" id="cp-vram-badge">--%</span></div><div class="cyber-progress-track"><div class="cyber-progress-fill" id="cp-vram-pb" style="width:0%"></div></div></div>' +
@@ -8174,8 +11603,8 @@ body.cyber-active {
             '<section class="cyber-detail-section">' +
                 '<div class="cyber-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="cyber-section-title"><span class="cyber-section-icon">&#x1F5A5;</span>' + t('system') + '</div><span class="cyber-section-toggle">&#x25BC;</span></div>' +
                 '<div class="cyber-section-content"><div class="cyber-details-grid">' +
-                    '<div class="cyber-detail-item"><div class="cyber-detail-left"><span class="cyber-detail-icon">&#x1F4BE;</span><span>' + t('disks_io') + '</span></div><span class="cyber-detail-right" id="cp-disk-detail">R: -- / W: -- MB/s</span></div>' +
-                    '<div class="cyber-detail-item"><div class="cyber-detail-left"><span class="cyber-detail-icon">&#x1F310;</span><span>' + t('network_io') + '</span></div><span class="cyber-detail-right" id="cp-net-detail">↑ -- / ↓ -- MB/s</span></div>' +
+                    '<div class="cyber-detail-item"><div class="cyber-detail-left"><span class="cyber-detail-icon">&#x1F4BE;</span><span>' + t('disks_io') + '</span></div><span class="cyber-detail-right" id="cp-disk-detail">' + t('disk_read') + ': -- / ' + t('disk_write') + ': -- MB/s</span></div>' +
+                    '<div class="cyber-detail-item"><div class="cyber-detail-left"><span class="cyber-detail-icon">&#x1F310;</span><span>' + t('network_io') + '</span></div><span class="cyber-detail-right" id="cp-net-detail">' + t('net_up') + ' -- / ' + t('net_down') + ' -- MB/s</span></div>' +
                 '</div></div>' +
             '</section>' +
             '<div class="cyber-control-bar"><span class="cyber-mode-label">' + t('theme') + ':</span>' +
@@ -8191,6 +11620,7 @@ body.cyber-active {
                 // Layout Row
                 getLayoutSectionHTML('cyber') +
             '</div></div>' +
+            '<div class="cyber-controls-section"><div class="cyber-control-group">' + getDiagSettingsHTML('cyber') + '</div></div>' +
             // Smart Memory Cleanup Section
             '<div class="fxm-cleanup-section">' +
                 '<div class="fxm-cleanup-section-header collapsed" role="button" tabindex="0" aria-expanded="false">' +
@@ -8200,11 +11630,11 @@ body.cyber-active {
                 '<div class="fxm-cleanup-content">' +
                     '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' + getCleanupModeSelectorHTML('cyber-cleanupMode') + '</div>' +
                     '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="cyber-cleanupThreshold">' + t('trigger_threshold') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="cyber-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '"><span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span></div></div>' +
-                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="cyber-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="cyber-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span></div></div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="cyber-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="cyber-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + tf('delay_auto', CLEANUP_DEFAULT_DELAY) + '</span></div></div>' +
                     '<button class="fxm-cleanup-btn" id="cyber-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
-            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.40.8 Build 2026.07.01</span></div>';
+            '<div class="cyber-status-bar"><span id="cyber-source-text">' + t('plugin_active') + '</span><span>v3.40.10 Build 2026.07.01</span></div>';
 
         // 主题切换按钮
         panel.querySelectorAll('[data-target]').forEach(btn => {
@@ -8248,6 +11678,9 @@ body.cyber-active {
 
         // Layout section controls
         bindLayoutSection(panel, 'cyber');
+
+        // DIAG settings controls
+        bindDiagSettings(panel, 'cyber');
 
         // Smart Memory Cleanup section toggle
         panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
@@ -8306,14 +11739,14 @@ body.cyber-active {
     function buildIndPanel(panel) {
         panel.innerHTML =
             '<div class="ind-panel-header">' +
-                '<div class="ind-brand-text"><h1>FEIXUE MONITOR</h1><span>v3.40.8</span></div>' +
+                '<div class="ind-brand-text"><h1>' + t('panel_title') + '</h1><span>v3.40.10</span></div>' +
                 '<div class="ind-header-actions">' +
                     '<button class="ind-action-btn" id="ind-minimizeBtn" title="' + t('close') + '">&#x2014;</button>' +
                     '<button class="ind-action-btn" id="ind-closeBtn" title="' + t('close') + '">&times;</button>' +
                 '</div>' +
             '</div>' +
             '<section class="ind-section">' +
-                '<div class="ind-section-header" role="button" tabindex="0" aria-expanded="true"><div class="ind-section-title"><span class="ind-section-icon">&#x1F3AE;</span>' + t('gpu_vram_details') + '</div><span class="ind-section-toggle">&#x25BC;</span></div>' +
+                '<div class="ind-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="ind-section-title"><span class="ind-section-icon">&#x1F3AE;</span>' + t('gpu_vram_details') + '</div><span class="ind-section-toggle">&#x25BC;</span></div>' +
                 '<div class="ind-section-content">' +
                     '<div class="ind-progress-row"><div class="ind-progress-header"><span class="ind-progress-label"><span class="ind-progress-dot"></span>' + t('core_usage') + '</span><span class="ind-progress-badge" id="gp-gpu-badge">--%</span></div><div class="ind-progress-track"><div class="ind-progress-fill" id="gp-gpu-pb" style="width:0%"></div></div></div>' +
                     '<div class="ind-progress-row"><div class="ind-progress-header"><span class="ind-progress-label"><span class="ind-progress-dot"></span>' + t('vram_usage') + '</span><span class="ind-progress-badge" id="gp-vram-badge">--</span></div><div class="ind-progress-track"><div class="ind-progress-fill" id="gp-vram-pb" style="width:0%"></div></div></div>' +
@@ -8331,8 +11764,8 @@ body.cyber-active {
             '<section class="ind-section">' +
                 '<div class="ind-section-header collapsed" role="button" tabindex="0" aria-expanded="false"><div class="ind-section-title"><span class="ind-section-icon">&#x1F5A5;</span>' + t('io_network') + '</div><span class="ind-section-toggle">&#x25BC;</span></div>' +
                 '<div class="ind-section-content"><div class="ind-details-grid">' +
-                    '<div class="ind-detail-item"><div class="ind-detail-left"><span class="ind-detail-icon">&#x1F4BE;</span><span>' + t('disks_io') + '</span></div><span class="ind-detail-right" id="gp-disk-detail">R: -- / W: -- MB/s</span></div>' +
-                    '<div class="ind-detail-item"><div class="ind-detail-left"><span class="ind-detail-icon">&#x1F310;</span><span>' + t('network_io') + '</span></div><span class="ind-detail-right" id="gp-net-detail">&#x2191; -- / &#x2193; -- MB/s</span></div>' +
+                    '<div class="ind-detail-item"><div class="ind-detail-left"><span class="ind-detail-icon">&#x1F4BE;</span><span>' + t('disks_io') + '</span></div><span class="ind-detail-right" id="gp-disk-detail">' + t('disk_read') + ': -- / ' + t('disk_write') + ': -- MB/s</span></div>' +
+                    '<div class="ind-detail-item"><div class="ind-detail-left"><span class="ind-detail-icon">&#x1F310;</span><span>' + t('network_io') + '</span></div><span class="ind-detail-right" id="gp-net-detail">' + t('net_up') + ' -- / ' + t('net_down') + ' -- MB/s</span></div>' +
                 '</div></div>' +
             '</section>' +
             '<div class="ind-section">' +
@@ -8346,6 +11779,8 @@ body.cyber-active {
                     '<div class="ind-setting-row" style="flex-direction:column;align-items:flex-start;"><label class="ind-setting-label">' + t('color') + '</label><div class="ind-radio-group">' +
                         COLOR_WHITELIST.map(c => '<button class="ind-radio-btn'+(c==='forest'?' active':'')+'" data-color="'+c+'">'+t('color_name_' + c)+'</button>').join('') +
                     '</div></div>' +
+                    // DIAG Settings
+                    getDiagSettingsHTML('ind') +
                 '</div>' +
             '</div>' +
             // Smart Memory Cleanup Section
@@ -8357,13 +11792,13 @@ body.cyber-active {
                 '<div class="fxm-cleanup-content">' +
                     '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label">' + t('auto_smart_cleanup') + '</label>' + getCleanupModeSelectorHTML('ind-cleanupMode') + '</div>' +
                     '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="ind-cleanupThreshold">' + t('trigger_threshold') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="ind-cleanupThreshold" min="60" max="95" value="' + CLEANUP_DEFAULT_THRESHOLD + '" step="1" aria-label="' + t('trigger_threshold') + '"><span class="fxm-threshold-value">' + CLEANUP_DEFAULT_THRESHOLD + '%</span></div></div>' +
-                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="ind-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="ind-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + (FXM_LANG === 'zh' ? '自动（当前 2 秒）' : 'Auto (Current 2s)') + '</span></div></div>' +
+                    '<div class="fxm-cleanup-row"><label class="fxm-cleanup-label" for="ind-cleanupDelay">' + t('idle_confirm_delay') + '</label><div class="fxm-cleanup-slider-wrap"><input type="range" class="fxm-cleanup-slider" id="ind-cleanupDelay" min="-1" max="15" value="' + CLEANUP_DEFAULT_DELAY + '" step="1" aria-label="' + t('idle_confirm_delay') + '"><span class="fxm-threshold-value fxm-delay-value">' + tf('delay_auto', CLEANUP_DEFAULT_DELAY) + '</span></div></div>' +
                     '<button class="fxm-cleanup-btn" id="ind-cleanupBtn" type="button">' + t('free_memory_now') + '</button>' +
                 '</div>' +
             '</div>' +
             '<footer class="ind-panel-footer">' +
                 '<div><span class="ind-status-dot"></span><span id="gp-source-text">' + t('plugin_active') + '</span></div>' +
-                '<span>v3.40.8 Build 2026.07.01</span>' +
+                '<span>v3.40.10 Build 2026.07.01</span>' +
             '</footer>';
 
         const closeBtn = panel.querySelector('#ind-closeBtn');
@@ -8403,6 +11838,9 @@ body.cyber-active {
 
         // Layout section controls
         bindLayoutSection(panel, 'ind');
+
+        // DIAG settings controls
+        bindDiagSettings(panel, 'ind');
 
         // Smart Memory Cleanup section toggle
         panel.querySelectorAll('.fxm-cleanup-section-header').forEach(cleanupHeader => {
@@ -8492,6 +11930,8 @@ body.cyber-active {
         const targetPanel = document.getElementById(target + '-panel');
         if (targetPanel && anyPanelVisible) {
             targetPanel.classList.remove('style-hidden');
+            // 切换主题时，新主题面板的所有可折叠区块默认折叠
+            collapseAllPanelSections(targetPanel);
         }
 
         // 更新body class
@@ -8663,6 +12103,30 @@ body.cyber-active {
     }
 
     /**
+     * 将面板内所有可折叠区块重置为折叠状态
+     * 用于打开面板或切换主题时恢复默认折叠
+     * @param {HTMLElement} panel - 目标面板
+     */
+    function collapseAllPanelSections(panel) {
+        if (!panel) return;
+        const headerSelectors = [
+            '.neu-section-header',
+            '.lux-section-header',
+            '.cyber-section-header',
+            '.ind-section-header',
+            '.fxm-cleanup-section-header'
+        ];
+        headerSelectors.forEach(selector => {
+            panel.querySelectorAll(selector).forEach(header => {
+                header.classList.add('collapsed');
+                header.setAttribute('aria-expanded', 'false');
+                const toggle = header.querySelector('[class*="toggle"]');
+                if (toggle) toggle.style.transform = 'rotate(-90deg)';
+            });
+        });
+    }
+
+    /**
      * 切换指定风格的面板显隐
      * @param {string} style - 风格名
      */
@@ -8676,6 +12140,8 @@ body.cyber-active {
             panel.classList.add('style-hidden');
         } else {
             panel.classList.remove('style-hidden');
+            // 打开面板时所有可折叠区块默认折叠
+            collapseAllPanelSections(panel);
             // 同时确保其他面板隐藏
             VALID_STYLES.forEach(s => {
                 if (s !== safeStyle) {
@@ -8792,10 +12258,10 @@ body.cyber-active {
 
         // Detail Section 3: I/O & Network details
         if (diskRead !== null && diskWrite !== null) {
-            setElText('np-disk-detail', 'R: ' + diskRead.toFixed(1) + ' / W: ' + diskWrite.toFixed(1) + ' MB/s');
+            setElText('np-disk-detail', t('disk_read') + ': ' + diskRead.toFixed(1) + ' / ' + t('disk_write') + ': ' + diskWrite.toFixed(1) + ' MB/s');
         }
         if (netUp !== null && netDown !== null) {
-            setElText('np-net-detail', '\u2191 ' + netUp.toFixed(1) + ' / \u2193 ' + netDown.toFixed(1) + ' MB/s');
+            setElText('np-net-detail', t('net_up') + ' ' + netUp.toFixed(1) + ' / ' + t('net_down') + ' ' + netDown.toFixed(1) + ' MB/s');
         }
 
         // Source text
@@ -8941,10 +12407,10 @@ body.cyber-active {
         const luxNetUp = sanitizeValue(data.network_io?.upload_mbps);
         const luxNetDown = sanitizeValue(data.network_io?.download_mbps);
         if (luxDiskRead !== null && luxDiskWrite !== null) {
-            setElText('lp-disk-detail', 'R: ' + luxDiskRead.toFixed(1) + ' / W: ' + luxDiskWrite.toFixed(1) + ' MB/s');
+            setElText('lp-disk-detail', t('disk_read') + ': ' + luxDiskRead.toFixed(1) + ' / ' + t('disk_write') + ': ' + luxDiskWrite.toFixed(1) + ' MB/s');
         }
         if (luxNetUp !== null && luxNetDown !== null) {
-            setElText('lp-net-detail', '\u2191 ' + luxNetUp.toFixed(1) + ' / \u2193 ' + luxNetDown.toFixed(1) + ' MB/s');
+            setElText('lp-net-detail', t('net_up') + ' ' + luxNetUp.toFixed(1) + ' / ' + t('net_down') + ' ' + luxNetDown.toFixed(1) + ' MB/s');
         }
 
         updateSourceText('lux-source-text', data);
@@ -9091,10 +12557,10 @@ body.cyber-active {
 
         // I/O & 网络
         if (diskRead !== null && diskWrite !== null) {
-            setElText('gp-disk-detail', 'R: ' + diskRead.toFixed(1) + ' / W: ' + diskWrite.toFixed(1) + ' MB/s');
+            setElText('gp-disk-detail', t('disk_read') + ': ' + diskRead.toFixed(1) + ' / ' + t('disk_write') + ': ' + diskWrite.toFixed(1) + ' MB/s');
         }
         if (netUp !== null && netDown !== null) {
-            setElText('gp-net-detail', '\u2191 ' + netUp.toFixed(1) + ' / \u2193 ' + netDown.toFixed(1) + ' MB/s');
+            setElText('gp-net-detail', t('net_up') + ' ' + netUp.toFixed(1) + ' / ' + t('net_down') + ' ' + netDown.toFixed(1) + ' MB/s');
         }
 
         updateSourceText('gp-source-text', data);
@@ -9165,7 +12631,7 @@ body.cyber-active {
      * - fxm_style_v31 → fxm_current_style
      */
     /** 面板版本标记，用于升级时清理可能损坏的旧数据 */
-    const FXM_PANEL_VERSION = '3.40.8';
+    const FXM_PANEL_VERSION = '3.40.10';
 
     /**
      * 版本迁移：升级到新版本时清理旧版可能损坏的拖拽位置缓存，
@@ -9231,10 +12697,10 @@ body.cyber-active {
         if (diskVal) {
             const disk = rawData.disk_io;
             if (disk && disk.read_mbps !== undefined && disk.write_mbps !== undefined) {
-                diskVal.textContent = 'R ' + disk.read_mbps.toFixed(1) + ' / W ' + disk.write_mbps.toFixed(1) + ' MB/s';
+                diskVal.textContent = t('disk_read') + ' ' + disk.read_mbps.toFixed(1) + ' / ' + t('disk_write') + ' ' + disk.write_mbps.toFixed(1) + ' MB/s';
                 diskVal.classList.remove('na');
             } else {
-                diskVal.textContent = 'N/A';
+                diskVal.textContent = t('not_available');
                 diskVal.classList.add('na');
             }
         }
@@ -9242,10 +12708,10 @@ body.cyber-active {
         if (netVal) {
             const net = rawData.network_io;
             if (net && net.upload_mbps !== undefined && net.download_mbps !== undefined) {
-                netVal.textContent = '\u2191 ' + net.upload_mbps.toFixed(1) + ' \u2193 ' + net.download_mbps.toFixed(1) + ' MB/s';
+                netVal.textContent = t('net_up') + ' ' + net.upload_mbps.toFixed(1) + ' ' + t('net_down') + ' ' + net.download_mbps.toFixed(1) + ' MB/s';
                 netVal.classList.remove('na');
             } else {
-                netVal.textContent = 'N/A';
+                netVal.textContent = t('not_available');
                 netVal.classList.add('na');
             }
         }
@@ -9309,7 +12775,7 @@ body.cyber-active {
      * 7. 初始化拖拽
      */
     async function init() {
-        console.log('[飞雪监测器] 🚀 Premium UI v3.40.8 启动...');
+        console.log('[飞雪监测器] 🚀 Premium UI v3.40.10 启动...');
         try {
             // 0. 版本迁移：清理旧版可能损坏的缓存
             migratePanelVersion();
@@ -9356,6 +12822,16 @@ body.cyber-active {
             // 8. 初始化拖拽
             initDrag();
 
+            // 9. 初始化 DIAG 诊断功能
+            try {
+                refreshDiagConfigFromBackend();
+                updateDiagPanelsForEnabledState();
+                installDiagRuntimeHooks();
+                console.log('[飞雪监测器] DIAG 诊断模块 v3.40.10 已初始化（真实报错诊断与健康检查已分离）');
+            } catch (e) {
+                console.warn('[飞雪监测器]  DIAG 初始化失败:', e);
+            }
+
             // 8.1 监听窗口大小变化，钳位当前主题宽度并同步滑块上限
             window.addEventListener('resize', () => {
                 const size = getDockSize(currentStyle);
@@ -9372,7 +12848,7 @@ body.cyber-active {
                 }).observe(document.body, { childList: true, subtree: true });
             }
 
-            console.log('[飞雪监测器] ✅ Premium UI v3.40.8 initialized successfully!');
+            console.log('[飞雪监测器] ✅ Premium UI v3.40.10 initialized successfully!');
         } catch(e) {
             console.error('[飞雪监测器] ❌ Init failed:', e);
         }
@@ -9548,11 +13024,9 @@ body.cyber-active {
         const effectiveDelay = state.getEffectiveDelay();
         document.querySelectorAll('.fxm-delay-value').forEach(label => {
             if (state.isAdaptiveDelay) {
-                label.textContent = FXM_LANG === 'zh'
-                    ? '自动（当前 ' + effectiveDelay + ' 秒）'
-                    : 'Auto (Current ' + effectiveDelay + 's)';
+                label.textContent = tf('delay_auto', effectiveDelay);
             } else {
-                label.textContent = effectiveDelay + (FXM_LANG === 'zh' ? ' 秒' : 's');
+                label.textContent = tf('delay_seconds', effectiveDelay);
             }
             label.classList.toggle('fxm-disabled', isOff || cleaning);
         });
@@ -9562,7 +13036,7 @@ body.cyber-active {
             btn.disabled = cleaning;
             btn.classList.toggle('fxm-disabled', cleaning);
             if (cleaning) {
-                btn.textContent = FXM_LANG === 'zh' ? '清理中…' : 'Cleaning…';
+                btn.textContent = t('cleaning');
             } else {
                 btn.textContent = t('free_memory_now');
             }
@@ -9725,7 +13199,22 @@ body.cyber-active {
     }
 
     /**
-     * 尝试Hook ComfyUI 的 WebSocket 以监听 status / executing 消息；同时兜底轮询
+     * 解析 DIAG 自动诊断 WebSocket 消息（feixue.diag）
+     */
+    function handleAutoDiagWebSocketMessage(msg) {
+        try {
+            if (!msg || msg.type !== 'feixue.diag') return;
+            const report = msg.data;
+            if (report && typeof report === 'object') {
+                handleAutoDiag(report);
+            }
+        } catch(e) {
+            console.warn('[飞雪监测器] ⚠️ 处理 feixue.diag 消息失败:', e);
+        }
+    }
+
+    /**
+     * 尝试Hook ComfyUI 的 WebSocket 以监听 status / executing / feixue.diag 消息；同时兜底轮询
      */
     function startQueueMonitoring() {
         // 1. 尝试Hook现有或未来的 ComfyUI WebSocket
@@ -9740,6 +13229,7 @@ body.cyber-active {
                         const msg = JSON.parse(event.data);
                         handleCleanupStatusMessage(msg);
                         handleCleanupExecutingMessage(msg);
+                        handleAutoDiagWebSocketMessage(msg);
                     } catch(e) {}
                 });
             };
@@ -10310,7 +13800,7 @@ body.cyber-active {
         getSnapshot: () => fetchFromBackend()
     };
 
-    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.40.8)');
+    console.log('[飞雪监测器] 📦 全局对象已导出: window.FeixueMonitor (v3.40.10)');
 
     // ============================================================
     // ComfyUI 工作流完成/出错声音提示

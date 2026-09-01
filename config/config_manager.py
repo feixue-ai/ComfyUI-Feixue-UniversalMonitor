@@ -18,6 +18,13 @@ DEFAULTS = {
         "linux_amd_priority": ["amdsmi", "rocm_smi_lib", "sysfs"],
         "windows_amd_priority": ["adlx"],
     },
+    "diag": {
+        "enabled": False,
+        "notification": ["panel"],
+        "error_dict_version": "1.0.0",
+        "snapshot_ring_path": "~/.cache/feixue_monitor/snapshot_ring.jsonl",
+        "snapshot_ring_max_entries": 120,
+    },
 }
 
 TYPE_SCHEMA = {
@@ -28,6 +35,11 @@ TYPE_SCHEMA = {
     "ui.show_on_startup": bool,
     "data_sources.linux_amd_priority": list,
     "data_sources.windows_amd_priority": list,
+    "diag.enabled": bool,
+    "diag.notification": list,
+    "diag.error_dict_version": str,
+    "diag.snapshot_ring_path": str,
+    "diag.snapshot_ring_max_entries": int,
 }
 
 
@@ -141,6 +153,12 @@ class ConfigManager:
     @property
     def data(self) -> dict[str, Any]:
         return self._data.copy()
+
+    def get_diag_enabled(self) -> bool:
+        return bool(self.get("diag.enabled", True))
+
+    def set_diag_enabled(self, enabled: bool) -> None:
+        self.set("diag.enabled", bool(enabled))
 
     def save(self, path: str | Path | None = None) -> None:
         target = Path(path) if path else self._config_path
